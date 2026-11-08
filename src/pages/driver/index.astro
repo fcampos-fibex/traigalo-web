@@ -25,7 +25,8 @@ let availableOrders: any[] = [];
 try {
   const placedRes = await fetch(`${API_BASE}/orders?status=placed&size=20`);
   if (placedRes.ok) {
-    availableOrders = await placedRes.json();
+    const data = await placedRes.json();
+    if (Array.isArray(data)) availableOrders = data;
   }
 } catch {}
 
@@ -33,12 +34,13 @@ let assignedOrders: any[] = [];
 try {
   const assignedRes = await fetch(`${API_BASE}/orders?driver-id=${driverId}&size=10`);
   if (assignedRes.ok) {
-    assignedOrders = await assignedRes.json();
+    const data = await assignedRes.json();
+    if (Array.isArray(data)) assignedOrders = data;
   }
 } catch {}
 
-const currentActiveOrder = assignedOrders.find(
-  (o) => o.status === 'driver_assigned' || o.status === 'in_transit'
+const currentActiveOrder = (Array.isArray(assignedOrders) ? assignedOrders : []).find(
+  (o) => o && (o.status === 'driver_assigned' || o.status === 'driver_in_transit' || o.status === 'in_transit')
 ) || null;
 ---
 
