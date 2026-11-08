@@ -5,8 +5,8 @@ import BottomNav from '../components/BottomNav.astro';
 import RoleSwitcher from '../components/RoleSwitcher.astro';
 import '../styles/global.css';
 
-const API_BASE = 'http://api.44.217.190.140.sslip.io/v2';
-const ASSET_BASE = 'http://directus.44.217.190.140.sslip.io/assets';
+const API_BASE = 'https://api.traigalo.org/v2';
+const ASSET_BASE = 'https://admin.traigalo.org/assets';
 
 let stores = [];
 let popularProducts = [];
@@ -37,7 +37,7 @@ if (wilyStore) {
     const prodRes = await fetch(`${API_BASE}/stores/${wilyStore.id}/products`);
     if (prodRes.ok) {
       const items = await prodRes.json();
-      popularProducts = items.slice(0, 8).map(it => {
+      popularProducts = items.map(it => {
         const fileId = assetMap[it.name];
         return {
           id: it.id,
@@ -77,65 +77,65 @@ const categories = [
     <RoleSwitcher currentRole="client" />
     <Header />
 
-    <main class="flex-1 max-w-2xl mx-auto px-4 py-4 w-full space-y-6">
+    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 w-full space-y-8">
       
-      <!-- HERO BANNER -->
-      <section class="relative rounded-3xl overflow-hidden bg-gradient-to-r from-[#FF7A00] to-[#FFA726] p-5 shadow-lg shadow-orange-500/15 text-white">
-        <div class="relative z-10 max-w-[70%]">
-          <span class="inline-block px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-extrabold uppercase tracking-wider mb-1.5">
+      <!-- HERO BANNER (RESPONSIVE DESKTOP & MOBILE) -->
+      <section class="relative rounded-3xl overflow-hidden bg-gradient-to-r from-[#FF7A00] via-[#FF8A1E] to-[#FFA726] p-6 sm:p-10 lg:p-12 shadow-xl shadow-orange-500/15 text-white">
+        <div class="relative z-10 max-w-xl">
+          <span class="inline-block px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-black uppercase tracking-wider mb-2.5">
             Llegó Traigalo
           </span>
-          <h2 class="text-xl font-black leading-tight tracking-tight mb-1">
+          <h2 class="text-2xl sm:text-4xl lg:text-5xl font-black leading-tight tracking-tight mb-2">
             Lo que quieras, a tu puerta
           </h2>
-          <p class="text-xs text-orange-50 leading-relaxed mb-3">
-            Tecnología, cuidado personal y restaurantes de tu ciudad.
+          <p class="text-sm sm:text-base text-orange-50 leading-relaxed mb-5 max-w-md">
+            Tecnología, cuidado personal y restaurantes oficiales de tu ciudad con delivery express en tiempo real.
           </p>
-          <a href="#stores" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white text-[#FF7A00] text-xs font-black shadow-md hover:bg-orange-50 active:scale-95 transition-all">
-            <span>Explorar Tiendas</span>
-            <span>→</span>
+          <a href="#stores" class="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-white text-[#FF7A00] text-sm font-black shadow-lg hover:bg-orange-50 active:scale-95 transition-all">
+            <span>Explorar Tiendas Oficiales</span>
+            <span class="text-base">→</span>
           </a>
         </div>
-        <div class="absolute -right-4 -bottom-6 w-36 h-36 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
-        <div class="absolute right-4 bottom-2 text-6xl select-none opacity-90 drop-shadow-md">
+        <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div class="hidden sm:block absolute right-12 bottom-6 text-8xl lg:text-9xl select-none opacity-90 drop-shadow-xl animate-pulse">
           🛵
         </div>
       </section>
 
-      <!-- HORIZONTAL CATEGORIES -->
+      <!-- CATEGORIES BAR -->
       <section>
-        <div class="flex items-center justify-between mb-3">
-          <h2 class="text-base font-extrabold text-gray-900 tracking-tight">Categorías</h2>
-          <span class="text-xs font-bold text-[#FF7A00]">{stores.length} tiendas</span>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg sm:text-xl font-extrabold text-gray-900 tracking-tight">Categorías Principales</h2>
+          <span class="text-xs sm:text-sm font-bold text-[#FF7A00]">{stores.length} comercios verificados</span>
         </div>
-        <div class="flex gap-2.5 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4">
+        <div class="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
           {categories.map(c => (
-            <button class={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all active:scale-95 ${
+            <button class={`shrink-0 flex items-center gap-2.5 px-5 py-3 rounded-2xl text-xs sm:text-sm font-extrabold transition-all active:scale-95 ${
               c.active
                 ? 'bg-[#FF7A00] text-white shadow-md shadow-orange-500/20'
                 : 'bg-white text-gray-700 border border-gray-100 hover:border-orange-200 shadow-2xs'
             }`}>
-              <span class="text-base">{c.icon}</span>
+              <span class="text-base sm:text-lg">{c.icon}</span>
               <span>{c.name}</span>
             </button>
           ))}
         </div>
       </section>
 
-      <!-- POPULAR PRODUCTS WITH OWN S3/DIRECTUS ASSETS -->
+      <!-- POPULAR PRODUCTS GRID (RESPONSIVE: 2 cols on mobile, 3 on tablet, 4 on desktop, 5 on wide) -->
       <section>
-        <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center justify-between mb-4">
           <div>
-            <h2 class="text-base font-extrabold text-gray-900 tracking-tight">Productos Destacados</h2>
-            <p class="text-[11px] text-gray-400">Desde WILY VIDEO & tiendas oficiales</p>
+            <h2 class="text-lg sm:text-xl font-extrabold text-gray-900 tracking-tight">Productos Destacados</h2>
+            <p class="text-xs text-gray-400">Catálogo oficial de WILY VIDEO y tiendas aliadas</p>
           </div>
-          <span class="text-xs font-bold text-[#FF7A00]">Ver todos</span>
+          <span class="text-xs sm:text-sm font-bold text-[#FF7A00] hover:underline cursor-pointer">Ver todos ({popularProducts.length})</span>
         </div>
 
-        <div class="grid grid-cols-2 gap-3.5">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-5">
           {popularProducts.map(p => (
-            <div class="bg-white rounded-3xl p-3 border border-gray-100 shadow-sm flex flex-col justify-between group hover:shadow-md transition-all">
-              <div class="relative w-full aspect-square rounded-2xl bg-gray-50 overflow-hidden mb-2.5 flex items-center justify-center p-2">
+            <div class="bg-white rounded-3xl p-3.5 sm:p-4 border border-gray-100 shadow-sm flex flex-col justify-between group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+              <div class="relative w-full aspect-square rounded-2xl bg-[#F8F9FA] overflow-hidden mb-3 flex items-center justify-center p-3">
                 <img 
                   src={p.image} 
                   alt={p.name}
@@ -143,23 +143,23 @@ const categories = [
                   class="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300"
                   onerror="this.src='https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=400&q=80'"
                 />
-                <span class="absolute top-2 left-2 px-2 py-0.5 rounded-lg bg-white/95 backdrop-blur-md text-[9px] font-black text-gray-800 shadow-2xs">
+                <span class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-lg bg-white/95 backdrop-blur-md text-[10px] font-black text-gray-800 shadow-2xs">
                   {p.time}
                 </span>
               </div>
 
               <div>
                 <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider truncate">{p.storeName}</p>
-                <h3 class="text-xs font-bold text-gray-900 line-clamp-2 leading-tight mt-0.5 min-h-[2rem]">
+                <h3 class="text-xs sm:text-sm font-extrabold text-gray-900 line-clamp-2 leading-snug mt-1 min-h-[2.5rem]">
                   {p.name}
                 </h3>
               </div>
 
-              <div class="flex items-center justify-between mt-3 pt-2 border-t border-gray-50">
-                <span class="text-sm font-black text-gray-950">${p.price.toFixed(2)}</span>
+              <div class="flex items-center justify-between mt-3 pt-2.5 border-t border-gray-50">
+                <span class="text-sm sm:text-base font-black text-gray-950">${p.price.toFixed(2)}</span>
                 <a 
                   href={`/stores/${p.storeId}`}
-                  class="w-8 h-8 rounded-full bg-[#FF7A00] text-white flex items-center justify-center shadow-md shadow-orange-500/25 active:scale-90 transition-transform font-black text-base"
+                  class="w-9 h-9 rounded-full bg-[#FF7A00] hover:bg-[#E66E00] text-white flex items-center justify-center shadow-md shadow-orange-500/25 active:scale-90 transition-all font-black text-lg"
                 >
                   +
                 </a>
@@ -169,24 +169,26 @@ const categories = [
         </div>
       </section>
 
-      <!-- STORES SECTION (CANONICAL POSTGRESQL + POSTGIS) -->
-      <section id="stores" class="space-y-3 pt-2">
+      <!-- STORES SECTION (RESPONSIVE GRID) -->
+      <section id="stores" class="space-y-4 pt-4">
         <div class="flex items-center justify-between">
           <div>
-            <h2 class="text-base font-extrabold text-gray-900 tracking-tight">Tiendas Oficiales</h2>
-            <p class="text-[11px] text-gray-400">PostgreSQL 16 + PostGIS en Vivo</p>
+            <h2 class="text-lg sm:text-xl font-extrabold text-gray-900 tracking-tight">Tiendas Oficiales</h2>
+            <p class="text-xs text-gray-400">Canónico PostgreSQL 16 + PostGIS</p>
           </div>
-          <span class="text-xs font-bold text-emerald-600">● 100% Operativas</span>
+          <span class="text-xs sm:text-sm font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+            ● 100% Operativas
+          </span>
         </div>
 
-        <div class="space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
           {stores.map(store => (
             <a 
               href={`/stores/${store.id}`}
-              class="block bg-white rounded-3xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-all active:scale-[0.99]"
+              class="block bg-white rounded-3xl p-5 border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-[0.99]"
             >
-              <div class="flex items-center gap-3.5">
-                <div class="w-16 h-16 rounded-2xl bg-gray-100 overflow-hidden shrink-0 border border-gray-100">
+              <div class="flex items-center gap-4">
+                <div class="w-20 h-20 rounded-2xl bg-gray-100 overflow-hidden shrink-0 border border-gray-100 shadow-inner">
                   <img 
                     src={defaultCovers[store.name] || 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=300&q=80'} 
                     alt={store.name}
@@ -195,13 +197,13 @@ const categories = [
                 </div>
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2">
-                    <h3 class="text-sm font-extrabold text-gray-900 truncate">{store.name}</h3>
+                    <h3 class="text-base font-extrabold text-gray-900 truncate">{store.name}</h3>
                     {store.is_open && (
-                      <span class="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded-md">Abierto</span>
+                      <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">Abierto</span>
                     )}
                   </div>
-                  <p class="text-xs text-gray-500 truncate mt-0.5">{store.address_line}</p>
-                  <div class="flex items-center gap-3 mt-1.5 text-[11px] text-gray-400 font-medium">
+                  <p class="text-xs text-gray-500 truncate mt-1">{store.address_line}</p>
+                  <div class="flex items-center gap-3 mt-2 text-xs text-gray-400 font-medium">
                     <span class="flex items-center gap-1 text-amber-500 font-bold">
                       ★ 4.9
                     </span>
@@ -219,6 +221,7 @@ const categories = [
 
     </main>
 
+    <Footer />
     <BottomNav />
   </body>
 </html>
