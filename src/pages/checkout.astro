@@ -1,0 +1,174 @@
+---
+import '../styles/global.css';
+
+const cartItems = [
+  { id: '1', name: 'Truffle Smash Double', price: 9.80, qty: 1, image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=300&q=80' },
+  { id: '2', name: 'Papas Rústicas Parmesano & Trufa', price: 4.50, qty: 1, image: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=300&q=80' }
+];
+
+const subtotal = 14.30;
+const deliveryFee = 1.50;
+const serviceFee = 0.50;
+const total = subtotal + deliveryFee + serviceFee;
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Confirmar Pedido | Traigalo ⚡</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  </head>
+  <body class="bg-[#FAFAFC] text-[#1A1D20] min-h-screen flex flex-col pb-28 antialiased selection:bg-orange-500 selection:text-white">
+    
+    <!-- TOP APP BAR -->
+    <header class="bg-white/90 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40 px-4 py-3.5">
+      <div class="max-w-2xl mx-auto flex items-center justify-between">
+        <a href="/" class="w-10 h-10 rounded-full bg-gray-50 hover:bg-gray-100 flex items-center justify-center text-gray-800 transition-colors active:scale-95">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
+          </svg>
+        </a>
+        <h1 class="text-base font-extrabold text-gray-900">Finalizar Pedido</h1>
+        <div class="w-10"></div>
+      </div>
+    </header>
+
+    <main class="flex-1 max-w-2xl mx-auto px-4 py-5 w-full space-y-4">
+      
+      <!-- DELIVERY ADDRESS CARD -->
+      <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[10px] font-extrabold uppercase tracking-wider text-gray-400">Dirección de Entrega</span>
+          <span class="text-xs font-bold text-orange-600 hover:underline cursor-pointer">Cambiar</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center text-lg shrink-0">
+            🏠
+          </div>
+          <div class="flex-1 min-w-0">
+            <h3 class="text-sm font-bold text-gray-900 truncate">Casa (Residencias El Roble)</h3>
+            <p class="text-xs text-gray-400 truncate">Av. Libertador 102, Apto 5B, Caracas</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ESTIMATED TIME CARD -->
+      <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg shrink-0">
+            ⚡
+          </div>
+          <div>
+            <h4 class="text-xs font-bold text-gray-900">Entrega Express</h4>
+            <p class="text-[11px] text-gray-400">Estimado: 15-25 minutos</p>
+          </div>
+        </div>
+        <span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px]">
+          En ruta prioritaria
+        </span>
+      </section>
+
+      <!-- ORDER ITEMS -->
+      <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs">
+        <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-400 mb-3">Tu Pedido</h3>
+        <div class="space-y-3">
+          {cartItems.map(item => (
+            <div class="flex items-center justify-between gap-3 pb-3 border-b border-gray-50 last:border-0 last:pb-0">
+              <div class="w-12 h-12 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+                <img src={item.image} alt={item.name} class="w-full h-full object-cover" />
+              </div>
+              <div class="flex-1 min-w-0">
+                <h4 class="text-xs font-bold text-gray-900 truncate">{item.name}</h4>
+                <p class="text-[11px] font-extrabold text-orange-600 mt-0.5">${item.price.toFixed(2)}</p>
+              </div>
+              <div class="flex items-center gap-2 bg-gray-50 rounded-xl px-2 py-1 border border-gray-100">
+                <button class="text-xs font-black text-gray-500 hover:text-orange-600 w-5 h-5 flex items-center justify-center">-</button>
+                <span class="text-xs font-black text-gray-900">{item.qty}</span>
+                <button class="text-xs font-black text-gray-500 hover:text-orange-600 w-5 h-5 flex items-center justify-center">+</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <!-- PAYMENT METHOD SELECTOR -->
+      <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs">
+        <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-400 mb-3">Método de Pago</h3>
+        <div class="space-y-2">
+          <label class="flex items-center justify-between p-3 rounded-2xl border-2 border-orange-600 bg-orange-50/30 cursor-pointer">
+            <div class="flex items-center gap-3">
+              <span class="text-xl">💳</span>
+              <div>
+                <h4 class="text-xs font-bold text-gray-900">Tarjeta de Débito / Crédito</h4>
+                <p class="text-[10px] text-gray-400">•••• •••• •••• 4242</p>
+              </div>
+            </div>
+            <input type="radio" name="payment" checked class="text-orange-600 focus:ring-orange-500 w-4 h-4" />
+          </label>
+
+          <label class="flex items-center justify-between p-3 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white cursor-pointer transition-colors">
+            <div class="flex items-center gap-3">
+              <span class="text-xl">📱</span>
+              <div>
+                <h4 class="text-xs font-bold text-gray-900">Pago Móvil / Transferencia</h4>
+                <p class="text-[10px] text-gray-400">Confirmación inmediata</p>
+              </div>
+            </div>
+            <input type="radio" name="payment" class="text-orange-600 focus:ring-orange-500 w-4 h-4" />
+          </label>
+
+          <label class="flex items-center justify-between p-3 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white cursor-pointer transition-colors">
+            <div class="flex items-center gap-3">
+              <span class="text-xl">💵</span>
+              <div>
+                <h4 class="text-xs font-bold text-gray-900">Efectivo contra entrega</h4>
+                <p class="text-[10px] text-gray-400">Pagas al recibir</p>
+              </div>
+            </div>
+            <input type="radio" name="payment" class="text-orange-600 focus:ring-orange-500 w-4 h-4" />
+          </label>
+        </div>
+      </section>
+
+      <!-- COST BREAKDOWN -->
+      <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs space-y-2 text-xs">
+        <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-400 mb-2">Desglose de Pago</h3>
+        <div class="flex justify-between text-gray-500">
+          <span>Subtotal</span>
+          <span class="font-bold text-gray-800">${subtotal.toFixed(2)}</span>
+        </div>
+        <div class="flex justify-between text-gray-500">
+          <span>Costo de Envío</span>
+          <span class="font-bold text-gray-800">${deliveryFee.toFixed(2)}</span>
+        </div>
+        <div class="flex justify-between text-gray-500">
+          <span>Tarifa de Servicio</span>
+          <span class="font-bold text-gray-800">${serviceFee.toFixed(2)}</span>
+        </div>
+        <div class="pt-2 border-t border-gray-100 flex justify-between items-center text-sm font-black text-gray-950">
+          <span>Total a Pagar</span>
+          <span class="text-lg text-orange-600">${total.toFixed(2)}</span>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- STICKY BOTTOM CHECKOUT BUTTON -->
+    <div class="fixed bottom-0 left-0 right-0 z-50 p-4 bg-white/95 backdrop-blur-md border-t border-gray-100 shadow-xl shadow-gray-200/50">
+      <div class="max-w-2xl mx-auto">
+        <a 
+          href="/orders/track?id=773954c2-9a3d-4c3e-8c3e-traigalo2026" 
+          class="w-full h-14 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-orange-600/30 active:scale-98 transition-all"
+        >
+          <span>Confirmar y Enviar Pedido</span>
+          <span>•</span>
+          <span>${total.toFixed(2)}</span>
+        </a>
+      </div>
+    </div>
+
+  </body>
+</html>

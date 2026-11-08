@@ -1,0 +1,79 @@
+---
+const directusUrl = import.meta.env.PUBLIC_DIRECTUS_URL || 'http://directus.44.217.190.140.sslip.io';
+---
+
+<header class="bg-white/95 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 py-3.5">
+    
+    <!-- TOP ROW: LOCATION + USER PROFILE -->
+    <div class="flex items-center justify-between gap-4">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center text-base shadow-xs shrink-0">
+          📍
+        </div>
+        <div class="flex flex-col">
+          <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider leading-tight">Entregar en</span>
+          <div class="flex items-center gap-1 cursor-pointer group">
+            <span class="text-sm font-bold text-gray-900 group-hover:text-orange-600 transition-colors">
+              Av. Libertador 102, Caracas
+            </span>
+            <svg class="w-3.5 h-3.5 text-orange-600 transform group-hover:translate-y-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2.5">
+        <a 
+          href={directusUrl} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-50 hover:bg-orange-100 text-orange-600 text-xs font-bold transition-colors"
+        >
+          <span>CMS</span>
+          <span class="text-[10px]">↗</span>
+        </a>
+
+        <!-- NOTIFICATION BELL -->
+        <button class="w-10 h-10 rounded-full bg-gray-50 hover:bg-gray-100 border border-gray-100 flex items-center justify-center text-gray-700 transition-colors relative">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+          <span class="absolute top-2 right-2 w-2 h-2 bg-orange-600 rounded-full ring-2 ring-white"></span>
+        </button>
+
+        <!-- USER AVATAR -->
+        <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-orange-500 to-amber-400 p-0.5 shadow-sm">
+          <img 
+            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80" 
+            alt="User profile" 
+            class="w-full h-full object-cover rounded-full"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- SEARCH BAR ROW -->
+    <div class="mt-3.5 flex items-center gap-2.5">
+      <div class="relative flex-1">
+        <input 
+          type="text" 
+          placeholder="Buscar platos, restaurantes o supermercados..." 
+          class="w-full h-11 pl-10 pr-4 bg-gray-50 border border-gray-100 rounded-2xl text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
+        />
+        <svg class="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+
+      <!-- FILTER BUTTON -->
+      <button class="w-11 h-11 rounded-2xl bg-orange-600 hover:bg-orange-700 text-white flex items-center justify-center shadow-md shadow-orange-600/20 transition-all shrink-0 active:scale-95">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+        </svg>
+      </button>
+    </div>
+
+  </div>
+</header>

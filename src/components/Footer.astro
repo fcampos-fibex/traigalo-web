@@ -1,0 +1,46 @@
+---
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="bg-gray-950 text-gray-400 py-12 border-t border-gray-900 mt-20">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8">
+    <div class="space-y-4">
+      <span class="text-2xl font-black bg-linear-to-r from-orange-500 to-amber-400 bg-clip-text text-transparent">
+        Traigalo ⚡
+      </span>
+      <p class="text-xs text-gray-500 leading-relaxed">
+        Plataforma Multi-Vendor de Delivery y Comercio Local Enterprise Tier-1. Arquitectura de alto rendimiento sobre Go, Astro, KMP y PostgreSQL.
+      </p>
+    </div>
+
+    <div>
+      <h4 class="text-white text-sm font-semibold mb-3">Plataforma</h4>
+      <ul class="space-y-2 text-xs">
+        <li><a href="/" class="hover:text-white transition-colors">Tiendas y Restaurantes</a></li>
+        <li><a href="/orders/track" class="hover:text-white transition-colors">Estado de Pedido</a></li>
+      </ul>
+    </div>
+
+    <div>
+      <h4 class="text-white text-sm font-semibold mb-3">Arquitectura</h4>
+      <ul class="space-y-2 text-xs">
+        <li><span class="text-gray-500">Go Core API (VSA)</span></li>
+        <li><span class="text-gray-500">Astro SSR + Islands</span></li>
+        <li><span class="text-gray-500">Kotlin Multiplatform (KMP)</span></li>
+        <li><span class="text-gray-500">PostgreSQL 16 + PostGIS</span></li>
+      </ul>
+    </div>
+
+    <div>
+      <h4 class="text-white text-sm font-semibold mb-3">Operaciones</h4>
+      <p class="text-xs text-gray-500 mb-2">Desplegado en Dokploy (AWS EC2)</p>
+      <span class="inline-flex items-center px-2 py-1 rounded text-xs font-mono bg-emerald-950 text-emerald-400 border border-emerald-800">
+        ● Dokploy Swarm Active
+      </span>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 pt-8 border-t border-gray-900 text-center text-xs text-gray-600">
+    © {currentYear} Traigalo Technologies Inc. Todos los derechos reservados.
+  </div>
+</footer>
