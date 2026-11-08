@@ -1,0 +1,55 @@
+---
+const currentPath = Astro.url.pathname;
+---
+
+<div class="fixed top-3 right-3 z-50">
+  <div class="bg-black/85 backdrop-blur-xl border border-white/15 rounded-full p-1 shadow-2xl flex items-center gap-1">
+    <a 
+      href="/" 
+      class={`px-3 py-1.5 rounded-full text-[10px] font-extrabold flex items-center gap-1.5 transition-all ${
+        currentPath === '/' || currentPath.startsWith('/stores') || currentPath === '/checkout'
+          ? 'bg-orange-600 text-white shadow-md' 
+          : 'text-gray-300 hover:text-white'
+      }`}
+    >
+      <span>🛒</span>
+      <span class="hidden sm:inline">Cliente</span>
+    </a>
+
+    <a 
+      href="/driver" 
+      class={`px-3 py-1.5 rounded-full text-[10px] font-extrabold flex items-center gap-1.5 transition-all ${
+        currentPath.startsWith('/driver')
+          ? 'bg-orange-600 text-white shadow-md' 
+          : 'text-gray-300 hover:text-white'
+      }`}
+    >
+      <span>🛵</span>
+      <span class="hidden sm:inline">Repartidor</span>
+    </a>
+
+    <a 
+      href="/vendor" 
+      class={`px-3 py-1.5 rounded-full text-[10px] font-extrabold flex items-center gap-1.5 transition-all ${
+        currentPath.startsWith('/vendor')
+          ? 'bg-orange-600 text-white shadow-md' 
+          : 'text-gray-300 hover:text-white'
+      }`}
+    >
+      <span>🍳</span>
+      <span class="hidden sm:inline">Comercio</span>
+    </a>
+
+    <a 
+      href="/admin" 
+      class={`px-3 py-1.5 rounded-full text-[10px] font-extrabold flex items-center gap-1.5 transition-all ${
+        currentPath.startsWith('/admin')
+          ? 'bg-orange-600 text-white shadow-md' 
+          : 'text-gray-300 hover:text-white'
+      }`}
+    >
+      <span>⚡</span>
+      <span class="hidden sm:inline">Admin</span>
+    </a>
+  </div>
+</div>

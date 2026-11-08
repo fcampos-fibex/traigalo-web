@@ -2,14 +2,16 @@
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
 import BottomNav from '../../components/BottomNav.astro';
+import RoleSwitcher from '../../components/RoleSwitcher.astro';
 import '../../styles/global.css';
 
-const orderId = Astro.url.searchParams.get('id') || '773954c2-9a3d-4c3e-8c3e-traigalo2026';
+const mapsApiKey = "AIzaSyDgGeHNSohA0ffuJ-ko2MqgzqgnFXkCicA";
+const orderId = Astro.url.searchParams.get('id') || 'TRG-7821';
 
 const mockOrder = {
   id: orderId,
-  orderNumber: 1042,
-  storeName: 'Black Iron Burger Lab',
+  orderNumber: 7821,
+  storeName: 'Burger Crave',
   driverName: 'Carlos Mendoza',
   driverVehicle: 'Yamaha FZ • Placa: ABC-123',
   driverRating: '4.9 ★',
@@ -17,13 +19,13 @@ const mockOrder = {
   eta: '12-15 min',
   address: 'Av. Libertador 102, Residencias El Roble, Apto 5B',
   items: [
-    { name: 'Truffle Smash Double', qty: 1, price: 9.80 },
-    { name: 'Papas Rústicas Parmesano & Trufa', qty: 1, price: 4.50 }
+    { name: 'Crispy Supreme Smash', qty: 2, price: 14.50 },
+    { name: 'Papas Rústicas Trufadas', qty: 1, price: 5.50 }
   ],
-  subtotal: 14.30,
+  subtotal: 34.50,
   deliveryFee: 1.50,
   serviceFee: 0.50,
-  total: 16.30
+  total: 36.50
 };
 
 const steps = [
@@ -34,18 +36,27 @@ const steps = [
 ];
 ---
 
+<!doctype html>
 <html lang="es">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <title>Rastreo de Pedido #{mockOrder.orderNumber} | Traigalo ⚡</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.gstatic.com" />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <style>
+      #map-container {
+        width: 100%;
+        height: 100%;
+        min-height: 260px;
+        border-radius: 1.5rem;
+      }
+    </style>
   </head>
-  <body class="bg-[#FAFAFC] text-[#1A1D20] min-h-screen flex flex-col pb-24 md:pb-12 antialiased selection:bg-orange-500 selection:text-white">
-    
-    <!-- TOP APP BAR -->
+  <body class="bg-[#FAFAFC] text-[#1A1D20] min-h-screen flex flex-col pb-28 antialiased selection:bg-[#FF7A00] selection:text-white">
+    <RoleSwitcher currentRole="client" />
+
     <header class="bg-white/90 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40 px-4 py-3.5">
       <div class="max-w-2xl mx-auto flex items-center justify-between">
         <a href="/" class="w-10 h-10 rounded-full bg-gray-50 hover:bg-gray-100 flex items-center justify-center text-gray-800 transition-colors active:scale-95">
@@ -54,20 +65,18 @@ const steps = [
           </svg>
         </a>
         <div class="text-center">
-          <span class="text-[10px] font-extrabold uppercase tracking-wider text-orange-600">En Camino</span>
+          <span class="text-[10px] font-black uppercase tracking-wider text-[#FF7A00]">En Camino</span>
           <h1 class="text-sm font-extrabold text-gray-900 leading-tight">Orden #{mockOrder.orderNumber}</h1>
         </div>
         <div class="w-10"></div>
       </div>
     </header>
 
-    <main class="flex-1 max-w-2xl mx-auto px-4 py-5 w-full space-y-4">
-      
-      <!-- ETA HERO CARD -->
-      <section class="bg-white rounded-3xl p-5 border border-gray-100 shadow-xs relative overflow-hidden">
+    <main class="flex-1 max-w-2xl mx-auto px-4 py-4 w-full space-y-4">
+      <section class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm relative overflow-hidden">
         <div class="flex items-center justify-between">
           <div>
-            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tiempo Estimado</span>
+            <span class="text-[10px] font-black text-gray-400 uppercase tracking-wider">Tiempo Estimado</span>
             <h2 class="text-2xl font-black text-gray-950 mt-0.5">{mockOrder.eta}</h2>
             <p class="text-xs text-emerald-600 font-bold mt-1">● El repartidor está a 800m de tu destino</p>
           </div>
@@ -76,41 +85,27 @@ const steps = [
           </div>
         </div>
 
-        <!-- RADAR GPS SIMULATION CARD -->
-        <div class="h-44 w-full rounded-2xl bg-[#F0F2F5] border border-gray-100 relative overflow-hidden flex items-center justify-center my-4">
-          <div class="absolute inset-0 bg-[radial-gradient(#0000000d_1px,transparent_1px)] [background-size:16px_16px]"></div>
-          
-          <div class="absolute w-28 h-28 rounded-full border border-orange-500/30 animate-ping"></div>
-          <div class="absolute w-44 h-44 rounded-full border border-orange-500/15"></div>
-
-          <div class="relative z-10 flex flex-col items-center">
-            <div class="w-11 h-11 rounded-2xl bg-orange-600 text-white flex items-center justify-center shadow-lg shadow-orange-600/30 text-xl">
-              🛵
-            </div>
-            <span class="mt-1.5 px-2.5 py-0.5 rounded-full bg-white text-[10px] font-bold text-gray-800 shadow-xs border border-gray-100">
-              {mockOrder.driverName} • A 800m
-            </span>
-          </div>
-
-          <div class="absolute bottom-2 left-2 px-2.5 py-0.5 rounded-lg bg-white/90 backdrop-blur-md text-[9px] font-bold text-gray-600 shadow-2xs">
-            📡 GPS Live Telemetry (Go + Redis GEO)
+        <div class="h-64 w-full rounded-3xl border border-gray-200 relative overflow-hidden my-4 shadow-inner">
+          <div id="map-container"></div>
+          <div class="absolute bottom-2 left-2 z-10 px-2.5 py-1 rounded-xl bg-white/95 backdrop-blur-md text-[10px] font-extrabold text-gray-700 shadow-sm border border-gray-100 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+            <span>GPS Redis GEO en Vivo</span>
           </div>
         </div>
 
-        <!-- PROGRESS STEPS -->
         <div class="grid grid-cols-4 gap-2 pt-2 border-t border-gray-100">
           {steps.map(step => (
             <div class="flex flex-col items-center text-center">
               <div class={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black mb-1 ${
                 step.current 
-                  ? 'bg-orange-600 text-white ring-3 ring-orange-600/20' 
+                  ? 'bg-[#FF7A00] text-white ring-3 ring-orange-500/20' 
                   : step.done 
                     ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' 
                     : 'bg-gray-100 text-gray-400'
               }`}>
                 {step.done && !step.current ? '✓' : step.current ? '●' : '○'}
               </div>
-              <span class={`text-[10px] font-bold leading-tight ${step.current ? 'text-orange-600' : step.done ? 'text-gray-900' : 'text-gray-400'}`}>
+              <span class={`text-[10px] font-bold leading-tight ${step.current ? 'text-[#FF7A00]' : step.done ? 'text-gray-900' : 'text-gray-400'}`}>
                 {step.label}
               </span>
               <span class="text-[9px] text-gray-400">{step.time}</span>
@@ -119,11 +114,10 @@ const steps = [
         </div>
       </section>
 
-      <!-- DRIVER CARD -->
-      <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs flex items-center justify-between gap-3">
+      <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-sm flex items-center justify-between gap-3">
         <div class="flex items-center gap-3">
-          <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 to-orange-500 flex items-center justify-center text-xl shadow-xs">
-            👨🏻‍🦱
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 to-[#FF7A00] flex items-center justify-center text-white font-black text-xl shadow-xs">
+            CM
           </div>
           <div>
             <h4 class="text-xs font-bold text-gray-900">{mockOrder.driverName}</h4>
@@ -133,17 +127,16 @@ const steps = [
         </div>
 
         <div class="flex items-center gap-2">
-          <button class="w-9 h-9 rounded-full bg-gray-50 hover:bg-gray-100 text-gray-700 flex items-center justify-center text-sm transition-colors">
+          <a href="tel:+584120000000" class="w-10 h-10 rounded-2xl bg-gray-50 hover:bg-gray-100 text-gray-700 flex items-center justify-center text-sm transition-colors border border-gray-100">
             📞
-          </button>
-          <button class="w-9 h-9 rounded-full bg-orange-600 hover:bg-orange-700 text-white flex items-center justify-center text-sm shadow-sm transition-colors">
+          </a>
+          <a href="sms:+584120000000" class="w-10 h-10 rounded-2xl bg-[#FF7A00] hover:bg-[#E66E00] text-white flex items-center justify-center text-sm shadow-md shadow-orange-500/20 transition-colors">
             💬
-          </button>
+          </a>
         </div>
       </section>
 
-      <!-- ORDER SUMMARY CARD -->
-      <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs space-y-2.5">
+      <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-sm space-y-2.5">
         <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-400">Detalles de la Orden</h3>
         <p class="text-xs font-bold text-gray-900">{mockOrder.storeName}</p>
 
@@ -158,12 +151,99 @@ const steps = [
 
         <div class="pt-2 border-t border-gray-100 flex justify-between items-center text-xs font-bold text-gray-900">
           <span>Total Pagado</span>
-          <span class="text-sm font-black text-orange-600">${mockOrder.total.toFixed(2)}</span>
+          <span class="text-sm font-black text-[#FF7A00]">${mockOrder.total.toFixed(2)}</span>
         </div>
       </section>
-
     </main>
 
     <BottomNav />
+
+    <script is:inline define:vars={{ mapsApiKey }}>
+      function loadGoogleMaps() {
+        if (window.google && window.google.maps) {
+          initMap();
+          return;
+        }
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${mapsApiKey}&callback=initMap`;
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+      }
+
+      window.initMap = function() {
+        const storeLocation = { lat: 10.4910, lng: -66.8620 };
+        const clientLocation = { lat: 10.4855, lng: -66.8530 };
+        const driverLocation = { lat: 10.4880, lng: -66.8575 };
+
+        const mapOptions = {
+          zoom: 15,
+          center: driverLocation,
+          disableDefaultUI: true,
+          zoomControl: false,
+          styles: [
+            { elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
+            { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+            { elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
+            { elementType: "labels.text.stroke", stylers: [{ color: "#f5f5f5" }] },
+            { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+            { featureType: "road.arterial", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
+            { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#dadada" }] },
+            { featureType: "water", elementType: "geometry", stylers: [{ color: "#c9c9c9" }] },
+            { featureType: "poi", stylers: [{ visibility: "off" }] }
+          ]
+        };
+
+        const mapElement = document.getElementById("map-container");
+        if (!mapElement) return;
+
+        const map = new google.maps.Map(mapElement, mapOptions);
+
+        const routePath = new google.maps.Polyline({
+          path: [storeLocation, driverLocation, clientLocation],
+          geodesic: true,
+          strokeColor: "#FF7A00",
+          strokeOpacity: 0.9,
+          strokeWeight: 4
+        });
+        routePath.setMap(map);
+
+        new google.maps.Marker({
+          position: storeLocation,
+          map: map,
+          title: "Restaurante",
+          label: { text: "🍳", fontSize: "16px" }
+        });
+
+        const driverMarker = new google.maps.Marker({
+          position: driverLocation,
+          map: map,
+          title: "Repartidor",
+          label: { text: "🛵", fontSize: "20px" }
+        });
+
+        new google.maps.Marker({
+          position: clientLocation,
+          map: map,
+          title: "Tu ubicación",
+          label: { text: "📍", fontSize: "18px" }
+        });
+
+        let step = 0;
+        setInterval(() => {
+          step = (step + 1) % 100;
+          const factor = step / 100;
+          const newLat = driverLocation.lat + (clientLocation.lat - driverLocation.lat) * factor * 0.05;
+          const newLng = driverLocation.lng + (clientLocation.lng - driverLocation.lng) * factor * 0.05;
+          driverMarker.setPosition({ lat: newLat, lng: newLng });
+        }, 1200);
+      };
+
+      if (document.readyState === 'complete') {
+        loadGoogleMaps();
+      } else {
+        window.addEventListener('load', loadGoogleMaps);
+      }
+    </script>
   </body>
 </html>

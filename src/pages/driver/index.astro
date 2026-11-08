@@ -1,0 +1,163 @@
+---
+import RoleSwitcher from '../../components/RoleSwitcher.astro';
+import '../../styles/global.css';
+
+const driver = {
+  name: 'Carlos Mendoza',
+  rating: '4.9 ★',
+  todayEarnings: 52.40,
+  todayDeliveries: 8,
+  todayTips: 6.50,
+  onlineTime: '4h 15m'
+};
+
+const activeOrder = {
+  id: '1042',
+  storeName: 'Black Iron Burger Lab',
+  storeAddress: 'Av. Libertador, Gourmet Plaza, Local 3',
+  storeDistance: '1.2 km',
+  customerName: 'María Alejandra Gómez',
+  customerAddress: 'Av. Libertador 102, Edif. Torre Norte, Apto 5B',
+  customerDistance: '2.4 km',
+  estimatedEarnings: 4.20,
+  pickupDone: false
+};
+
+const completedOrders = [
+  { id: '1038', store: 'Sakura Omakase', earned: 6.80, time: '13:40', tips: 2.00 },
+  { id: '1035', store: 'Napoli Antica', earned: 5.50, time: '12:55', tips: 1.00 },
+  { id: '1031', store: 'FreshMarket 24/7', earned: 4.20, time: '12:15', tips: 0.00 }
+];
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Panel de Repartidor | Traigalo ⚡</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  </head>
+  <body class="bg-[#FAFAFC] text-[#1A1D20] min-h-screen flex flex-col pb-12 antialiased selection:bg-orange-500 selection:text-white">
+    <RoleSwitcher />
+
+    <!-- TOP BAR -->
+    <header class="bg-white/95 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40 px-4 py-3.5">
+      <div class="max-w-2xl mx-auto flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-400 to-orange-500 flex items-center justify-center text-xl shadow-xs">
+            👨🏻‍🦱
+          </div>
+          <div>
+            <h1 class="text-sm font-extrabold text-gray-900 leading-tight">{driver.name}</h1>
+            <span class="text-[10px] font-bold text-amber-500">{driver.rating} • Nivel Diamante</span>
+          </div>
+        </div>
+
+        <!-- ONLINE TOGGLE SWITCH -->
+        <div class="flex items-center gap-2 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full cursor-pointer">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span class="text-xs font-extrabold text-emerald-800">Conectado</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1 max-w-2xl mx-auto px-4 py-5 w-full space-y-4">
+      
+      <!-- TODAY EARNINGS CARD -->
+      <section class="bg-gradient-to-r from-[#FF7A00] to-[#FF9432] rounded-3xl p-5 text-white shadow-lg shadow-orange-500/15">
+        <span class="text-[10px] font-extrabold uppercase tracking-wider text-orange-100">Ganancias de Hoy</span>
+        <div class="flex items-baseline justify-between mt-1 mb-4">
+          <h2 class="text-3xl font-black tracking-tight">${driver.todayEarnings.toFixed(2)}</h2>
+          <span class="text-xs font-bold text-white bg-white/20 px-2.5 py-1 rounded-xl backdrop-blur-md">
+            {driver.todayDeliveries} Entregas
+          </span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 pt-3 border-t border-white/20 text-xs">
+          <div>
+            <span class="text-orange-100 text-[10px] block">Propinas recibidas</span>
+            <strong class="font-black text-sm">${driver.todayTips.toFixed(2)}</strong>
+          </div>
+          <div>
+            <span class="text-orange-100 text-[10px] block">Tiempo en ruta</span>
+            <strong class="font-black text-sm">{driver.onlineTime}</strong>
+          </div>
+        </div>
+      </section>
+
+      <!-- ACTIVE DISPATCH CARD (CURRENT ASSIGNMENT) -->
+      <section class="bg-white rounded-3xl p-5 border-2 border-orange-600/30 shadow-md relative overflow-hidden">
+        <div class="flex items-center justify-between mb-3">
+          <span class="px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-800 font-extrabold text-[10px] uppercase tracking-wider">
+            ● Pedido Activo #{activeOrder.id}
+          </span>
+          <span class="text-sm font-black text-orange-600">
+            Ganancia: +${activeOrder.estimatedEarnings.toFixed(2)}
+          </span>
+        </div>
+
+        <!-- ROUTE STOPS -->
+        <div class="space-y-3.5 my-4">
+          <!-- STOP 1: RESTAURANT -->
+          <div class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-full bg-orange-50 text-orange-600 font-bold text-xs flex items-center justify-center shrink-0 border border-orange-100">
+              1
+            </div>
+            <div class="flex-1 min-w-0">
+              <span class="text-[10px] font-bold text-gray-400 uppercase">Recoger en</span>
+              <h4 class="text-xs font-bold text-gray-900 truncate">{activeOrder.storeName}</h4>
+              <p class="text-[11px] text-gray-500 truncate">{activeOrder.storeAddress} ({activeOrder.storeDistance})</p>
+            </div>
+          </div>
+
+          <!-- STOP 2: CUSTOMER -->
+          <div class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 font-bold text-xs flex items-center justify-center shrink-0 border border-emerald-100">
+              2
+            </div>
+            <div class="flex-1 min-w-0">
+              <span class="text-[10px] font-bold text-gray-400 uppercase">Entregar a {activeOrder.customerName}</span>
+              <h4 class="text-xs font-bold text-gray-900 truncate">{activeOrder.customerAddress}</h4>
+              <p class="text-[11px] text-gray-500 truncate">A {activeOrder.customerDistance} del comercio</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ACTION BUTTONS -->
+        <div class="grid grid-cols-2 gap-2.5 pt-2">
+          <button class="h-12 rounded-2xl bg-gray-50 hover:bg-gray-100 border border-gray-100 text-gray-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors">
+            <span>🗺️</span>
+            <span>Navegar GPS</span>
+          </button>
+          <button class="h-12 rounded-2xl bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-xs shadow-md shadow-orange-600/20 flex items-center justify-center gap-1.5 transition-all active:scale-95">
+            <span>✓</span>
+            <span>Confirmar Recogida</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- TODAY ACTIVITY HISTORY -->
+      <section class="bg-white rounded-3xl p-5 border border-gray-100 shadow-xs">
+        <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-400 mb-3">Historial de Hoy</h3>
+        
+        <div class="space-y-3">
+          {completedOrders.map(ord => (
+            <div class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0 last:pb-0 text-xs">
+              <div class="flex items-center gap-2.5">
+                <span class="w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 font-bold text-[10px] flex items-center justify-center">✓</span>
+                <div>
+                  <h4 class="font-bold text-gray-900 leading-tight">#{ord.id} • {ord.store}</h4>
+                  <span class="text-[10px] text-gray-400">{ord.time} • Propina: +${ord.tips.toFixed(2)}</span>
+                </div>
+              </div>
+              <span class="font-black text-gray-900">+${ord.earned.toFixed(2)}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+    </main>
+  </body>
+</html>

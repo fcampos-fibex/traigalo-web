@@ -1,0 +1,168 @@
+---
+import "../styles/global.css";
+import RoleSwitcher from "../components/RoleSwitcher.astro";
+
+const user = {
+  name: "Freddy Campos",
+  email: "freddy@traigalo.com",
+  phone: "+58 412 890 1234",
+  addresses: [
+    { title: "Casa", address: "Av. Las Américas, Res. Palmeras Apto 4-B", isDefault: true },
+    { title: "Oficina / Coworking", address: "Torre Financiera, Piso 12, Ofic. 1204", isDefault: false }
+  ],
+  paymentMethods: [
+    { brand: "Apple Pay", last4: "Default", isDefault: true, icon: "apple" },
+    { brand: "Mastercard Débito", last4: "4821", isDefault: false, icon: "card" },
+    { brand: "Efectivo", last4: "Contra entrega", isDefault: false, icon: "cash" }
+  ],
+  pastOrders: [
+    { id: "TRG-7640", date: "06 Nov 2026", restaurant: "Burger Crave", items: "1x Crispy Supreme Smash + 1x Papas", total: 14.50, status: "Entregado" },
+    { id: "TRG-7512", date: "02 Nov 2026", restaurant: "Sushi Omakase Roll", items: "2x Combo Tokio Special", total: 32.00, status: "Entregado" }
+  ]
+};
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Mi Perfil | Traigalo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  </head>
+  <body class="bg-[#FAFAFC] text-[#121212] font-['Plus_Jakarta_Sans',sans-serif] antialiased selection:bg-[#FF7A00] selection:text-white pb-32">
+    <RoleSwitcher currentRole="client" />
+
+    <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-gray-100 px-5 py-4">
+      <div class="max-w-md mx-auto flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <a href="/" class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
+            <svg class="w-5 h-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
+            </svg>
+          </a>
+          <h1 class="text-lg font-extrabold text-gray-900">Mi Cuenta</h1>
+        </div>
+        <button class="text-xs font-bold text-gray-400 hover:text-gray-900">Ajustes</button>
+      </div>
+    </header>
+
+    <main class="max-w-md mx-auto px-5 pt-4 space-y-5">
+      <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#FF7A00] to-rose-500 flex items-center justify-center text-white text-2xl font-black shadow-md shadow-orange-500/20">
+          FC
+        </div>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-base font-extrabold text-gray-900 leading-snug">{user.name}</h2>
+          <p class="text-xs text-gray-500 truncate">{user.email}</p>
+          <div class="mt-1 flex items-center gap-1.5">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-black border border-amber-200/60">
+              ⭐ Miembro Gold
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-black uppercase tracking-wider text-gray-400">Direcciones Guardadas</h3>
+          <button class="text-xs font-bold text-[#FF7A00] hover:underline">+ Nueva</button>
+        </div>
+        <div class="space-y-2.5">
+          {user.addresses.map((addr) => (
+            <div class="p-3 rounded-2xl bg-[#FAFAFC] border border-gray-100 flex items-start gap-3">
+              <div class="w-8 h-8 rounded-xl bg-orange-100 text-[#FF7A00] flex items-center justify-center shrink-0 mt-0.5">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                </svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                  <p class="text-xs font-extrabold text-gray-900">{addr.title}</p>
+                  {addr.isDefault && (
+                    <span class="text-[9px] font-bold bg-[#FF7A00] text-white px-1.5 py-0.2 rounded-md">Principal</span>
+                  )}
+                </div>
+                <p class="text-xs text-gray-500 truncate mt-0.5">{addr.address}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-black uppercase tracking-wider text-gray-400">Métodos de Pago</h3>
+          <button class="text-xs font-bold text-[#FF7A00] hover:underline">+ Tarjeta</button>
+        </div>
+        <div class="space-y-2">
+          {user.paymentMethods.map((pm) => (
+            <div class="p-3 rounded-2xl bg-[#FAFAFC] border border-gray-100 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-xl bg-gray-100 text-gray-700 flex items-center justify-center font-black text-xs">
+                  💳
+                </div>
+                <div>
+                  <p class="text-xs font-extrabold text-gray-900">{pm.brand}</p>
+                  <p class="text-[11px] text-gray-400">{pm.last4}</p>
+                </div>
+              </div>
+              {pm.isDefault && (
+                <span class="text-xs text-emerald-600 font-bold">Activo</span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-black uppercase tracking-wider text-gray-400">Historial Reciente</h3>
+          <a href="#" class="text-xs font-bold text-gray-400 hover:text-gray-900">Ver todo</a>
+        </div>
+        <div class="space-y-2.5">
+          {user.pastOrders.map((ord) => (
+            <div class="p-3 rounded-2xl bg-[#FAFAFC] border border-gray-100 space-y-2">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-xs font-extrabold text-gray-900">{ord.restaurant}</p>
+                  <p class="text-[11px] text-gray-400">{ord.date} • {ord.id}</p>
+                </div>
+                <span class="text-xs font-black text-gray-900">${ord.total.toFixed(2)}</span>
+              </div>
+              <div class="flex items-center justify-between pt-1 border-t border-gray-100">
+                <span class="text-[11px] text-gray-500 truncate max-w-[200px]">{ord.items}</span>
+                <a href="/stores/1" class="text-xs font-bold text-[#FF7A00] hover:underline">Repetir</a>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
+
+    <div class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-gray-100 py-3 px-6 z-20">
+      <div class="max-w-md mx-auto flex items-center justify-around">
+        <a href="/" class="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-900 transition-colors">
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+          <span class="text-[10px] font-bold">Inicio</span>
+        </a>
+        <a href="/orders/track" class="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-900 transition-colors">
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+          <span class="text-[10px] font-bold">Pedidos</span>
+        </a>
+        <a href="/profile" class="flex flex-col items-center gap-1 text-[#FF7A00]">
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+          <span class="text-[10px] font-black">Perfil</span>
+        </a>
+      </div>
+    </div>
+  </body>
+</html>
