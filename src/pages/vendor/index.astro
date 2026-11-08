@@ -1,54 +1,52 @@
 ---
 import "../../styles/global.css";
 import RoleSwitcher from "../../components/RoleSwitcher.astro";
+import { getOfficialExchangeRate, formatBs } from "../../adapters/rates";
 
-const orders = [
-  {
-    id: "TRG-7821",
-    time: "Hace 4 min",
-    customer: "Valeria Gómez",
-    items: [
-      { name: "Crispy Supreme Smash", qty: 2, notes: "Sin cebolla" },
-      { name: "Papas Rústicas Trufadas", qty: 1, notes: "Extra salsa BBQ" },
-      { name: "Kombucha Frutos Rojos", qty: 2, notes: "" }
-    ],
-    status: "incoming",
-    total: 34.50,
-    paymentMethod: "Apple Pay (Pagado)"
-  },
-  {
-    id: "TRG-7819",
-    time: "Hace 12 min",
-    customer: "Carlos Méndez",
-    items: [
-      { name: "Smoked Bacon BBQ Melt", qty: 1, notes: "Término medio" },
-      { name: "Batido Artesanal Vainilla", qty: 1, notes: "" }
-    ],
-    status: "kitchen",
-    total: 19.80,
-    paymentMethod: "Tarjeta Débito (Pagado)"
-  },
-  {
-    id: "TRG-7814",
-    time: "Hace 22 min",
-    customer: "Santiago R.",
-    items: [
-      { name: "Double Cheese Truffle", qty: 3, notes: "" },
-      { name: "Aros de Cebolla Crujientes", qty: 2, notes: "" }
-    ],
-    status: "ready",
-    driver: "Luis Mendoza (En camino - 2 min)",
-    total: 48.00,
-    paymentMethod: "Efectivo al recibir"
+const API_BASE = "https://api.traigalo.org/v2";
+const bcvRate = await getOfficialExchangeRate();
+
+let stores: any[] = [];
+try {
+  const sRes = await fetch(`${API_BASE}/stores`);
+  if (sRes.ok) {
+    stores = await sRes.json();
   }
-];
+} catch {}
 
-const menuInventory = [
-  { id: "p1", name: "Crispy Supreme Smash", price: 14.50, active: true, stock: 18 },
-  { id: "p2", name: "Smoked Bacon BBQ Melt", price: 15.00, active: true, stock: 9 },
-  { id: "p3", name: "Double Cheese Truffle", price: 16.50, active: false, stock: 0 },
-  { id: "p4", name: "Papas Rústicas Trufadas", price: 5.50, active: true, stock: 35 }
-];
+const currentStore = stores.find((s) => s.id === "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa") || stores[0] || {
+  id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+  name: "Burger Crave"
+};
+
+let storeOrders: any[] = [];
+try {
+  const oRes = await fetch(`${API_BASE}/orders?store-id=${currentStore.id}&size=50`);
+  if (oRes.ok) {
+    storeOrders = await oRes.json();
+  }
+} catch {}
+
+if (storeOrders.length === 0) {
+  try {
+    const allRes = await fetch(`${API_BASE}/orders?size=50`);
+    if (allRes.ok) {
+      storeOrders = await allRes.json();
+    }
+  } catch {}
+}
+
+let storeProducts: any[] = [];
+try {
+  const pRes = await fetch(`${API_BASE}/stores/${currentStore.id}/products`);
+  if (pRes.ok) {
+    storeProducts = await pRes.json();
+  }
+} catch {}
+
+const todayGmvUSD = storeOrders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
+const todayGmvBs = formatBs(todayGmvUSD, bcvRate);
+const totalOrdersCount = storeOrders.length;
 ---
 
 <!doctype html>
@@ -59,7 +57,7 @@ const menuInventory = [
     <title>Traigalo KDS | Portal Comercio</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   </head>
   <body class="bg-[#F8F9FA] text-[#121212] font-['Plus_Jakarta_Sans',sans-serif] antialiased selection:bg-[#FF7A00] selection:text-white pb-28">
     <RoleSwitcher currentRole="vendor" />
@@ -74,19 +72,22 @@ const menuInventory = [
           </div>
           <div>
             <div class="flex items-center gap-1.5">
-              <h1 class="text-base font-extrabold text-gray-900 leading-tight">Burger Crave KDS</h1>
+              <h1 class="text-base font-extrabold text-gray-900 leading-tight">{currentStore.name} KDS</h1>
               <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             </div>
-            <p class="text-xs text-gray-500 font-medium">Comercio ID: <span class="font-mono text-gray-700">#TRG-VEN-01</span></p>
+            <p class="text-xs text-gray-500 font-medium">Comercio ID: <span class="font-mono text-gray-700">#{currentStore.id.slice(0, 8)}</span></p>
           </div>
         </div>
 
         <div class="flex items-center gap-2">
+          <div class="text-right hidden sm:block">
+            <span class="text-[10px] text-gray-400 block font-semibold">Tasa BCV</span>
+            <span class="text-xs font-black text-gray-800">{bcvRate.toFixed(2)} Bs/$</span>
+          </div>
           <label class="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" checked class="sr-only peer" id="store-toggle">
             <div class="w-12 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
           </label>
-          <span class="text-xs font-bold text-emerald-600">Abierto</span>
         </div>
       </div>
     </header>
@@ -94,19 +95,19 @@ const menuInventory = [
     <main class="max-w-md mx-auto px-5 pt-4 space-y-5">
       <div class="grid grid-cols-3 gap-3">
         <div class="bg-white rounded-2xl p-3 border border-gray-100 shadow-sm text-center">
-          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Hoy</p>
-          <p class="text-lg font-black text-gray-900 mt-0.5">$384.20</p>
-          <span class="text-[10px] font-semibold text-emerald-600">+14% vs ayer</span>
+          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Hoy USD</p>
+          <p class="text-lg font-black text-gray-900 mt-0.5">${todayGmvUSD.toFixed(2)}</p>
+          <span class="text-[9px] font-semibold text-gray-500 block truncate">{todayGmvBs}</span>
         </div>
         <div class="bg-white rounded-2xl p-3 border border-gray-100 shadow-sm text-center">
-          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Despachos</p>
-          <p class="text-lg font-black text-gray-900 mt-0.5">28</p>
-          <span class="text-[10px] font-semibold text-emerald-600">100% a tiempo</span>
+          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Órdenes</p>
+          <p class="text-lg font-black text-gray-900 mt-0.5">{totalOrdersCount}</p>
+          <span class="text-[10px] font-semibold text-emerald-600">En sistema</span>
         </div>
         <div class="bg-white rounded-2xl p-3 border border-gray-100 shadow-sm text-center">
-          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tiempo Cocina</p>
-          <p class="text-lg font-black text-gray-900 mt-0.5">14 m</p>
-          <span class="text-[10px] font-semibold text-gray-500">Promedio</span>
+          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Productos</p>
+          <p class="text-lg font-black text-gray-900 mt-0.5">{storeProducts.length}</p>
+          <span class="text-[10px] font-semibold text-gray-500">En catálogo</span>
         </div>
       </div>
 
@@ -114,122 +115,187 @@ const menuInventory = [
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
             <h2 class="text-base font-extrabold text-gray-900">Comandas en Cocina</h2>
-            <span class="bg-[#FF7A00] text-white text-[11px] font-black px-2 py-0.5 rounded-full">3</span>
+            <span id="order-count-badge" class="bg-[#FF7A00] text-white text-[11px] font-black px-2 py-0.5 rounded-full">{storeOrders.length}</span>
           </div>
-          <button class="text-xs font-bold text-[#FF7A00] hover:underline">Sonido Alerta: ON</button>
+          <button id="refresh-orders-btn" class="text-xs font-bold text-[#FF7A00] hover:underline flex items-center gap-1">
+            <span>🔄</span>
+            <span>Actualizar</span>
+          </button>
         </div>
 
-        {orders.map((order) => (
-          <div class={`bg-white rounded-3xl p-4 border transition-all ${
-            order.status === 'incoming' 
-              ? 'border-orange-200 shadow-lg shadow-orange-500/5 ring-1 ring-orange-500/20' 
-              : 'border-gray-100 shadow-sm'
-          }`}>
-            <div class="flex items-center justify-between pb-3 border-b border-gray-100">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-extrabold text-gray-900">{order.id}</span>
-                <span class="text-xs text-gray-400 font-medium">• {order.time}</span>
-              </div>
-              <span class={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${
-                order.status === 'incoming' ? 'bg-amber-100 text-amber-700' :
-                order.status === 'kitchen' ? 'bg-blue-100 text-blue-700' :
-                'bg-emerald-100 text-emerald-700'
-              }`}>
-                {order.status === 'incoming' ? 'Nuevo Pedido' :
-                 order.status === 'kitchen' ? 'En Cocina' :
-                 'Listo p/ Entrega'}
-              </span>
-            </div>
+        <div id="orders-container" class="space-y-3">
+          {storeOrders.map((order) => {
+            const totalUSD = Number(order.total) || 0;
+            const totalBsFormatted = formatBs(totalUSD, bcvRate);
+            const statusLabel = 
+              order.status === 'placed' ? 'Nuevo Pedido' :
+              order.status === 'accepted_by_store' ? 'Aceptado' :
+              order.status === 'preparing' ? 'En Cocina' :
+              order.status === 'ready_for_pickup' ? 'Listo p/ Despacho' :
+              order.status === 'driver_assigned' ? 'Repartidor Asignado' :
+              order.status === 'in_transit' ? 'En Camino' :
+              order.status === 'delivered' ? 'Entregado' : order.status;
 
-            <div class="py-3 space-y-2 border-b border-gray-100">
-              <div class="flex items-center justify-between text-xs text-gray-500">
-                <span>Cliente: <strong class="text-gray-900 font-bold">{order.customer}</strong></span>
-                <span class="font-medium">{order.paymentMethod}</span>
-              </div>
-              <div class="space-y-1.5 pt-1">
-                {order.items.map((it) => (
-                  <div class="flex items-baseline justify-between text-xs">
-                    <div class="flex items-center gap-2">
-                      <span class="w-5 h-5 rounded-lg bg-gray-100 text-gray-800 text-[11px] font-extrabold flex items-center justify-center">{it.qty}</span>
-                      <span class="font-bold text-gray-800">{it.name}</span>
-                    </div>
-                    {it.notes && (
-                      <span class="text-[10px] font-semibold text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded-md">{it.notes}</span>
+            const isIncoming = order.status === 'placed';
+            const isAccepted = order.status === 'accepted_by_store';
+            const isPreparing = order.status === 'preparing';
+            const isReady = order.status === 'ready_for_pickup';
+
+            return (
+              <div class={`bg-white rounded-3xl p-4 border transition-all ${
+                isIncoming 
+                  ? 'border-orange-300 shadow-lg shadow-orange-500/10 ring-2 ring-orange-500/20' 
+                  : 'border-gray-100 shadow-sm'
+              }`} data-order-id={order.id}>
+                <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-extrabold text-gray-900 font-mono">#{order.order_number || order.id.slice(0, 8)}</span>
+                    <span class="text-xs text-gray-400 font-medium">• {new Date(order.placed_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                  <span class={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                    isIncoming ? 'bg-amber-100 text-amber-800' :
+                    isAccepted || isPreparing ? 'bg-blue-100 text-blue-800' :
+                    isReady ? 'bg-emerald-100 text-emerald-800' :
+                    'bg-gray-100 text-gray-700'
+                  }`}>
+                    {statusLabel}
+                  </span>
+                </div>
+
+                <div class="py-3 space-y-2 border-b border-gray-100">
+                  <div class="flex items-center justify-between text-xs text-gray-500">
+                    <span>Destino: <strong class="text-gray-900 font-bold truncate max-w-[180px] inline-block align-bottom">{order.delivery_address || 'Dirección no especificada'}</strong></span>
+                    <span class="font-medium capitalize">{order.payment_method || 'Pago Móvil'}</span>
+                  </div>
+                </div>
+
+                <div class="pt-3 flex items-center justify-between gap-2">
+                  <div class="flex flex-col">
+                    <span class="text-sm font-black text-gray-900">${totalUSD.toFixed(2)}</span>
+                    <span class="text-[10px] text-gray-400 font-semibold">{totalBsFormatted}</span>
+                  </div>
+
+                  <div class="flex items-center gap-2">
+                    {isIncoming && (
+                      <button 
+                        data-action="accept" 
+                        data-order-id={order.id}
+                        class="btn-order-action px-4 py-2 rounded-xl bg-[#FF7A00] hover:bg-[#E66E00] text-white text-xs font-extrabold shadow-sm active:scale-95 transition-all"
+                      >
+                        Aceptar Pedido
+                      </button>
+                    )}
+
+                    {isAccepted && (
+                      <button 
+                        data-action="prepare" 
+                        data-order-id={order.id}
+                        class="btn-order-action px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold shadow-sm active:scale-95 transition-all"
+                      >
+                        Comenzar Cocina
+                      </button>
+                    )}
+
+                    {isPreparing && (
+                      <button 
+                        data-action="ready" 
+                        data-order-id={order.id}
+                        class="btn-order-action px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-sm active:scale-95 transition-all"
+                      >
+                        Marcar Listo p/ Despacho
+                      </button>
+                    )}
+
+                    {isReady && (
+                      <span class="text-xs font-bold text-emerald-600 flex items-center gap-1">
+                        <span>✓</span>
+                        <span>Listo en barra</span>
+                      </span>
                     )}
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {order.driver && (
-              <div class="pt-2 pb-1 text-xs text-emerald-700 flex items-center gap-1.5 font-medium">
-                <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                <span>Repartidor: <strong>{order.driver}</strong></span>
-              </div>
-            )}
-
-            <div class="pt-3 flex items-center justify-between gap-2">
-              <span class="text-xs font-extrabold text-gray-900">${order.total.toFixed(2)}</span>
-              {order.status === 'incoming' && (
-                <div class="flex items-center gap-2">
-                  <button class="px-3 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 active:scale-95">Rechazar</button>
-                  <button class="px-4 py-2 rounded-xl bg-[#FF7A00] text-white text-xs font-extrabold shadow-sm active:scale-95 transition-all">Aceptar y Cocinar</button>
                 </div>
-              )}
-              {order.status === 'kitchen' && (
-                <button class="w-full py-2.5 rounded-xl bg-blue-600 text-white text-xs font-extrabold shadow-sm active:scale-95 transition-all flex items-center justify-center gap-1.5">
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  Marcar como Listo para Despacho
-                </button>
-              )}
-              {order.status === 'ready' && (
-                <button class="w-full py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-extrabold shadow-sm active:scale-95 transition-all flex items-center justify-center gap-1.5">
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                  </svg>
-                  Entregado a Repartidor
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-4">
         <div class="flex items-center justify-between">
           <div>
-            <h3 class="text-sm font-extrabold text-gray-900">Control de Menú y Stock</h3>
-            <p class="text-xs text-gray-400">Pausa productos agotados al instante</p>
+            <h3 class="text-sm font-extrabold text-gray-900">Control de Menú y Precios</h3>
+            <p class="text-xs text-gray-400">Precios duales actualizados con BCV</p>
           </div>
-          <button class="text-xs font-bold text-[#FF7A00] hover:underline">+ Producto</button>
+          <span class="text-xs font-bold text-[#FF7A00]">Catálogo Oficial</span>
         </div>
 
         <div class="space-y-2.5">
-          {menuInventory.map((item) => (
-            <div class="flex items-center justify-between p-2.5 rounded-2xl bg-gray-50 border border-gray-100">
-              <div class="flex-1 min-w-0 pr-3">
-                <p class="text-xs font-extrabold text-gray-900 truncate">{item.name}</p>
-                <div class="flex items-center gap-2 mt-0.5">
-                  <span class="text-[11px] font-bold text-gray-500">${item.price.toFixed(2)}</span>
-                  <span class={`text-[10px] font-semibold px-1.5 py-0.2 rounded ${item.stock > 0 ? 'bg-gray-200 text-gray-700' : 'bg-rose-100 text-rose-600'}`}>
-                    Stock: {item.stock}
+          {storeProducts.map((item) => {
+            const priceUSD = Number(item.base_price) || 0;
+            const priceBs = formatBs(priceUSD, bcvRate);
+            return (
+              <div class="flex items-center justify-between p-2.5 rounded-2xl bg-gray-50 border border-gray-100">
+                <div class="flex-1 min-w-0 pr-3">
+                  <p class="text-xs font-extrabold text-gray-900 truncate">{item.name}</p>
+                  <div class="flex items-center gap-2 mt-0.5">
+                    <span class="text-[11px] font-bold text-gray-900">${priceUSD.toFixed(2)}</span>
+                    <span class="text-[10px] font-semibold text-gray-400">{priceBs}</span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class={`text-[10px] font-bold ${item.is_available ? 'text-emerald-600' : 'text-gray-400'}`}>
+                    {item.is_available ? 'Disponible' : 'Pausado'}
                   </span>
+                  <input type="checkbox" checked={item.is_available} class="w-4 h-4 rounded text-[#FF7A00] focus:ring-[#FF7A00]" />
                 </div>
               </div>
-              <div class="flex items-center gap-2">
-                <span class={`text-[10px] font-bold ${item.active ? 'text-emerald-600' : 'text-gray-400'}`}>
-                  {item.active ? 'Visible' : 'Pausado'}
-                </span>
-                <input type="checkbox" checked={item.active} class="w-4 h-4 rounded text-[#FF7A00] focus:ring-[#FF7A00]" />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </main>
+
+    <script is:inline>
+      const API_ORDERS = "https://api.traigalo.org/v2/orders";
+
+      async function triggerOrderAction(orderId, actionName) {
+        try {
+          const res = await fetch(`${API_ORDERS}/${orderId}/actions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: actionName })
+          });
+
+          if (!res.ok) {
+            throw new Error(`Error en servidor: ${res.status}`);
+          }
+
+          window.location.reload();
+        } catch (err) {
+          alert(`No se pudo ejecutar la acción '${actionName}': ${err.message}`);
+        }
+      }
+
+      function attachActionHandlers() {
+        document.querySelectorAll(".btn-order-action").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const orderId = btn.getAttribute("data-order-id");
+            const action = btn.getAttribute("data-action");
+            if (orderId && action) {
+              btn.disabled = true;
+              btn.textContent = "Procesando...";
+              await triggerOrderAction(orderId, action);
+            }
+          });
+        });
+      }
+
+      const refreshBtn = document.getElementById("refresh-orders-btn");
+      if (refreshBtn) {
+        refreshBtn.addEventListener("click", () => window.location.reload());
+      }
+
+      attachActionHandlers();
+    </script>
   </body>
 </html>

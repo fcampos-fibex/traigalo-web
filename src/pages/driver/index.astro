@@ -1,33 +1,45 @@
 ---
 import RoleSwitcher from '../../components/RoleSwitcher.astro';
+import { getOfficialExchangeRate, formatBs } from '../../adapters/rates';
 import '../../styles/global.css';
 
+const API_BASE = 'https://api.traigalo.org/v2';
+const bcvRate = await getOfficialExchangeRate();
+
+const driverId = '33333333-3333-3333-3333-333333333333';
 const driver = {
+  id: driverId,
   name: 'Carlos Mendoza',
+  vehicle: 'Yamaha FZ • Placa: ABC-123',
   rating: '4.9 ★',
-  todayEarnings: 52.40,
+  todayEarningsUSD: 52.40,
   todayDeliveries: 8,
-  todayTips: 6.50,
+  todayTipsUSD: 6.50,
   onlineTime: '4h 15m'
 };
 
-const activeOrder = {
-  id: '1042',
-  storeName: 'Black Iron Burger Lab',
-  storeAddress: 'Av. Libertador, Gourmet Plaza, Local 3',
-  storeDistance: '1.2 km',
-  customerName: 'María Alejandra Gómez',
-  customerAddress: 'Av. Libertador 102, Edif. Torre Norte, Apto 5B',
-  customerDistance: '2.4 km',
-  estimatedEarnings: 4.20,
-  pickupDone: false
-};
+const earningsBs = formatBs(driver.todayEarningsUSD, bcvRate);
+const tipsBs = formatBs(driver.todayTipsUSD, bcvRate);
 
-const completedOrders = [
-  { id: '1038', store: 'Sakura Omakase', earned: 6.80, time: '13:40', tips: 2.00 },
-  { id: '1035', store: 'Napoli Antica', earned: 5.50, time: '12:55', tips: 1.00 },
-  { id: '1031', store: 'FreshMarket 24/7', earned: 4.20, time: '12:15', tips: 0.00 }
-];
+let availableOrders: any[] = [];
+try {
+  const placedRes = await fetch(`${API_BASE}/orders?status=placed&size=20`);
+  if (placedRes.ok) {
+    availableOrders = await placedRes.json();
+  }
+} catch {}
+
+let assignedOrders: any[] = [];
+try {
+  const assignedRes = await fetch(`${API_BASE}/orders?driver-id=${driverId}&size=10`);
+  if (assignedRes.ok) {
+    assignedOrders = await assignedRes.json();
+  }
+} catch {}
+
+const currentActiveOrder = assignedOrders.find(
+  (o) => o.status === 'driver_assigned' || o.status === 'in_transit'
+) || null;
 ---
 
 <html lang="es">
@@ -39,15 +51,14 @@ const completedOrders = [
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   </head>
-  <body class="bg-[#FAFAFC] text-[#1A1D20] min-h-screen flex flex-col pb-12 antialiased selection:bg-orange-500 selection:text-white">
+  <body class="bg-[#FAFAFC] text-[#1A1D20] min-h-screen flex flex-col pb-16 antialiased selection:bg-[#FF7A00] selection:text-white">
     <RoleSwitcher />
 
-    <!-- TOP BAR -->
     <header class="bg-white/95 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40 px-4 py-3.5">
       <div class="max-w-2xl mx-auto flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-400 to-orange-500 flex items-center justify-center text-xl shadow-xs">
-            👨🏻‍🦱
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-400 to-[#FF7A00] flex items-center justify-center text-xl shadow-xs text-white font-black">
+            🛵
           </div>
           <div>
             <h1 class="text-sm font-extrabold text-gray-900 leading-tight">{driver.name}</h1>
@@ -55,109 +66,283 @@ const completedOrders = [
           </div>
         </div>
 
-        <!-- ONLINE TOGGLE SWITCH -->
-        <div class="flex items-center gap-2 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full cursor-pointer">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span class="text-xs font-extrabold text-emerald-800">Conectado</span>
+        <div class="flex items-center gap-2">
+          <div class="text-right hidden sm:block">
+            <span class="text-[10px] text-gray-400 block font-semibold">Tasa BCV</span>
+            <span class="text-xs font-black text-gray-800">{bcvRate.toFixed(2)} Bs/$</span>
+          </div>
+          <div id="gps-status-badge" class="flex items-center gap-2 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full cursor-pointer">
+            <span id="gps-pulse" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span id="gps-text" class="text-xs font-extrabold text-emerald-800">GPS Activo</span>
+          </div>
         </div>
       </div>
     </header>
 
     <main class="flex-1 max-w-2xl mx-auto px-4 py-5 w-full space-y-4">
       
-      <!-- TODAY EARNINGS CARD -->
       <section class="bg-gradient-to-r from-[#FF7A00] to-[#FF9432] rounded-3xl p-5 text-white shadow-lg shadow-orange-500/15">
-        <span class="text-[10px] font-extrabold uppercase tracking-wider text-orange-100">Ganancias de Hoy</span>
-        <div class="flex items-baseline justify-between mt-1 mb-4">
-          <h2 class="text-3xl font-black tracking-tight">${driver.todayEarnings.toFixed(2)}</h2>
+        <span class="text-[10px] font-extrabold uppercase tracking-wider text-orange-100">Ganancias Acumuladas Hoy</span>
+        <div class="flex items-baseline justify-between mt-1 mb-1">
+          <h2 class="text-3xl font-black tracking-tight">${driver.todayEarningsUSD.toFixed(2)}</h2>
           <span class="text-xs font-bold text-white bg-white/20 px-2.5 py-1 rounded-xl backdrop-blur-md">
             {driver.todayDeliveries} Entregas
           </span>
         </div>
+        <p class="text-[11px] text-orange-100 font-semibold mb-3">{earningsBs}</p>
 
         <div class="grid grid-cols-2 gap-2 pt-3 border-t border-white/20 text-xs">
           <div>
             <span class="text-orange-100 text-[10px] block">Propinas recibidas</span>
-            <strong class="font-black text-sm">${driver.todayTips.toFixed(2)}</strong>
+            <strong class="font-black text-sm">${driver.todayTipsUSD.toFixed(2)}</strong>
+            <span class="text-[9px] text-orange-100/90 block">{tipsBs}</span>
           </div>
           <div>
             <span class="text-orange-100 text-[10px] block">Tiempo en ruta</span>
             <strong class="font-black text-sm">{driver.onlineTime}</strong>
+            <span class="text-[9px] text-orange-100/90 block">Eficiencia: 99.4%</span>
           </div>
         </div>
       </section>
 
-      <!-- ACTIVE DISPATCH CARD (CURRENT ASSIGNMENT) -->
-      <section class="bg-white rounded-3xl p-5 border-2 border-orange-600/30 shadow-md relative overflow-hidden">
-        <div class="flex items-center justify-between mb-3">
-          <span class="px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-800 font-extrabold text-[10px] uppercase tracking-wider">
-            ● Pedido Activo #{activeOrder.id}
-          </span>
-          <span class="text-sm font-black text-orange-600">
-            Ganancia: +${activeOrder.estimatedEarnings.toFixed(2)}
-          </span>
-        </div>
-
-        <!-- ROUTE STOPS -->
-        <div class="space-y-3.5 my-4">
-          <!-- STOP 1: RESTAURANT -->
-          <div class="flex items-start gap-3">
-            <div class="w-8 h-8 rounded-full bg-orange-50 text-orange-600 font-bold text-xs flex items-center justify-center shrink-0 border border-orange-100">
-              1
-            </div>
-            <div class="flex-1 min-w-0">
-              <span class="text-[10px] font-bold text-gray-400 uppercase">Recoger en</span>
-              <h4 class="text-xs font-bold text-gray-900 truncate">{activeOrder.storeName}</h4>
-              <p class="text-[11px] text-gray-500 truncate">{activeOrder.storeAddress} ({activeOrder.storeDistance})</p>
+      {currentActiveOrder && (
+        <section class="bg-white rounded-3xl p-5 border-2 border-orange-600/40 shadow-md relative overflow-hidden">
+          <div class="flex items-center justify-between mb-3">
+            <span class="px-2.5 py-0.5 rounded-full bg-orange-100 text-[#FF7A00] font-extrabold text-[10px] uppercase tracking-wider">
+              ● Pedido Activo #{currentActiveOrder.order_number || currentActiveOrder.id.slice(0, 8)}
+            </span>
+            <div class="text-right">
+              <span class="text-sm font-black text-[#FF7A00]">
+                ${Number(currentActiveOrder.total).toFixed(2)}
+              </span>
+              <span class="text-[9px] text-gray-400 block font-semibold">
+                {formatBs(Number(currentActiveOrder.total), bcvRate)}
+              </span>
             </div>
           </div>
 
-          <!-- STOP 2: CUSTOMER -->
-          <div class="flex items-start gap-3">
-            <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 font-bold text-xs flex items-center justify-center shrink-0 border border-emerald-100">
-              2
+          <div class="space-y-3.5 my-4">
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-full bg-orange-50 text-[#FF7A00] font-bold text-xs flex items-center justify-center shrink-0 border border-orange-100">
+                1
+              </div>
+              <div class="flex-1 min-w-0">
+                <span class="text-[10px] font-bold text-gray-400 uppercase">Recoger en</span>
+                <h4 class="text-xs font-bold text-gray-900 truncate">Comercio #{currentActiveOrder.store_id.slice(0, 8)}</h4>
+                <p class="text-[11px] text-gray-500 truncate">Cocina Traigalo Express</p>
+              </div>
             </div>
-            <div class="flex-1 min-w-0">
-              <span class="text-[10px] font-bold text-gray-400 uppercase">Entregar a {activeOrder.customerName}</span>
-              <h4 class="text-xs font-bold text-gray-900 truncate">{activeOrder.customerAddress}</h4>
-              <p class="text-[11px] text-gray-500 truncate">A {activeOrder.customerDistance} del comercio</p>
+
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 font-bold text-xs flex items-center justify-center shrink-0 border border-emerald-100">
+                2
+              </div>
+              <div class="flex-1 min-w-0">
+                <span class="text-[10px] font-bold text-gray-400 uppercase">Entregar en Destino</span>
+                <h4 class="text-xs font-bold text-gray-900 truncate">{currentActiveOrder.delivery_address || 'Av. Libertador 102, Caracas'}</h4>
+                <p class="text-[11px] text-gray-500 truncate">Cliente prioritario</p>
+              </div>
             </div>
           </div>
+
+          <div class="grid grid-cols-2 gap-2.5 pt-2">
+            <a 
+              href={`/orders/track?id=${currentActiveOrder.id}`}
+              class="h-12 rounded-2xl bg-gray-50 hover:bg-gray-100 border border-gray-100 text-gray-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+            >
+              <span>🗺️</span>
+              <span>Ver en Mapa</span>
+            </a>
+
+            {currentActiveOrder.status === 'driver_assigned' && (
+              <button 
+                data-action="transit"
+                data-order-id={currentActiveOrder.id}
+                class="btn-driver-action h-12 rounded-2xl bg-[#FF7A00] hover:bg-[#E66E00] text-white font-extrabold text-xs shadow-md shadow-orange-600/20 flex items-center justify-center gap-1.5 transition-all active:scale-95"
+              >
+                <span>🚀</span>
+                <span>Iniciar Ruta</span>
+              </button>
+            )}
+
+            {currentActiveOrder.status === 'in_transit' && (
+              <button 
+                data-action="deliver"
+                data-order-id={currentActiveOrder.id}
+                class="btn-driver-action h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition-all active:scale-95"
+              >
+                <span>✓</span>
+                <span>Confirmar Entrega</span>
+              </button>
+            )}
+          </div>
+        </section>
+      )}
+
+      <section class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-extrabold text-gray-900">Pedidos Disponibles para Aceptar</h3>
+            <p class="text-xs text-gray-400">Toma una orden para comenzar el despacho</p>
+          </div>
+          <span class="text-xs font-black text-[#FF7A00] bg-orange-50 px-2.5 py-1 rounded-full">
+            {availableOrders.length} disponibles
+          </span>
         </div>
 
-        <!-- ACTION BUTTONS -->
-        <div class="grid grid-cols-2 gap-2.5 pt-2">
-          <button class="h-12 rounded-2xl bg-gray-50 hover:bg-gray-100 border border-gray-100 text-gray-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors">
-            <span>🗺️</span>
-            <span>Navegar GPS</span>
-          </button>
-          <button class="h-12 rounded-2xl bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-xs shadow-md shadow-orange-600/20 flex items-center justify-center gap-1.5 transition-all active:scale-95">
-            <span>✓</span>
-            <span>Confirmar Recogida</span>
-          </button>
-        </div>
+        {availableOrders.length === 0 ? (
+          <div class="text-center py-8 text-gray-400 text-xs">
+            <span class="text-2xl block mb-1">📡</span>
+            <p class="font-bold text-gray-600">Buscando nuevas órdenes en tu zona...</p>
+            <p class="text-[11px] text-gray-400 mt-1">Mantente con la aplicación abierta</p>
+          </div>
+        ) : (
+          <div class="space-y-3">
+            {availableOrders.map((ord) => {
+              const totalUSD = Number(ord.total) || 0;
+              const totalBsFormatted = formatBs(totalUSD, bcvRate);
+              return (
+                <div class="p-4 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-between gap-3">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs font-black text-gray-900 font-mono">#{ord.order_number || ord.id.slice(0, 8)}</span>
+                      <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Disponible</span>
+                    </div>
+                    <p class="text-xs text-gray-600 font-medium truncate mt-1">📍 {ord.delivery_address}</p>
+                    <div class="flex items-center gap-2 mt-1">
+                      <span class="text-xs font-black text-gray-900">${totalUSD.toFixed(2)}</span>
+                      <span class="text-[10px] font-bold text-gray-400">{totalBsFormatted}</span>
+                    </div>
+                  </div>
+
+                  <button 
+                    data-action="assign_driver"
+                    data-order-id={ord.id}
+                    class="btn-driver-action shrink-0 px-4 py-2.5 rounded-xl bg-[#FF7A00] hover:bg-[#E66E00] text-white text-xs font-black shadow-sm active:scale-95 transition-all"
+                  >
+                    Aceptar Pedido
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
-      <!-- TODAY ACTIVITY HISTORY -->
       <section class="bg-white rounded-3xl p-5 border border-gray-100 shadow-xs">
-        <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-400 mb-3">Historial de Hoy</h3>
+        <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-400 mb-3">Historial de Despachos</h3>
         
         <div class="space-y-3">
-          {completedOrders.map(ord => (
+          {assignedOrders.map(ord => (
             <div class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0 last:pb-0 text-xs">
               <div class="flex items-center gap-2.5">
-                <span class="w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 font-bold text-[10px] flex items-center justify-center">✓</span>
+                <span class={`w-7 h-7 rounded-full font-bold text-[10px] flex items-center justify-center ${
+                  ord.status === 'delivered' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-[#FF7A00]'
+                }`}>
+                  {ord.status === 'delivered' ? '✓' : '🛵'}
+                </span>
                 <div>
-                  <h4 class="font-bold text-gray-900 leading-tight">#{ord.id} • {ord.store}</h4>
-                  <span class="text-[10px] text-gray-400">{ord.time} • Propina: +${ord.tips.toFixed(2)}</span>
+                  <h4 class="font-bold text-gray-900 leading-tight">#{ord.order_number || ord.id.slice(0, 8)} • {ord.delivery_address}</h4>
+                  <span class="text-[10px] text-gray-400">{new Date(ord.placed_at || Date.now()).toLocaleTimeString()} • Estado: {ord.status}</span>
                 </div>
               </div>
-              <span class="font-black text-gray-900">+${ord.earned.toFixed(2)}</span>
+              <div class="text-right">
+                <span class="font-black text-gray-900">${Number(ord.total).toFixed(2)}</span>
+                <span class="block text-[9px] text-gray-400 font-semibold">{formatBs(Number(ord.total), bcvRate)}</span>
+              </div>
             </div>
           ))}
         </div>
       </section>
 
     </main>
+
+    <script is:inline define:vars={{ driverId }}>
+      const API_ORDERS = 'https://api.traigalo.org/v2/orders';
+      const API_LOCATIONS = 'https://api.traigalo.org/v2/drivers/locations';
+
+      async function triggerDriverAction(orderId, actionName) {
+        try {
+          const res = await fetch(`${API_ORDERS}/${orderId}/actions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              action: actionName,
+              driver_id: driverId 
+            })
+          });
+
+          if (!res.ok) {
+            throw new Error(`Error en servidor: ${res.status}`);
+          }
+
+          window.location.reload();
+        } catch (err) {
+          alert(`No se pudo ejecutar la acción: ${err.message}`);
+        }
+      }
+
+      document.querySelectorAll('.btn-driver-action').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const orderId = btn.getAttribute('data-order-id');
+          const action = btn.getAttribute('data-action');
+          if (orderId && action) {
+            btn.disabled = true;
+            btn.textContent = 'Procesando...';
+            await triggerDriverAction(orderId, action);
+          }
+        });
+      });
+
+      function sendLocationUpdate(lat, lng, heading = 0, speed = 0) {
+        fetch(API_LOCATIONS, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            driver_id: driverId,
+            latitude: lat,
+            longitude: lng,
+            heading: heading || 0,
+            speed: speed || 0
+          })
+        }).catch(() => {});
+      }
+
+      function startGpsTracking() {
+        const gpsPulse = document.getElementById('gps-pulse');
+        const gpsText = document.getElementById('gps-text');
+
+        if ('geolocation' in navigator) {
+          navigator.geolocation.watchPosition(
+            (pos) => {
+              const { latitude, longitude, heading, speed } = pos.coords;
+              sendLocationUpdate(latitude, longitude, heading || 0, speed || 0);
+              if (gpsText) gpsText.textContent = 'GPS Transmitiendo';
+              if (gpsPulse) gpsPulse.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-ping';
+            },
+            () => {
+              simulateGpsMovement();
+            },
+            { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+          );
+        } else {
+          simulateGpsMovement();
+        }
+      }
+
+      let simStep = 0;
+      function simulateGpsMovement() {
+        const baseLat = 10.4880;
+        const baseLng = -66.8575;
+        setInterval(() => {
+          simStep = (simStep + 1) % 100;
+          const lat = baseLat + (Math.sin(simStep * 0.1) * 0.005);
+          const lng = baseLng + (Math.cos(simStep * 0.1) * 0.005);
+          sendLocationUpdate(lat, lng, 90.0, 25.0);
+        }, 5000);
+      }
+
+      startGpsTracking();
+    </script>
   </body>
 </html>
