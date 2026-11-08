@@ -1,15 +1,8 @@
 ---
+import { getOfficialExchangeRate } from '../adapters/rates';
 import '../styles/global.css';
 
-const cartItems = [
-  { id: '1', name: 'Truffle Smash Double', price: 9.80, qty: 1, image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=300&q=80' },
-  { id: '2', name: 'Papas Rústicas Parmesano & Trufa', price: 4.50, qty: 1, image: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=300&q=80' }
-];
-
-const subtotal = 14.30;
-const deliveryFee = 1.50;
-const serviceFee = 0.50;
-const total = subtotal + deliveryFee + serviceFee;
+const bcvRate = await getOfficialExchangeRate();
 ---
 
 <html lang="es">
@@ -21,9 +14,8 @@ const total = subtotal + deliveryFee + serviceFee;
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   </head>
-  <body class="bg-[#FAFAFC] text-[#1A1D20] min-h-screen flex flex-col pb-28 antialiased selection:bg-orange-500 selection:text-white">
+  <body class="bg-[#FAFAFC] text-[#1A1D20] min-h-screen flex flex-col pb-36 antialiased selection:bg-[#FF7A00] selection:text-white">
     
-    <!-- TOP APP BAR -->
     <header class="bg-white/90 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40 px-4 py-3.5">
       <div class="max-w-2xl mx-auto flex items-center justify-between">
         <a href="/" class="w-10 h-10 rounded-full bg-gray-50 hover:bg-gray-100 flex items-center justify-center text-gray-800 transition-colors active:scale-95">
@@ -31,31 +23,32 @@ const total = subtotal + deliveryFee + serviceFee;
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
           </svg>
         </a>
-        <h1 class="text-base font-extrabold text-gray-900">Finalizar Pedido</h1>
+        <div class="text-center">
+          <h1 class="text-base font-extrabold text-gray-900 leading-tight">Finalizar Pedido</h1>
+          <span class="text-[10px] font-bold text-gray-400">Tasa BCV: {bcvRate.toFixed(2)} Bs/$</span>
+        </div>
         <div class="w-10"></div>
       </div>
     </header>
 
     <main class="flex-1 max-w-2xl mx-auto px-4 py-5 w-full space-y-4">
       
-      <!-- DELIVERY ADDRESS CARD -->
       <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs">
         <div class="flex items-center justify-between mb-2">
           <span class="text-[10px] font-extrabold uppercase tracking-wider text-gray-400">Dirección de Entrega</span>
-          <span class="text-xs font-bold text-orange-600 hover:underline cursor-pointer">Cambiar</span>
+          <span class="text-xs font-bold text-[#FF7A00] hover:underline cursor-pointer">Cambiar</span>
         </div>
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center text-lg shrink-0">
+          <div class="w-10 h-10 rounded-2xl bg-orange-50 text-[#FF7A00] flex items-center justify-center text-lg shrink-0">
             🏠
           </div>
           <div class="flex-1 min-w-0">
             <h3 class="text-sm font-bold text-gray-900 truncate">Casa (Residencias El Roble)</h3>
-            <p class="text-xs text-gray-400 truncate">Av. Libertador 102, Apto 5B, Caracas</p>
+            <p id="checkout-address" class="text-xs text-gray-400 truncate">Av. Libertador 102, Caracas</p>
           </div>
         </div>
       </section>
 
-      <!-- ESTIMATED TIME CARD -->
       <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg shrink-0">
@@ -71,104 +64,315 @@ const total = subtotal + deliveryFee + serviceFee;
         </span>
       </section>
 
-      <!-- ORDER ITEMS -->
       <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs">
-        <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-400 mb-3">Tu Pedido</h3>
-        <div class="space-y-3">
-          {cartItems.map(item => (
-            <div class="flex items-center justify-between gap-3 pb-3 border-b border-gray-50 last:border-0 last:pb-0">
-              <div class="w-12 h-12 rounded-xl overflow-hidden bg-gray-100 shrink-0">
-                <img src={item.image} alt={item.name} class="w-full h-full object-cover" />
-              </div>
-              <div class="flex-1 min-w-0">
-                <h4 class="text-xs font-bold text-gray-900 truncate">{item.name}</h4>
-                <p class="text-[11px] font-extrabold text-orange-600 mt-0.5">${item.price.toFixed(2)}</p>
-              </div>
-              <div class="flex items-center gap-2 bg-gray-50 rounded-xl px-2 py-1 border border-gray-100">
-                <button class="text-xs font-black text-gray-500 hover:text-orange-600 w-5 h-5 flex items-center justify-center">-</button>
-                <span class="text-xs font-black text-gray-900">{item.qty}</span>
-                <button class="text-xs font-black text-gray-500 hover:text-orange-600 w-5 h-5 flex items-center justify-center">+</button>
-              </div>
-            </div>
-          ))}
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-400">Tu Pedido</h3>
+          <button id="clear-cart-btn" class="text-[11px] font-bold text-gray-400 hover:text-red-500 transition-colors">
+            Vaciar
+          </button>
+        </div>
+        <div id="cart-items-container" class="space-y-3">
+          <div class="text-center py-8 text-gray-400 text-xs">Cargando productos del carrito...</div>
         </div>
       </section>
 
-      <!-- PAYMENT METHOD SELECTOR -->
       <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs">
         <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-400 mb-3">Método de Pago</h3>
-        <div class="space-y-2">
-          <label class="flex items-center justify-between p-3 rounded-2xl border-2 border-orange-600 bg-orange-50/30 cursor-pointer">
+        <div class="space-y-2" id="payment-options">
+          <label class="payment-option flex items-center justify-between p-3.5 rounded-2xl border-2 border-[#FF7A00] bg-orange-50/30 cursor-pointer transition-all" data-value="card">
             <div class="flex items-center gap-3">
               <span class="text-xl">💳</span>
               <div>
                 <h4 class="text-xs font-bold text-gray-900">Tarjeta de Débito / Crédito</h4>
-                <p class="text-[10px] text-gray-400">•••• •••• •••• 4242</p>
+                <p class="text-[10px] text-gray-400">Internacional o Nacional</p>
               </div>
             </div>
-            <input type="radio" name="payment" checked class="text-orange-600 focus:ring-orange-500 w-4 h-4" />
+            <input type="radio" name="payment" value="card" checked class="text-[#FF7A00] focus:ring-[#FF7A00] w-4 h-4 accent-[#FF7A00]" />
           </label>
 
-          <label class="flex items-center justify-between p-3 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white cursor-pointer transition-colors">
+          <label class="payment-option flex items-center justify-between p-3.5 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white cursor-pointer transition-all" data-value="mobile_pay">
             <div class="flex items-center gap-3">
               <span class="text-xl">📱</span>
               <div>
                 <h4 class="text-xs font-bold text-gray-900">Pago Móvil / Transferencia</h4>
-                <p class="text-[10px] text-gray-400">Confirmación inmediata</p>
+                <p class="text-[10px] text-gray-400">Confirmación inmediata a tasa BCV</p>
               </div>
             </div>
-            <input type="radio" name="payment" class="text-orange-600 focus:ring-orange-500 w-4 h-4" />
+            <input type="radio" name="payment" value="mobile_pay" class="text-[#FF7A00] focus:ring-[#FF7A00] w-4 h-4 accent-[#FF7A00]" />
           </label>
 
-          <label class="flex items-center justify-between p-3 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white cursor-pointer transition-colors">
+          <label class="payment-option flex items-center justify-between p-3.5 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white cursor-pointer transition-all" data-value="cash">
             <div class="flex items-center gap-3">
               <span class="text-xl">💵</span>
               <div>
                 <h4 class="text-xs font-bold text-gray-900">Efectivo contra entrega</h4>
-                <p class="text-[10px] text-gray-400">Pagas al recibir</p>
+                <p class="text-[10px] text-gray-400">Pagas en dólares o bolívares al recibir</p>
               </div>
             </div>
-            <input type="radio" name="payment" class="text-orange-600 focus:ring-orange-500 w-4 h-4" />
+            <input type="radio" name="payment" value="cash" class="text-[#FF7A00] focus:ring-[#FF7A00] w-4 h-4 accent-[#FF7A00]" />
           </label>
         </div>
       </section>
 
-      <!-- COST BREAKDOWN -->
       <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs space-y-2 text-xs">
         <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-400 mb-2">Desglose de Pago</h3>
         <div class="flex justify-between text-gray-500">
           <span>Subtotal</span>
-          <span class="font-bold text-gray-800">${subtotal.toFixed(2)}</span>
+          <div class="text-right">
+            <span id="breakdown-subtotal" class="font-bold text-gray-800">$0.00</span>
+            <span id="breakdown-subtotal-bs" class="block text-[10px] text-gray-400 font-semibold"></span>
+          </div>
         </div>
         <div class="flex justify-between text-gray-500">
           <span>Costo de Envío</span>
-          <span class="font-bold text-gray-800">${deliveryFee.toFixed(2)}</span>
+          <div class="text-right">
+            <span id="breakdown-delivery" class="font-bold text-gray-800">$1.50</span>
+            <span id="breakdown-delivery-bs" class="block text-[10px] text-gray-400 font-semibold"></span>
+          </div>
         </div>
         <div class="flex justify-between text-gray-500">
           <span>Tarifa de Servicio</span>
-          <span class="font-bold text-gray-800">${serviceFee.toFixed(2)}</span>
+          <div class="text-right">
+            <span id="breakdown-service" class="font-bold text-gray-800">$0.50</span>
+            <span id="breakdown-service-bs" class="block text-[10px] text-gray-400 font-semibold"></span>
+          </div>
         </div>
-        <div class="pt-2 border-t border-gray-100 flex justify-between items-center text-sm font-black text-gray-950">
-          <span>Total a Pagar</span>
-          <span class="text-lg text-orange-600">${total.toFixed(2)}</span>
+        <div class="pt-3 border-t border-gray-100 flex justify-between items-center text-sm font-black text-gray-950">
+          <div>
+            <span>Total a Pagar</span>
+            <span id="breakdown-total-bs" class="block text-[11px] text-gray-400 font-bold mt-0.5"></span>
+          </div>
+          <span id="breakdown-total" class="text-xl text-[#FF7A00] font-black">$0.00</span>
         </div>
       </section>
 
     </main>
 
-    <!-- STICKY BOTTOM CHECKOUT BUTTON -->
     <div class="fixed bottom-0 left-0 right-0 z-50 p-4 bg-white/95 backdrop-blur-md border-t border-gray-100 shadow-xl shadow-gray-200/50">
       <div class="max-w-2xl mx-auto">
-        <a 
-          href="/orders/track?id=773954c2-9a3d-4c3e-8c3e-traigalo2026" 
-          class="w-full h-14 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-orange-600/30 active:scale-98 transition-all"
+        <button 
+          id="btn-confirm-order"
+          type="button"
+          class="w-full h-14 rounded-2xl bg-gradient-to-r from-[#FF7A00] to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-orange-600/30 active:scale-98 transition-all disabled:opacity-50 disabled:pointer-events-none"
         >
-          <span>Confirmar y Enviar Pedido</span>
+          <span id="btn-text">Confirmar y Enviar Pedido</span>
           <span>•</span>
-          <span>${total.toFixed(2)}</span>
-        </a>
+          <span id="btn-total">$0.00</span>
+        </button>
       </div>
     </div>
 
+    <script is:inline define:vars={{ bcvRate }}>
+      const CART_STORAGE_KEY = 'traigalo_cart';
+      const API_ORDERS_URL = 'https://api.traigalo.org/v2/orders';
+      const DELIVERY_FEE = 1.50;
+      const SERVICE_FEE = 0.50;
+
+      function getCart() {
+        try {
+          const raw = localStorage.getItem(CART_STORAGE_KEY);
+          return raw ? JSON.parse(raw) : [];
+        } catch {
+          return [];
+        }
+      }
+
+      function saveCart(cart) {
+        try {
+          localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+        } catch {}
+        renderCart();
+      }
+
+      function formatBs(usd) {
+        const val = (usd || 0) * (bcvRate || 896.12);
+        const formatted = new Intl.NumberFormat('es-VE', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(val);
+        return `~ Bs. ${formatted} @ BCV`;
+      }
+
+      function getSelectedPayment() {
+        const checked = document.querySelector('input[name="payment"]:checked');
+        return checked ? checked.value : 'card';
+      }
+
+      function updatePaymentStyles() {
+        document.querySelectorAll('.payment-option').forEach(label => {
+          const radio = label.querySelector('input[type="radio"]');
+          if (radio && radio.checked) {
+            label.className = 'payment-option flex items-center justify-between p-3.5 rounded-2xl border-2 border-[#FF7A00] bg-orange-50/30 cursor-pointer transition-all';
+          } else {
+            label.className = 'payment-option flex items-center justify-between p-3.5 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white cursor-pointer transition-all';
+          }
+        });
+      }
+
+      document.querySelectorAll('input[name="payment"]').forEach(radio => {
+        radio.addEventListener('change', updatePaymentStyles);
+      });
+
+      function changeQty(productId, delta) {
+        let cart = getCart();
+        const item = cart.find(i => i.id === productId);
+        if (!item) return;
+
+        item.qty = (item.qty || 1) + delta;
+        if (item.qty <= 0) {
+          cart = cart.filter(i => i.id !== productId);
+        }
+        saveCart(cart);
+      }
+
+      const clearBtn = document.getElementById('clear-cart-btn');
+      if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+          saveCart([]);
+        });
+      }
+
+      function renderCart() {
+        const cart = getCart();
+        const container = document.getElementById('cart-items-container');
+        const confirmBtn = document.getElementById('btn-confirm-order');
+        const subtotalEl = document.getElementById('breakdown-subtotal');
+        const subtotalBsEl = document.getElementById('breakdown-subtotal-bs');
+        const deliveryEl = document.getElementById('breakdown-delivery');
+        const deliveryBsEl = document.getElementById('breakdown-delivery-bs');
+        const serviceEl = document.getElementById('breakdown-service');
+        const serviceBsEl = document.getElementById('breakdown-service-bs');
+        const totalEl = document.getElementById('breakdown-total');
+        const totalBsEl = document.getElementById('breakdown-total-bs');
+        const btnTotal = document.getElementById('btn-total');
+
+        if (!container) return;
+
+        if (cart.length === 0) {
+          container.innerHTML = `
+            <div class="py-8 text-center">
+              <span class="text-3xl block mb-2">🛒</span>
+              <p class="text-xs font-bold text-gray-500">Tu carrito está vacío</p>
+              <a href="/" class="inline-block mt-3 px-4 py-2 rounded-xl bg-orange-50 text-[#FF7A00] font-black text-xs hover:bg-orange-100 transition-colors">
+                Descubrir Restaurantes
+              </a>
+            </div>
+          `;
+          if (confirmBtn) confirmBtn.disabled = true;
+          if (subtotalEl) subtotalEl.textContent = '$0.00';
+          if (subtotalBsEl) subtotalBsEl.textContent = formatBs(0);
+          if (deliveryBsEl) deliveryBsEl.textContent = formatBs(DELIVERY_FEE);
+          if (serviceBsEl) serviceBsEl.textContent = formatBs(SERVICE_FEE);
+          if (totalEl) totalEl.textContent = '$0.00';
+          if (totalBsEl) totalBsEl.textContent = formatBs(0);
+          if (btnTotal) btnTotal.textContent = '$0.00';
+          return;
+        }
+
+        if (confirmBtn) confirmBtn.disabled = false;
+
+        const subtotal = cart.reduce((acc, it) => acc + (it.price * (it.qty || 1)), 0);
+        const total = subtotal + DELIVERY_FEE + SERVICE_FEE;
+
+        if (subtotalEl) subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
+        if (subtotalBsEl) subtotalBsEl.textContent = formatBs(subtotal);
+        if (deliveryEl) deliveryEl.textContent = `$${DELIVERY_FEE.toFixed(2)}`;
+        if (deliveryBsEl) deliveryBsEl.textContent = formatBs(DELIVERY_FEE);
+        if (serviceEl) serviceEl.textContent = `$${SERVICE_FEE.toFixed(2)}`;
+        if (serviceBsEl) serviceBsEl.textContent = formatBs(SERVICE_FEE);
+        if (totalEl) totalEl.textContent = `$${total.toFixed(2)}`;
+        if (totalBsEl) totalBsEl.textContent = formatBs(total);
+        if (btnTotal) btnTotal.textContent = `$${total.toFixed(2)}`;
+
+        container.innerHTML = cart.map(item => `
+          <div class="flex items-center justify-between gap-3 pb-3 border-b border-gray-50 last:border-0 last:pb-0">
+            <div class="w-12 h-12 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+              <img src="${item.image || ''}" alt="${item.name}" class="w-full h-full object-cover" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <h4 class="text-xs font-bold text-gray-900 truncate">${item.name}</h4>
+              <p class="text-[11px] font-extrabold text-[#FF7A00] mt-0.5">$${item.price.toFixed(2)}</p>
+              <p class="text-[9px] text-gray-400 font-semibold">${formatBs(item.price)}</p>
+            </div>
+            <div class="flex items-center gap-2 bg-gray-50 rounded-xl px-2 py-1 border border-gray-100">
+              <button data-action="minus" data-id="${item.id}" class="btn-qty text-xs font-black text-gray-500 hover:text-[#FF7A00] w-5 h-5 flex items-center justify-center">-</button>
+              <span class="text-xs font-black text-gray-900">${item.qty}</span>
+              <button data-action="plus" data-id="${item.id}" class="btn-qty text-xs font-black text-gray-500 hover:text-[#FF7A00] w-5 h-5 flex items-center justify-center">+</button>
+            </div>
+          </div>
+        `).join('');
+
+        container.querySelectorAll('.btn-qty').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const pid = btn.getAttribute('data-id');
+            const act = btn.getAttribute('data-action');
+            changeQty(pid, act === 'plus' ? 1 : -1);
+          });
+        });
+      }
+
+      async function handleCheckout() {
+        const cart = getCart();
+        if (cart.length === 0) {
+          alert('El carrito está vacío');
+          return;
+        }
+
+        const confirmBtn = document.getElementById('btn-confirm-order');
+        const btnText = document.getElementById('btn-text');
+        if (confirmBtn) confirmBtn.disabled = true;
+        if (btnText) btnText.textContent = 'Procesando Pedido...';
+
+        const storeId = cart[0].storeId || 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+        const paymentMethod = getSelectedPayment();
+
+        const payload = {
+          customer_id: '44444444-4444-4444-4444-444444444444',
+          store_id: storeId,
+          delivery_latitude: 10.4855,
+          delivery_longitude: -66.853,
+          delivery_address: 'Av. Libertador 102, Caracas',
+          payment_method: paymentMethod,
+          delivery_fee: DELIVERY_FEE,
+          service_fee: SERVICE_FEE,
+          items: cart.map(item => ({
+            product_id: item.id,
+            quantity: item.qty || 1,
+            unit_price: Number(item.price)
+          }))
+        };
+
+        try {
+          const res = await fetch(API_ORDERS_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+
+          if (!res.ok) {
+            throw new Error(`Error en el servidor: ${res.status}`);
+          }
+
+          const createdOrder = await res.json();
+          localStorage.removeItem(CART_STORAGE_KEY);
+
+          const targetOrderId = createdOrder.id || 'TRG-7821';
+          window.location.href = `/orders/track?id=${targetOrderId}`;
+        } catch (err) {
+          alert('No se pudo procesar la orden. Intente nuevamente.');
+          if (confirmBtn) confirmBtn.disabled = false;
+          if (btnText) btnText.textContent = 'Confirmar y Enviar Pedido';
+        }
+      }
+
+      const confirmBtn = document.getElementById('btn-confirm-order');
+      if (confirmBtn) {
+        confirmBtn.addEventListener('click', handleCheckout);
+      }
+
+      renderCart();
+    </script>
   </body>
 </html>

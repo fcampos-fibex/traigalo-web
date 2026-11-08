@@ -3,10 +3,13 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import BottomNav from '../components/BottomNav.astro';
 import RoleSwitcher from '../components/RoleSwitcher.astro';
+import { getOfficialExchangeRate, formatBs } from '../adapters/rates';
 import '../styles/global.css';
 
 const API_BASE = 'https://api.traigalo.org/v2';
 const ASSET_BASE = 'https://admin.traigalo.org/assets';
+
+const bcvRate = await getOfficialExchangeRate();
 
 let stores = [];
 let popularProducts = [];
@@ -51,6 +54,7 @@ if (wilyStore) {
           name: it.name,
           storeName: wilyStore.name,
           price: it.base_price,
+          priceBs: formatBs(it.base_price, bcvRate),
           rating: '4.9',
           time: '15-20 min',
           image: fileId ? `${ASSET_BASE}/${fileId}` : 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=400&q=80'
@@ -166,7 +170,10 @@ const categories = [
               </div>
 
               <div class="flex items-center justify-between mt-3 pt-2.5 border-t border-gray-50">
-                <span class="text-sm sm:text-base font-black text-gray-950">${p.price.toFixed(2)}</span>
+                <div class="flex flex-col">
+                  <span class="text-sm sm:text-base font-black text-gray-950">${p.price.toFixed(2)}</span>
+                  <span class="text-[9px] text-gray-400 font-semibold">{p.priceBs}</span>
+                </div>
                 <a 
                   href={`/stores/${p.storeId}`}
                   class="w-9 h-9 rounded-full bg-[#FF7A00] hover:bg-[#E66E00] text-white flex items-center justify-center shadow-md shadow-orange-500/25 active:scale-90 transition-all font-black text-lg"

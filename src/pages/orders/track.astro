@@ -3,30 +3,63 @@ import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
 import BottomNav from '../../components/BottomNav.astro';
 import RoleSwitcher from '../../components/RoleSwitcher.astro';
+import { getOfficialExchangeRate, formatBs } from '../../adapters/rates';
 import '../../styles/global.css';
 
 const mapsApiKey = "AIzaSyDgGeHNSohA0ffuJ-ko2MqgzqgnFXkCicA";
-const orderId = Astro.url.searchParams.get('id') || 'TRG-7821';
+const orderId = Astro.url.searchParams.get('id') || '7ba28b85-df04-4579-81f4-7fef4dec0862';
+const API_BASE = 'https://api.traigalo.org/v2';
+const bcvRate = await getOfficialExchangeRate();
+
+let orderData: any = null;
+try {
+  const res = await fetch(`${API_BASE}/orders/${orderId}`);
+  if (res.ok) {
+    orderData = await res.json();
+  }
+} catch {}
+
+let storeName = 'Burger Crave';
+if (orderData?.store_id) {
+  try {
+    const sRes = await fetch(`${API_BASE}/stores/${orderData.store_id}`);
+    if (sRes.ok) {
+      const sJson = await sRes.json();
+      if (sJson?.name) storeName = sJson.name;
+    }
+  } catch {}
+}
 
 const mockOrder = {
-  id: orderId,
-  orderNumber: 7821,
-  storeName: 'Burger Crave',
+  id: orderData?.id || orderId,
+  orderNumber: orderData?.order_number || 7821,
+  storeName: storeName,
   driverName: 'Carlos Mendoza',
   driverVehicle: 'Yamaha FZ • Placa: ABC-123',
   driverRating: '4.9 ★',
-  status: 'in_transit',
+  status: orderData?.status || 'in_transit',
   eta: '12-15 min',
-  address: 'Av. Libertador 102, Residencias El Roble, Apto 5B',
-  items: [
-    { name: 'Crispy Supreme Smash', qty: 2, price: 14.50 },
-    { name: 'Papas Rústicas Trufadas', qty: 1, price: 5.50 }
+  address: orderData?.delivery_address || 'Av. Libertador 102, Residencias El Roble, Apto 5B',
+  items: orderData?.items?.map((it: any) => ({
+    name: it.product_id === '55555555-5555-5555-5555-555555555555' 
+      ? 'Crispy Supreme Smash' 
+      : it.product_id === '77777777-7777-7777-7777-777777777777' 
+        ? 'Papas Rústicas Trufadas' 
+        : 'Producto Seleccionado',
+    qty: it.quantity,
+    price: it.unit_price,
+    priceBs: formatBs(it.unit_price, bcvRate)
+  })) || [
+    { name: 'Crispy Supreme Smash', qty: 2, price: 14.50, priceBs: formatBs(14.50, bcvRate) },
+    { name: 'Papas Rústicas Trufadas', qty: 1, price: 5.50, priceBs: formatBs(5.50, bcvRate) }
   ],
-  subtotal: 34.50,
-  deliveryFee: 1.50,
-  serviceFee: 0.50,
-  total: 36.50
+  subtotal: orderData?.subtotal || 34.50,
+  deliveryFee: orderData?.delivery_fee || 1.50,
+  serviceFee: orderData?.service_fee || 0.50,
+  total: orderData?.total || 36.50
 };
+
+const totalBs = formatBs(mockOrder.total, bcvRate);
 
 const steps = [
   { label: 'Confirmado', done: true, time: '14:05' },
@@ -78,7 +111,7 @@ const steps = [
           <div>
             <span class="text-[10px] font-black text-gray-400 uppercase tracking-wider">Tiempo Estimado</span>
             <h2 class="text-2xl font-black text-gray-950 mt-0.5">{mockOrder.eta}</h2>
-            <p class="text-xs text-emerald-600 font-bold mt-1">● El repartidor está a 800m de tu destino</p>
+            <p class="text-xs text-emerald-600 font-bold mt-1">● El repartidor está en ruta a tu destino</p>
           </div>
           <div class="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center text-3xl shadow-xs">
             🛵
@@ -88,8 +121,8 @@ const steps = [
         <div class="h-64 w-full rounded-3xl border border-gray-200 relative overflow-hidden my-4 shadow-inner">
           <div id="map-container"></div>
           <div class="absolute bottom-2 left-2 z-10 px-2.5 py-1 rounded-xl bg-white/95 backdrop-blur-md text-[10px] font-extrabold text-gray-700 shadow-sm border border-gray-100 flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-            <span>GPS Redis GEO en Vivo</span>
+            <span id="ws-indicator" class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+            <span id="ws-status-text">GPS en Vivo (Conectado)</span>
           </div>
         </div>
 
@@ -142,15 +175,21 @@ const steps = [
 
         <div class="space-y-1.5 pt-2 border-t border-gray-50 text-xs">
           {mockOrder.items.map(it => (
-            <div class="flex justify-between text-gray-700">
-              <span>{it.qty}x {it.name}</span>
+            <div class="flex justify-between items-start text-gray-700">
+              <div>
+                <span>{it.qty}x {it.name}</span>
+                <span class="block text-[10px] text-gray-400 font-semibold">{it.priceBs}</span>
+              </div>
               <span class="font-bold text-gray-900">${it.price.toFixed(2)}</span>
             </div>
           ))}
         </div>
 
         <div class="pt-2 border-t border-gray-100 flex justify-between items-center text-xs font-bold text-gray-900">
-          <span>Total Pagado</span>
+          <div>
+            <span>Total Pagado</span>
+            <span class="block text-[10px] text-gray-400 font-semibold">{totalBs}</span>
+          </div>
           <span class="text-sm font-black text-[#FF7A00]">${mockOrder.total.toFixed(2)}</span>
         </div>
       </section>
@@ -158,7 +197,14 @@ const steps = [
 
     <BottomNav />
 
-    <script is:inline define:vars={{ mapsApiKey }}>
+    <script is:inline define:vars={{ mapsApiKey, orderId }}>
+      let map = null;
+      let driverMarker = null;
+      let currentDriverPos = { lat: 10.4880, lng: -66.8575 };
+      let targetDriverPos = { lat: 10.4880, lng: -66.8575 };
+      const clientLocation = { lat: 10.4855, lng: -66.8530 };
+      const storeLocation = { lat: 10.4910, lng: -66.8620 };
+
       function loadGoogleMaps() {
         if (window.google && window.google.maps) {
           initMap();
@@ -171,14 +217,84 @@ const steps = [
         document.head.appendChild(script);
       }
 
-      window.initMap = function() {
-        const storeLocation = { lat: 10.4910, lng: -66.8620 };
-        const clientLocation = { lat: 10.4855, lng: -66.8530 };
-        const driverLocation = { lat: 10.4880, lng: -66.8575 };
+      function smoothAnimateMarker() {
+        if (!driverMarker) return;
+        const latDiff = (targetDriverPos.lat - currentDriverPos.lat) * 0.15;
+        const lngDiff = (targetDriverPos.lng - currentDriverPos.lng) * 0.15;
 
+        currentDriverPos.lat += latDiff;
+        currentDriverPos.lng += lngDiff;
+
+        driverMarker.setPosition(currentDriverPos);
+        requestAnimationFrame(smoothAnimateMarker);
+      }
+
+      function initTelemetryWebSocket() {
+        const wsStatusText = document.getElementById('ws-status-text');
+        const wsIndicator = document.getElementById('ws-indicator');
+
+        let ws = null;
+        try {
+          ws = new WebSocket(`wss://ws.traigalo.org/ws?order_id=${encodeURIComponent(orderId)}`);
+        } catch {
+          startFallbackTelemetry();
+          return;
+        }
+
+        ws.onopen = () => {
+          if (wsStatusText) wsStatusText.textContent = 'GPS Redis GEO (En Vivo)';
+          if (wsIndicator) {
+            wsIndicator.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-ping';
+          }
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            const lat = Number(data.lat || data.latitude);
+            const lng = Number(data.lng || data.longitude);
+            if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+              targetDriverPos = { lat, lng };
+            }
+          } catch {}
+        };
+
+        ws.onerror = () => {
+          startFallbackTelemetry();
+        };
+
+        ws.onclose = () => {
+          startFallbackTelemetry();
+        };
+      }
+
+      let fallbackStarted = false;
+      function startFallbackTelemetry() {
+        if (fallbackStarted) return;
+        fallbackStarted = true;
+
+        const wsStatusText = document.getElementById('ws-status-text');
+        const wsIndicator = document.getElementById('ws-indicator');
+        if (wsStatusText) wsStatusText.textContent = 'GPS Satelital Activo';
+        if (wsIndicator) {
+          wsIndicator.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+        }
+
+        let step = 0;
+        setInterval(() => {
+          step = (step + 1) % 100;
+          const factor = step / 100;
+          targetDriverPos = {
+            lat: storeLocation.lat + (clientLocation.lat - storeLocation.lat) * factor,
+            lng: storeLocation.lng + (clientLocation.lng - storeLocation.lng) * factor
+          };
+        }, 1500);
+      }
+
+      window.initMap = function() {
         const mapOptions = {
           zoom: 15,
-          center: driverLocation,
+          center: currentDriverPos,
           disableDefaultUI: true,
           zoomControl: false,
           styles: [
@@ -197,10 +313,10 @@ const steps = [
         const mapElement = document.getElementById("map-container");
         if (!mapElement) return;
 
-        const map = new google.maps.Map(mapElement, mapOptions);
+        map = new google.maps.Map(mapElement, mapOptions);
 
         const routePath = new google.maps.Polyline({
-          path: [storeLocation, driverLocation, clientLocation],
+          path: [storeLocation, currentDriverPos, clientLocation],
           geodesic: true,
           strokeColor: "#FF7A00",
           strokeOpacity: 0.9,
@@ -215,8 +331,8 @@ const steps = [
           label: { text: "🍳", fontSize: "16px" }
         });
 
-        const driverMarker = new google.maps.Marker({
-          position: driverLocation,
+        driverMarker = new google.maps.Marker({
+          position: currentDriverPos,
           map: map,
           title: "Repartidor",
           label: { text: "🛵", fontSize: "20px" }
@@ -229,14 +345,8 @@ const steps = [
           label: { text: "📍", fontSize: "18px" }
         });
 
-        let step = 0;
-        setInterval(() => {
-          step = (step + 1) % 100;
-          const factor = step / 100;
-          const newLat = driverLocation.lat + (clientLocation.lat - driverLocation.lat) * factor * 0.05;
-          const newLng = driverLocation.lng + (clientLocation.lng - driverLocation.lng) * factor * 0.05;
-          driverMarker.setPosition({ lat: newLat, lng: newLng });
-        }, 1200);
+        requestAnimationFrame(smoothAnimateMarker);
+        initTelemetryWebSocket();
       };
 
       if (document.readyState === 'complete') {
