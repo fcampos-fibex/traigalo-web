@@ -11,10 +11,16 @@ const ASSET_BASE = 'https://admin.traigalo.org/assets';
 let stores = [];
 let popularProducts = [];
 let assetMap = {};
+let dbCategories = [];
 
 try {
-  const assetModule = await import('../data/directus_assets.json');
+  const assetModule = await import('../data/product_assets.json');
   assetMap = assetModule.default || {};
+} catch (e) {}
+
+try {
+  const catModule = await import('../data/categories.json');
+  dbCategories = (catModule.default || []).slice(0, 12);
 } catch (e) {}
 
 try {
@@ -102,20 +108,24 @@ const categories = [
         </div>
       </section>
 
-      <!-- CATEGORIES BAR -->
+      <!-- CATEGORIES BAR (CANONICAL FROM TRAIGALO DATABASE) -->
       <section>
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg sm:text-xl font-extrabold text-gray-900 tracking-tight">Categorías Principales</h2>
           <span class="text-xs sm:text-sm font-bold text-[#FF7A00]">{stores.length} comercios verificados</span>
         </div>
         <div class="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
-          {categories.map(c => (
-            <button class={`shrink-0 flex items-center gap-2.5 px-5 py-3 rounded-2xl text-xs sm:text-sm font-extrabold transition-all active:scale-95 ${
-              c.active
-                ? 'bg-[#FF7A00] text-white shadow-md shadow-orange-500/20'
-                : 'bg-white text-gray-700 border border-gray-100 hover:border-orange-200 shadow-2xs'
-            }`}>
-              <span class="text-base sm:text-lg">{c.icon}</span>
+          <button class="shrink-0 flex items-center gap-2.5 px-5 py-3 rounded-2xl text-xs sm:text-sm font-extrabold bg-[#FF7A00] text-white shadow-md shadow-orange-500/20 active:scale-95 transition-all">
+            <span class="text-base sm:text-lg">⚡</span>
+            <span>Todo</span>
+          </button>
+          {dbCategories.map(c => (
+            <button class="shrink-0 flex items-center gap-2.5 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold bg-white text-gray-800 border border-gray-100 hover:border-orange-300 shadow-2xs active:scale-95 transition-all">
+              {c.image_url ? (
+                <img src={c.image_url} alt={c.name} class="w-6 h-6 object-contain rounded-md" />
+              ) : (
+                <span class="text-base">📦</span>
+              )}
               <span>{c.name}</span>
             </button>
           ))}

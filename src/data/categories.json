@@ -1,0 +1,272 @@
+[
+  {
+    "id": "3",
+    "name": "Videojuegos y Consolas",
+    "slug": "videojuegos-y-consolas",
+    "image_url": "https://admin.traigalo.org/assets/5ce76a26-f596-4b8b-8ad5-e70d04a8aa7f",
+    "asset_id": "5ce76a26-f596-4b8b-8ad5-e70d04a8aa7f",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "4",
+    "name": "Audio y Cornetas",
+    "slug": "audio-y-cornetas",
+    "image_url": "https://admin.traigalo.org/assets/9e27108f-5090-41bf-9df4-2ee25118a259",
+    "asset_id": "9e27108f-5090-41bf-9df4-2ee25118a259",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "5",
+    "name": "Celulares y Accesorios",
+    "slug": "accesorios-celulares",
+    "image_url": "https://admin.traigalo.org/assets/49b91bdf-f812-477c-b64c-f7dfffeebc43",
+    "asset_id": "49b91bdf-f812-477c-b64c-f7dfffeebc43",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "6",
+    "name": "Computaci\u00f3n",
+    "slug": "computacion",
+    "image_url": "https://admin.traigalo.org/assets/9ceb75b1-37c8-47ba-95db-b4deac18098f",
+    "asset_id": "9ceb75b1-37c8-47ba-95db-b4deac18098f",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "7",
+    "name": "Entretenimiento Digital",
+    "slug": "entretenimiento-digital",
+    "image_url": "https://admin.traigalo.org/assets/5b2608bc-4faa-48cd-8ad3-5d7a98053b3d",
+    "asset_id": "5b2608bc-4faa-48cd-8ad3-5d7a98053b3d",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "29",
+    "name": "Sneakers y Deportivos",
+    "slug": "sneakers-y-deportivos",
+    "image_url": "https://admin.traigalo.org/assets/d6f3a42f-4a81-42c8-bf83-dc075f905d22",
+    "asset_id": "d6f3a42f-4a81-42c8-bf83-dc075f905d22",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "30",
+    "name": "Sandalias y Playeros",
+    "slug": "sandalias-y-playeros",
+    "image_url": "https://admin.traigalo.org/assets/092cafa2-a628-4009-ab5a-fb17fc75ff97",
+    "asset_id": "092cafa2-a628-4009-ab5a-fb17fc75ff97",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "37",
+    "name": "Accesorios",
+    "slug": "accesorios-gamer-3",
+    "image_url": "https://admin.traigalo.org/assets/c70d1946-833e-4c2e-89d8-13dbe24c58fc",
+    "asset_id": "c70d1946-833e-4c2e-89d8-13dbe24c58fc",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "38",
+    "name": "Cuidado Capilar",
+    "slug": "cuidado-capilar",
+    "image_url": "https://admin.traigalo.org/assets/474ed500-f903-4390-8e83-37aeb906e630",
+    "asset_id": "474ed500-f903-4390-8e83-37aeb906e630",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "39",
+    "name": "Barba",
+    "slug": "barba",
+    "image_url": "https://admin.traigalo.org/assets/7cb72bd0-634e-4a83-b605-b695ffb50f07",
+    "asset_id": "7cb72bd0-634e-4a83-b605-b695ffb50f07",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "40",
+    "name": "Descartables",
+    "slug": "descartables",
+    "image_url": "https://admin.traigalo.org/assets/782245d9-0f99-4ec8-82dc-a68471e61193",
+    "asset_id": "782245d9-0f99-4ec8-82dc-a68471e61193",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "41",
+    "name": "Cuidado Corporal",
+    "slug": "cuidado-corporal",
+    "image_url": "https://admin.traigalo.org/assets/07db9336-702b-4b75-bacf-16843fa8d4da",
+    "asset_id": "07db9336-702b-4b75-bacf-16843fa8d4da",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "42",
+    "name": "El\u00e9ctricos",
+    "slug": "electricos",
+    "image_url": "https://admin.traigalo.org/assets/58db239f-9695-45e9-b32a-74207fb75670",
+    "asset_id": "58db239f-9695-45e9-b32a-74207fb75670",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "43",
+    "name": "Maquinas",
+    "slug": "maquinas",
+    "image_url": "https://admin.traigalo.org/assets/6b679a6d-7862-4587-acb5-cf923e220a56",
+    "asset_id": "6b679a6d-7862-4587-acb5-cf923e220a56",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "44",
+    "name": "Depilaci\u00f3n",
+    "slug": "depilacion",
+    "image_url": "https://admin.traigalo.org/assets/c8325ec1-d90d-47c8-9c9f-040f21586ac4",
+    "asset_id": "c8325ec1-d90d-47c8-9c9f-040f21586ac4",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "45",
+    "name": "Cuidado Facial",
+    "slug": "cuidado-facial",
+    "image_url": "https://admin.traigalo.org/assets/500d1666-9173-4094-8704-90b0e50c8f40",
+    "asset_id": "500d1666-9173-4094-8704-90b0e50c8f40",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "46",
+    "name": "Manicura",
+    "slug": "manicura",
+    "image_url": "https://admin.traigalo.org/assets/5c1c4776-0442-4e7d-8870-4cddd6ece9ef",
+    "asset_id": "5c1c4776-0442-4e7d-8870-4cddd6ece9ef",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "47",
+    "name": "Cuchillas",
+    "slug": "cuchillas",
+    "image_url": "https://admin.traigalo.org/assets/7af1cc86-2b34-490a-8150-fe9f97885815",
+    "asset_id": "7af1cc86-2b34-490a-8150-fe9f97885815",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "48",
+    "name": "Extensiones",
+    "slug": "extensiones",
+    "image_url": "https://admin.traigalo.org/assets/6d096e04-ee31-4c90-8aff-0b52cb5bf3bd",
+    "asset_id": "6d096e04-ee31-4c90-8aff-0b52cb5bf3bd",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "49",
+    "name": "Maquillaje",
+    "slug": "maquillaje",
+    "image_url": "https://admin.traigalo.org/assets/25a5dad0-36ec-46bd-b877-3bcbb0a172a0",
+    "asset_id": "25a5dad0-36ec-46bd-b877-3bcbb0a172a0",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "50",
+    "name": "Pesta\u00f1as",
+    "slug": "pestanas",
+    "image_url": "https://admin.traigalo.org/assets/c68a7a80-fdc8-4c39-9ef7-76b05723e268",
+    "asset_id": "c68a7a80-fdc8-4c39-9ef7-76b05723e268",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "51",
+    "name": "Planchas",
+    "slug": "planchas",
+    "image_url": "https://admin.traigalo.org/assets/28becd49-0f22-4594-88e6-e22fb477137d",
+    "asset_id": "28becd49-0f22-4594-88e6-e22fb477137d",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "52",
+    "name": "Navajas",
+    "slug": "navajas",
+    "image_url": "https://admin.traigalo.org/assets/7fd7bd80-6d48-4837-a574-a55a40793fcd",
+    "asset_id": "7fd7bd80-6d48-4837-a574-a55a40793fcd",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "53",
+    "name": "Otros",
+    "slug": "otros",
+    "image_url": "https://admin.traigalo.org/assets/7212bf7f-fee8-49a5-86ae-4f889c53c7a2",
+    "asset_id": "7212bf7f-fee8-49a5-86ae-4f889c53c7a2",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "54",
+    "name": "Alimentos y Nutrici\u00f3n",
+    "slug": "alimentos-y-nutricion",
+    "image_url": null,
+    "asset_id": null,
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "59",
+    "name": "Juguetes y Entretenimiento",
+    "slug": "juguetes-y-entretenimiento",
+    "image_url": null,
+    "asset_id": null,
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "64",
+    "name": "Hogar y Mobiliario para Mascotas",
+    "slug": "hogar-y-mobiliario-para-mascotas",
+    "image_url": "https://admin.traigalo.org/assets/4bf2e5bb-cce4-46bd-ae92-5159c96eaa62",
+    "asset_id": "4bf2e5bb-cce4-46bd-ae92-5159c96eaa62",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "70",
+    "name": "Correas, Collares y Arneses",
+    "slug": "correas-collares-y-arneses",
+    "image_url": "https://admin.traigalo.org/assets/bc14e5c7-a5db-4e5e-94ea-ed8f00675f98",
+    "asset_id": "bc14e5c7-a5db-4e5e-94ea-ed8f00675f98",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "77",
+    "name": "Salud y Bienestar para Mascotas",
+    "slug": "salud-y-bienestar-para-mascotas",
+    "image_url": "https://admin.traigalo.org/assets/a40a86e4-24e1-4c16-b7af-1a15bb2b0241",
+    "asset_id": "a40a86e4-24e1-4c16-b7af-1a15bb2b0241",
+    "priority": 0,
+    "status": 1
+  },
+  {
+    "id": "83",
+    "name": "Aseo para Mascotas",
+    "slug": "aseo-para-mascotas",
+    "image_url": "https://admin.traigalo.org/assets/bc1694b8-ec22-4d04-a6e3-f7a2bf4d674d",
+    "asset_id": "bc1694b8-ec22-4d04-a6e3-f7a2bf4d674d",
+    "priority": 0,
+    "status": 1
+  }
+]
