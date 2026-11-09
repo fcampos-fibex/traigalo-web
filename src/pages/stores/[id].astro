@@ -6,6 +6,7 @@ import '../../styles/global.css';
 const { id } = Astro.params;
 const API_BASE = 'https://api.traigalo.org/v2';
 const ASSET_BASE = 'https://admin.traigalo.org/assets';
+const FALLBACK_PRODUCT_IMAGE = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' width='200' height='200'><rect width='200' height='200' rx='28' fill='%23F5F6F8'/><circle cx='100' cy='100' r='52' fill='%23FFF3E0'/><path d='M108 55L76 108h36l-8 42 40-58h-36z' fill='%23FF7A00'/></svg>";
 
 const bcvRate = await getOfficialExchangeRate();
 
@@ -61,7 +62,7 @@ const products = productsData.map((p) => {
   } else if (assetMap[p.name]) {
     img = `${ASSET_BASE}/${assetMap[p.name]}`;
   } else {
-    img = `${ASSET_BASE}/e20f2cbd-295f-41ad-be33-56517ab5eff2`;
+    img = FALLBACK_PRODUCT_IMAGE;
   }
 
   const price = Number(p.base_price) || 0;
@@ -192,7 +193,7 @@ const menuCategories = ['Todos los Productos', 'Más Populares', 'Promociones'];
                 alt={item.name} 
                 class="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform" 
                 loading="lazy" 
-                onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'64\' height=\'64\' fill=\'none\' stroke=\'%23FF7A00\' stroke-width=\'2\'><rect width=\'60\' height=\'60\' x=\'2\' y=\'2\' rx=\'12\' fill=\'%23FAFAFC\'/><path d=\'M24 32h16M32 24v16\'/></svg>';"
+                onerror={`this.onerror=null; this.src='${FALLBACK_PRODUCT_IMAGE}';`}
               />
               <button 
                 type="button"
