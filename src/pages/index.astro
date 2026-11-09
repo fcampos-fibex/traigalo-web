@@ -26,11 +26,15 @@ try {
   dbCategories = (catModule.default || []).slice(0, 12);
 } catch {}
 
+const EXCLUDED_STORE_SLUGS = ['burger-crave', 'sushi-omakase'];
+
 try {
   const storesRes = await fetch(`${API_BASE}/stores`);
   if (storesRes.ok) {
     const list = await storesRes.json();
-    stores = Array.isArray(list) ? list.filter((s: any) => s.is_open !== false) : [];
+    stores = Array.isArray(list) 
+      ? list.filter((s: any) => s.is_open === true && !EXCLUDED_STORE_SLUGS.includes(s.slug)) 
+      : [];
   }
 } catch {}
 

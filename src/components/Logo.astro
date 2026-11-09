@@ -14,9 +14,9 @@ const heightClasses = {
 };
 
 const iconSizes = {
-  sm: 'w-8 h-8 rounded-xl',
-  md: 'w-10 h-10 rounded-2xl',
-  lg: 'w-12 h-12 rounded-2xl'
+  sm: 'w-8 h-8',
+  md: 'w-10 h-10',
+  lg: 'w-12 h-12'
 };
 
 const textSizes = {
@@ -27,11 +27,31 @@ const textSizes = {
 ---
 
 <div class={`inline-flex items-center gap-2.5 select-none ${heightClasses[size]}`}>
-  <div class={`${iconSizes[size]} bg-gradient-to-tr from-[#FF7A00] via-[#FF5A00] to-[#E54600] flex items-center justify-center shadow-lg shadow-[#FF5A00]/25 shrink-0 relative overflow-hidden group`}>
-    <svg class="w-3/5 h-3/5 text-white drop-shadow-sm transition-transform duration-300 group-hover:scale-110" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z"/>
+  <div class={`${iconSizes[size]} shrink-0 relative group transition-transform duration-300 hover:scale-105`}>
+    <svg class="w-full h-full drop-shadow-sm" viewBox="0 0 64 64" fill="none">
+      <defs>
+        <linearGradient id="astro-pin-blue" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#00B4FF"/>
+          <stop offset="100%" stop-color="#0055FF"/>
+        </linearGradient>
+        <linearGradient id="astro-pin-orange" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#FF7A00"/>
+          <stop offset="100%" stop-color="#FF3700"/>
+        </linearGradient>
+      </defs>
+
+      <path d="M32 5C20.4 5 11 14.4 11 26C11 38.8 28 54.5 32 59V5Z" fill="url(#astro-pin-blue)"/>
+      <path d="M32 5C43.6 5 53 14.4 53 26C53 38.8 36 54.5 32 59V5Z" fill="url(#astro-pin-orange)"/>
+
+      <line x1="32" y1="5" x2="32" y2="59" stroke="#FFFFFF" stroke-width="1.2" stroke-opacity="0.35"/>
+
+      <circle cx="32" cy="26" r="15" fill="#FFFFFF"/>
+
+      <path d="M23.5 20.5H26L28.2 31H36.8L38.8 23.2H26.8" stroke="#0B0D10" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <circle cx="29.2" cy="34.2" r="1.6" fill="#0066FF"/>
+      <circle cx="36.2" cy="34.2" r="1.6" fill="#FF5A00"/>
+      <path d="M32.5 19L29.8 23.5H33.8L31.6 28" stroke="#FF5A00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
-    <div class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
   </div>
 
   {showText && (
@@ -39,7 +59,7 @@ const textSizes = {
       <span class={`font-black tracking-tight font-sans ${textSizes[size]} ${variant === 'light' ? 'text-white' : 'text-[#0B0D10]'}`}>
         Traigalo
       </span>
-      <span class="w-1.5 h-1.5 rounded-full bg-[#FF5A00] ml-0.5 mt-2 shrink-0 animate-pulse"></span>
+      <span class="inline-block ml-1 text-base text-[#FF5A00] animate-pulse">⚡</span>
     </div>
   )}
 </div>
