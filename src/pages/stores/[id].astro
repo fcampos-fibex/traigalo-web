@@ -42,7 +42,8 @@ const resolvedStoreId = storeData?.id || id || '46a0baf0-4100-465d-934a-f2d14f00
 try {
   const prodRes = await fetch(`${API_BASE}/stores/${resolvedStoreId}/products`);
   if (prodRes.ok) {
-    productsData = await prodRes.json();
+    const pData = await prodRes.json();
+    if (Array.isArray(pData)) productsData = pData;
   }
 } catch {}
 

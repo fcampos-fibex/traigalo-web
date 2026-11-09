@@ -27,7 +27,8 @@ let storeOrders: any[] = [];
 try {
   const oRes = await fetch(`${API_BASE}/orders?store-id=${currentStore.id}&size=50`);
   if (oRes.ok) {
-    storeOrders = await oRes.json();
+    const oData = await oRes.json();
+    if (Array.isArray(oData)) storeOrders = oData;
   }
 } catch {}
 
@@ -35,7 +36,8 @@ if (storeOrders.length === 0) {
   try {
     const allRes = await fetch(`${API_BASE}/orders?size=50`);
     if (allRes.ok) {
-      storeOrders = await allRes.json();
+      const allData = await allRes.json();
+      if (Array.isArray(allData)) storeOrders = allData;
     }
   } catch {}
 }
@@ -44,7 +46,8 @@ let storeProducts: any[] = [];
 try {
   const pRes = await fetch(`${API_BASE}/stores/${currentStore.id}/products`);
   if (pRes.ok) {
-    storeProducts = await pRes.json();
+    const pData = await pRes.json();
+    if (Array.isArray(pData)) storeProducts = pData;
   }
 } catch {}
 

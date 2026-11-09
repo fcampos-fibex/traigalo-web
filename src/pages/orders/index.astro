@@ -13,7 +13,8 @@ let orders: any[] = [];
 try {
   const res = await fetch(`${API_BASE}/orders?size=20`);
   if (res.ok) {
-    orders = await res.json();
+    const data = await res.json();
+    if (Array.isArray(data)) orders = data;
   }
 } catch {}
 
