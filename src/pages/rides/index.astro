@@ -23,6 +23,18 @@ const bcvFormatted = bcvRate.toFixed(2);
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script is:inline src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+      #rides-map {
+        width: 100%;
+        height: 100%;
+      }
+      .driver-car-marker {
+        transition: transform 0.08s linear;
+        transform-origin: center center;
+      }
+    </style>
   </head>
   <body class="bg-[#F5F6F8] text-[#0B0D10] min-h-screen flex flex-col pb-28 antialiased selection:bg-[#FF5A00] selection:text-white" data-bcv-rate={bcvRate}>
     <RoleSwitcher currentRole="client" />
@@ -219,37 +231,16 @@ const bcvFormatted = bcvRate.toFixed(2);
         <div class="lg:col-span-7 space-y-4">
           
           <div class="relative bg-slate-900 rounded-3xl overflow-hidden shadow-xl border border-slate-800 h-[380px] sm:h-[460px] flex items-center justify-center">
-            <svg class="absolute inset-0 w-full h-full opacity-35" viewBox="0 0 800 500" fill="none" preserveAspectRatio="xMidYMid slice">
-              <path d="M-50,100 Q150,50 300,120 T600,100 T850,150" stroke="#334155" stroke-width="28" fill="none" />
-              <path d="M-50,300 Q200,250 450,320 T750,280 T850,350" stroke="#334155" stroke-width="34" fill="none" />
-              <path d="M200,-50 Q220,150 250,300 T270,550" stroke="#334155" stroke-width="24" fill="none" />
-              <path d="M500,-50 Q520,200 480,350 T510,550" stroke="#334155" stroke-width="26" fill="none" />
+            <div id="rides-map" class="absolute inset-0 z-0"></div>
 
-              <path id="route-path" d="M 250 180 C 320 200, 400 240, 520 280" stroke="#FF5A00" stroke-width="6" stroke-linecap="round" stroke-dasharray="10 10" fill="none" class="animate-pulse" />
-
-              <circle cx="250" cy="180" r="14" fill="#00C853" fill-opacity="0.2"/>
-              <circle cx="250" cy="180" r="7" fill="#00C853"/>
-
-              <circle cx="520" cy="280" r="14" fill="#FF5A00" fill-opacity="0.2"/>
-              <circle cx="520" cy="280" r="7" fill="#FF5A00"/>
-            </svg>
-
-            <div class="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none">
+            <div class="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none z-10">
               <div class="bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/10 text-white text-xs font-black flex items-center gap-2 pointer-events-auto">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                <span>GPS Satelital Activo</span>
+                <span id="rides-ws-indicator" class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                <span id="rides-ws-status">GPS Satelital Activo</span>
               </div>
               <div class="bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/10 text-white text-xs font-bold pointer-events-auto">
                 Zona Chacao • Miranda
               </div>
-            </div>
-
-            <div class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center select-none" id="map-idle-overlay">
-              <div class="w-16 h-16 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-3xl mb-3 shadow-inner">
-                📍
-              </div>
-              <p class="text-white text-sm font-black mb-1">Ruta lista para despacho</p>
-              <p class="text-slate-400 text-xs max-w-xs">Distancia calculada con la red vial en vivo. Conductor más cercano a 1.2 km.</p>
             </div>
 
             <div id="searching-overlay" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-20">
@@ -264,16 +255,16 @@ const bcvFormatted = bcvRate.toFixed(2);
               </div>
             </div>
 
-            <div class="absolute bottom-4 left-4 right-4 flex items-center justify-between">
+            <div class="absolute bottom-4 left-4 right-4 flex items-center justify-between z-10">
               <div class="bg-black/75 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-white/10 text-white text-xs flex items-center gap-3">
                 <div>
                   <span class="text-[10px] text-slate-400 block font-semibold leading-tight">ORIGEN</span>
-                  <span class="font-extrabold text-slate-100">Chacao</span>
+                  <span id="label-origin" class="font-extrabold text-slate-100">Chacao</span>
                 </div>
                 <span class="text-orange-500 font-black">→</span>
                 <div>
                   <span class="text-[10px] text-slate-400 block font-semibold leading-tight">DESTINO</span>
-                  <span class="font-extrabold text-slate-100">San Ignacio</span>
+                  <span id="label-dest" class="font-extrabold text-slate-100">San Ignacio</span>
                 </div>
               </div>
 
@@ -419,6 +410,8 @@ const bcvFormatted = bcvRate.toFixed(2);
       const destInput = document.getElementById('ride-destination');
       const kmEl = document.getElementById('ride-km');
       const minEl = document.getElementById('ride-min');
+      const labelOrigin = document.getElementById('label-origin');
+      const labelDest = document.getElementById('label-dest');
 
       function recalculateTrip() {
         const oLen = (originInput ? originInput.value.length : 0);
@@ -429,23 +422,242 @@ const bcvFormatted = bcvRate.toFixed(2);
 
         if (kmEl) kmEl.textContent = `${currentKm} km`;
         if (minEl) minEl.textContent = `${pseudoMin} min`;
+        if (labelOrigin && originInput) labelOrigin.textContent = originInput.value.split(',')[0] || 'Origen';
+        if (labelDest && destInput) labelDest.textContent = destInput.value.split(',')[0] || 'Destino';
         updateFares();
       }
 
       if (originInput) originInput.addEventListener('input', recalculateTrip);
       if (destInput) destInput.addEventListener('input', recalculateTrip);
 
+      let ridesMap = null;
+      let carMarker = null;
+      let ridePolyline = null;
+      let currentCarPos = { lat: 10.4960, lng: -66.8650 };
+      let targetCarPos = { lat: 10.4960, lng: -66.8650 };
+      let pickupPos = { lat: 10.4905, lng: -66.8580 };
+      let dropoffPos = { lat: 10.4990, lng: -66.8520 };
+      let carBearing = 0;
+      let targetBearing = 0;
+      let activeRideId = null;
+      let rideWs = null;
+
+      function calculateBearing(startLat, startLng, destLat, destLng) {
+        const startLatRad = (startLat * Math.PI) / 180;
+        const startLngRad = (startLng * Math.PI) / 180;
+        const destLatRad = (destLat * Math.PI) / 180;
+        const destLngRad = (destLng * Math.PI) / 180;
+
+        const y = Math.sin(destLngRad - startLngRad) * Math.cos(destLatRad);
+        const x =
+          Math.cos(startLatRad) * Math.sin(destLatRad) -
+          Math.sin(startLatRad) * Math.cos(destLatRad) * Math.cos(destLngRad - startLngRad);
+        const brng = (Math.atan2(y, x) * 180) / Math.PI;
+        return (brng + 360) % 360;
+      }
+
+      function updateCarRotation(bearing) {
+        const el = document.getElementById('rides-car-svg-container');
+        if (el) {
+          el.style.transform = `rotate(${bearing}deg)`;
+        }
+      }
+
+      function animateCarApproaching() {
+        if (carMarker) {
+          const latDiff = (targetCarPos.lat - currentCarPos.lat) * 0.08;
+          const lngDiff = (targetCarPos.lng - currentCarPos.lng) * 0.08;
+
+          currentCarPos.lat += latDiff;
+          currentCarPos.lng += lngDiff;
+
+          carMarker.setLatLng([currentCarPos.lat, currentCarPos.lng]);
+
+          let diffBearing = (targetBearing - carBearing + 540) % 360 - 180;
+          carBearing = (carBearing + diffBearing * 0.1 + 360) % 360;
+          updateCarRotation(carBearing);
+
+          if (ridePolyline) {
+            ridePolyline.setLatLngs([
+              [currentCarPos.lat, currentCarPos.lng],
+              [pickupPos.lat, pickupPos.lng],
+              [dropoffPos.lat, dropoffPos.lng]
+            ]);
+          }
+        }
+        requestAnimationFrame(animateCarApproaching);
+      }
+
+      function initRidesMap() {
+        const mapEl = document.getElementById('rides-map');
+        if (!mapEl || typeof L === 'undefined') return;
+
+        ridesMap = L.map(mapEl, {
+          zoomControl: false,
+          attributionControl: false
+        }).setView([pickupPos.lat, pickupPos.lng], 15);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19
+        }).addTo(ridesMap);
+
+        const pickupIcon = L.divIcon({
+          className: '',
+          html: '<div class="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center text-sm shadow-lg border-2 border-white font-black">A</div>',
+          iconSize: [32, 32],
+          iconAnchor: [16, 16]
+        });
+
+        const dropoffIcon = L.divIcon({
+          className: '',
+          html: '<div class="w-8 h-8 rounded-full bg-[#FF5A00] text-white flex items-center justify-center text-sm shadow-lg border-2 border-white font-black">B</div>',
+          iconSize: [32, 32],
+          iconAnchor: [16, 16]
+        });
+
+        const carIcon = L.divIcon({
+          className: 'driver-car-marker',
+          html: `
+            <div id="rides-car-svg-container" class="relative w-12 h-12 flex items-center justify-center transition-transform duration-75">
+              <div class="absolute inset-0 rounded-full bg-blue-500/25 animate-ping"></div>
+              <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 shadow-xl border-2 border-white flex items-center justify-center text-white text-xl">
+                🚗
+              </div>
+            </div>
+          `,
+          iconSize: [48, 48],
+          iconAnchor: [24, 24]
+        });
+
+        L.marker([pickupPos.lat, pickupPos.lng], { icon: pickupIcon }).addTo(ridesMap);
+        L.marker([dropoffPos.lat, dropoffPos.lng], { icon: dropoffIcon }).addTo(ridesMap);
+        carMarker = L.marker([currentCarPos.lat, currentCarPos.lng], { icon: carIcon }).addTo(ridesMap);
+
+        ridePolyline = L.polyline([
+          [currentCarPos.lat, currentCarPos.lng],
+          [pickupPos.lat, pickupPos.lng],
+          [dropoffPos.lat, dropoffPos.lng]
+        ], {
+          color: '#FF5A00',
+          weight: 4,
+          opacity: 0.85,
+          dashArray: '8, 8'
+        }).addTo(ridesMap);
+
+        requestAnimationFrame(animateCarApproaching);
+
+        const recenterBtn = document.getElementById('btn-recenter');
+        if (recenterBtn) {
+          recenterBtn.addEventListener('click', () => {
+            ridesMap.setView([currentCarPos.lat, currentCarPos.lng], 15);
+          });
+        }
+      }
+
+      function connectRideWebSocket(rideId) {
+        const wsStatus = document.getElementById('rides-ws-status');
+        const wsIndicator = document.getElementById('rides-ws-indicator');
+
+        try {
+          rideWs = new WebSocket(`wss://ws.traigalo.org/ws?ride_id=${encodeURIComponent(rideId)}`);
+        } catch {
+          simulateApproachingCar();
+          return;
+        }
+
+        rideWs.onopen = () => {
+          if (wsStatus) wsStatus.textContent = 'Conductor Conectado (En Vivo)';
+          if (wsIndicator) wsIndicator.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-ping';
+        };
+
+        rideWs.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            const lat = Number(data.lat || data.latitude);
+            const lng = Number(data.lng || data.longitude);
+            if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+              targetBearing = calculateBearing(currentCarPos.lat, currentCarPos.lng, lat, lng);
+              targetCarPos = { lat, lng };
+            }
+          } catch {}
+        };
+
+        rideWs.onerror = () => {
+          simulateApproachingCar();
+        };
+
+        rideWs.onclose = () => {
+          simulateApproachingCar();
+        };
+      }
+
+      function simulateApproachingCar() {
+        let step = 0;
+        const startLat = 10.4960;
+        const startLng = -66.8650;
+        const interval = setInterval(() => {
+          step++;
+          const factor = Math.min(1, step / 30);
+          const nextLat = startLat + (pickupPos.lat - startLat) * factor;
+          const nextLng = startLng + (pickupPos.lng - startLng) * factor;
+          targetBearing = calculateBearing(currentCarPos.lat, currentCarPos.lng, nextLat, nextLng);
+          targetCarPos = { lat: nextLat, lng: nextLng };
+
+          if (factor >= 1) {
+            clearInterval(interval);
+            const wsStatus = document.getElementById('rides-ws-status');
+            if (wsStatus) wsStatus.textContent = '¡Conductor en el Punto de Recogida!';
+          }
+        }, 800);
+      }
+
       const requestBtn = document.getElementById('btn-request-ride');
       const searchOverlay = document.getElementById('searching-overlay');
-      const idleOverlay = document.getElementById('map-idle-overlay');
       const driverCard = document.getElementById('driver-card');
 
       if (requestBtn) {
-        requestBtn.addEventListener('click', () => {
+        requestBtn.addEventListener('click', async () => {
           if (searchOverlay) searchOverlay.classList.remove('hidden');
-          if (idleOverlay) idleOverlay.classList.add('hidden');
           requestBtn.setAttribute('disabled', 'true');
-          requestBtn.textContent = 'Asignando Conductor...';
+          requestBtn.textContent = 'Creando Solicitud...';
+
+          const cfg = ratesConfig[selectedType] || ratesConfig.auto;
+          const fareUsd = cfg.base + (cfg.perKm * currentKm);
+          const fareBs = fareUsd * bcvRate;
+
+          const payload = {
+            customer_id: '44444444-4444-4444-4444-444444444444',
+            vehicle_type: selectedType,
+            origin_address: originInput ? originInput.value : 'Chacao, Caracas',
+            destination_address: destInput ? destInput.value : 'San Ignacio, Caracas',
+            origin_latitude: pickupPos.lat,
+            origin_longitude: pickupPos.lng,
+            destination_latitude: dropoffPos.lat,
+            destination_longitude: dropoffPos.lng,
+            distance_km: currentKm,
+            fare_usd: parseFloat(fareUsd.toFixed(2)),
+            fare_bs: parseFloat(fareBs.toFixed(2)),
+            rate_bcv: bcvRate
+          };
+
+          try {
+            const res = await fetch('https://api.traigalo.org/v2/rides', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+              const rideData = await res.json();
+              activeRideId = rideData.id || `RD-${Date.now()}`;
+            } else {
+              activeRideId = `RD-${Date.now()}`;
+            }
+          } catch {
+            activeRideId = `RD-${Date.now()}`;
+          }
+
+          requestBtn.textContent = 'Esperando Conductor...';
 
           setTimeout(() => {
             if (searchOverlay) searchOverlay.classList.add('hidden');
@@ -454,10 +666,12 @@ const bcvFormatted = bcvRate.toFixed(2);
               setTimeout(() => driverCard.classList.remove('ring-2', 'ring-[#FF5A00]', 'animate-pulse'), 1200);
             }
             requestBtn.removeAttribute('disabled');
-            requestBtn.innerHTML = '<span>Carrera en Curso ⚡</span>';
+            requestBtn.innerHTML = '<span>Carrera Asignada ⚡</span>';
             requestBtn.classList.remove('from-[#FF5A00]', 'to-[#FF7A00]');
             requestBtn.classList.add('from-emerald-600', 'to-emerald-500');
-          }, 2400);
+
+            connectRideWebSocket(activeRideId);
+          }, 2200);
         });
       }
 
@@ -481,6 +695,12 @@ const bcvFormatted = bcvRate.toFixed(2);
       }
 
       updateFares();
+
+      if (document.readyState === 'complete') {
+        initRidesMap();
+      } else {
+        window.addEventListener('load', initRidesMap);
+      }
     </script>
   </body>
 </html>

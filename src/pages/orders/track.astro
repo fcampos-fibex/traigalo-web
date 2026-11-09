@@ -81,12 +81,18 @@ const steps = [
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script is:inline src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
       #map-container {
         width: 100%;
         height: 100%;
         min-height: 260px;
         border-radius: 1.5rem;
+      }
+      .driver-moto-marker {
+        transition: transform 0.08s linear;
+        transform-origin: center center;
       }
     </style>
   </head>
@@ -244,13 +250,37 @@ const steps = [
 
     <BottomNav />
 
-    <script is:inline define:vars={{ mapsApiKey, orderId, orderStatus: mockOrder.status }}>
+    <script is:inline define:vars={{ orderId, orderStatus: mockOrder.status }}>
       let map = null;
       let driverMarker = null;
+      let routePolyline = null;
       let currentDriverPos = { lat: 10.4880, lng: -66.8575 };
       let targetDriverPos = { lat: 10.4880, lng: -66.8575 };
+      let currentBearing = 0;
+      let targetBearing = 0;
       const clientLocation = { lat: 10.4855, lng: -66.8530 };
       const storeLocation = { lat: 10.4910, lng: -66.8620 };
+
+      function calculateBearing(startLat, startLng, destLat, destLng) {
+        const startLatRad = (startLat * Math.PI) / 180;
+        const startLngRad = (startLng * Math.PI) / 180;
+        const destLatRad = (destLat * Math.PI) / 180;
+        const destLngRad = (destLng * Math.PI) / 180;
+
+        const y = Math.sin(destLngRad - startLngRad) * Math.cos(destLatRad);
+        const x =
+          Math.cos(startLatRad) * Math.sin(destLatRad) -
+          Math.sin(startLatRad) * Math.cos(destLatRad) * Math.cos(destLngRad - startLngRad);
+        const brng = (Math.atan2(y, x) * 180) / Math.PI;
+        return (brng + 360) % 360;
+      }
+
+      function updateMarkerRotation(bearing) {
+        const el = document.getElementById('driver-moto-svg-container');
+        if (el) {
+          el.style.transform = `rotate(${bearing}deg)`;
+        }
+      }
 
       function checkDeliveredModal() {
         const ratingModal = document.getElementById('rating-modal');
@@ -306,27 +336,28 @@ const steps = [
         });
       }
 
-      function loadGoogleMaps() {
-        if (window.google && window.google.maps) {
-          initMap();
-          return;
-        }
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${mapsApiKey}&callback=initMap`;
-        script.async = true;
-        script.defer = true;
-        document.head.appendChild(script);
-      }
-
       function smoothAnimateMarker() {
-        if (!driverMarker) return;
-        const latDiff = (targetDriverPos.lat - currentDriverPos.lat) * 0.15;
-        const lngDiff = (targetDriverPos.lng - currentDriverPos.lng) * 0.15;
+        if (driverMarker) {
+          const latDiff = (targetDriverPos.lat - currentDriverPos.lat) * 0.08;
+          const lngDiff = (targetDriverPos.lng - currentDriverPos.lng) * 0.08;
 
-        currentDriverPos.lat += latDiff;
-        currentDriverPos.lng += lngDiff;
+          currentDriverPos.lat += latDiff;
+          currentDriverPos.lng += lngDiff;
 
-        driverMarker.setPosition(currentDriverPos);
+          driverMarker.setLatLng([currentDriverPos.lat, currentDriverPos.lng]);
+
+          let diffBearing = (targetBearing - currentBearing + 540) % 360 - 180;
+          currentBearing = (currentBearing + diffBearing * 0.1 + 360) % 360;
+          updateMarkerRotation(currentBearing);
+
+          if (routePolyline) {
+            routePolyline.setLatLngs([
+              [storeLocation.lat, storeLocation.lng],
+              [currentDriverPos.lat, currentDriverPos.lng],
+              [clientLocation.lat, clientLocation.lng]
+            ]);
+          }
+        }
         requestAnimationFrame(smoothAnimateMarker);
       }
 
@@ -355,6 +386,7 @@ const steps = [
             const lat = Number(data.lat || data.latitude);
             const lng = Number(data.lng || data.longitude);
             if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+              targetBearing = calculateBearing(currentDriverPos.lat, currentDriverPos.lng, lat, lng);
               targetDriverPos = { lat, lng };
             }
           } catch {}
@@ -385,76 +417,93 @@ const steps = [
         setInterval(() => {
           step = (step + 1) % 100;
           const factor = step / 100;
-          targetDriverPos = {
-            lat: storeLocation.lat + (clientLocation.lat - storeLocation.lat) * factor,
-            lng: storeLocation.lng + (clientLocation.lng - storeLocation.lng) * factor
-          };
+          const nextLat = storeLocation.lat + (clientLocation.lat - storeLocation.lat) * factor;
+          const nextLng = storeLocation.lng + (clientLocation.lng - storeLocation.lng) * factor;
+          targetBearing = calculateBearing(currentDriverPos.lat, currentDriverPos.lng, nextLat, nextLng);
+          targetDriverPos = { lat: nextLat, lng: nextLng };
         }, 1500);
       }
 
-      window.initMap = function() {
-        const mapOptions = {
-          zoom: 15,
-          center: currentDriverPos,
-          disableDefaultUI: true,
+      async function fetchOrderRoute() {
+        try {
+          const res = await fetch(`https://api.traigalo.org/v2/orders/${orderId}/route`);
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data?.coordinates) && data.coordinates.length > 1 && routePolyline) {
+              routePolyline.setLatLngs(data.coordinates.map(c => [c.lat || c[0], c.lng || c[1]]));
+            }
+          }
+        } catch {}
+      }
+
+      function initLeafletMap() {
+        const container = document.getElementById('map-container');
+        if (!container || typeof L === 'undefined') return;
+
+        map = L.map(container, {
           zoomControl: false,
-          styles: [
-            { elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
-            { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
-            { elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
-            { elementType: "labels.text.stroke", stylers: [{ color: "#f5f5f5" }] },
-            { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
-            { featureType: "road.arterial", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
-            { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#dadada" }] },
-            { featureType: "water", elementType: "geometry", stylers: [{ color: "#c9c9c9" }] },
-            { featureType: "poi", stylers: [{ visibility: "off" }] }
-          ]
-        };
+          attributionControl: false
+        }).setView([currentDriverPos.lat, currentDriverPos.lng], 15);
 
-        const mapElement = document.getElementById("map-container");
-        if (!mapElement) return;
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19
+        }).addTo(map);
 
-        map = new google.maps.Map(mapElement, mapOptions);
-
-        const routePath = new google.maps.Polyline({
-          path: [storeLocation, currentDriverPos, clientLocation],
-          geodesic: true,
-          strokeColor: "#FF7A00",
-          strokeOpacity: 0.9,
-          strokeWeight: 4
-        });
-        routePath.setMap(map);
-
-        new google.maps.Marker({
-          position: storeLocation,
-          map: map,
-          title: "Restaurante",
-          label: { text: "🍳", fontSize: "16px" }
+        const storeIcon = L.divIcon({
+          className: '',
+          html: '<div class="w-9 h-9 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-lg shadow-lg border-2 border-white">🍳</div>',
+          iconSize: [36, 36],
+          iconAnchor: [18, 18]
         });
 
-        driverMarker = new google.maps.Marker({
-          position: currentDriverPos,
-          map: map,
-          title: "Repartidor",
-          label: { text: "🛵", fontSize: "20px" }
+        const clientIcon = L.divIcon({
+          className: '',
+          html: '<div class="w-9 h-9 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-lg shadow-lg border-2 border-white">🏠</div>',
+          iconSize: [36, 36],
+          iconAnchor: [18, 18]
         });
 
-        new google.maps.Marker({
-          position: clientLocation,
-          map: map,
-          title: "Tu ubicación",
-          label: { text: "📍", fontSize: "18px" }
+        const motoIcon = L.divIcon({
+          className: 'driver-moto-marker',
+          html: `
+            <div id="driver-moto-svg-container" class="relative w-12 h-12 flex items-center justify-center transition-transform duration-75">
+              <div class="absolute inset-0 rounded-full bg-[#FF7A00]/25 animate-ping"></div>
+              <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-[#FF7A00] to-amber-500 shadow-xl border-2 border-white flex items-center justify-center text-white">
+                <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                  <path d="M19 7c0-1.1-.9-2-2-2h-3v2h3v2.65L13.52 14H10V9H6c-2.21 0-4 1.79-4 4v3h2c0 1.66 1.34 3 3 3s3-1.34 3-3h4.18c.41 1.16 1.51 2 2.82 2 1.66 0 3-1.34 3-3h2v-5l-4-3zm-12 9c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm11 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/>
+                </svg>
+              </div>
+            </div>
+          `,
+          iconSize: [48, 48],
+          iconAnchor: [24, 24]
         });
 
+        L.marker([storeLocation.lat, storeLocation.lng], { icon: storeIcon }).addTo(map).bindPopup('Restaurante');
+        L.marker([clientLocation.lat, clientLocation.lng], { icon: clientIcon }).addTo(map).bindPopup('Tu ubicación');
+        driverMarker = L.marker([currentDriverPos.lat, currentDriverPos.lng], { icon: motoIcon }).addTo(map);
+
+        routePolyline = L.polyline([
+          [storeLocation.lat, storeLocation.lng],
+          [currentDriverPos.lat, currentDriverPos.lng],
+          [clientLocation.lat, clientLocation.lng]
+        ], {
+          color: '#FF7A00',
+          weight: 4,
+          opacity: 0.85,
+          dashArray: '8, 8'
+        }).addTo(map);
+
+        fetchOrderRoute();
         requestAnimationFrame(smoothAnimateMarker);
         initTelemetryWebSocket();
         checkDeliveredModal();
-      };
+      }
 
       if (document.readyState === 'complete') {
-        loadGoogleMaps();
+        initLeafletMap();
       } else {
-        window.addEventListener('load', loadGoogleMaps);
+        window.addEventListener('load', initLeafletMap);
       }
     </script>
   </body>
