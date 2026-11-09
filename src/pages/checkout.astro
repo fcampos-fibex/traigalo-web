@@ -83,6 +83,19 @@ const bcvRate = await getOfficialExchangeRate();
       </section>
 
       <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs">
+        <label for="order-notes" class="block text-xs font-extrabold uppercase tracking-wider text-gray-400 mb-1">
+          Notas del Pedido
+        </label>
+        <p class="text-[11px] text-gray-400 font-medium mb-2">Instrucciones de entrega o notas para la tienda (ej. cuidado con el paquete, color, especificaciones)</p>
+        <textarea 
+          id="order-notes"
+          rows="2"
+          placeholder="Escribe aquí indicaciones especiales sobre tu entrega o productos..."
+          class="w-full p-3 bg-gray-50 border border-gray-100 rounded-2xl text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-[#FF7A00] focus:ring-2 focus:ring-[#FF7A00]/20 transition-all resize-none"
+        ></textarea>
+      </section>
+
+      <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs">
         <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-400 mb-3">Método de Pago</h3>
         <div class="space-y-2" id="payment-options">
           <label class="payment-option flex items-center justify-between p-3.5 rounded-2xl border-2 border-[#FF7A00] bg-orange-50/30 cursor-pointer transition-all" data-value="card">
@@ -378,7 +391,7 @@ const bcvRate = await getOfficialExchangeRate();
               <span class="text-3xl block mb-2">🛒</span>
               <p class="text-xs font-bold text-gray-500">Tu carrito está vacío</p>
               <a href="/" class="inline-block mt-3 px-4 py-2 rounded-xl bg-orange-50 text-[#FF7A00] font-black text-xs hover:bg-orange-100 transition-colors">
-                Descubrir Restaurantes
+                Explorar Catálogo y Tiendas
               </a>
             </div>
           `;
@@ -493,12 +506,17 @@ const bcvRate = await getOfficialExchangeRate();
 
         const finalDeliveryAddress = bankRef ? `${addressText} (Ref PagoMóvil: ${bankRef})` : addressText;
 
+        const orderNotesInput = document.getElementById('order-notes');
+        const orderNotes = orderNotesInput ? orderNotesInput.value.trim() : '';
+
         const payload = {
           customer_id: '44444444-4444-4444-4444-444444444444',
           store_id: storeId,
           delivery_latitude: deliveryLat,
           delivery_longitude: deliveryLng,
           delivery_address: finalDeliveryAddress,
+          instructions: orderNotes,
+          notes: orderNotes,
           payment_method: paymentMethod,
           delivery_fee: DELIVERY_FEE,
           service_fee: SERVICE_FEE,

@@ -211,7 +211,7 @@ const steps = [
         </div>
         <div>
           <h3 class="text-base font-black text-gray-900 leading-snug">¡Tu pedido ha sido entregado!</h3>
-          <p class="text-xs text-gray-400 mt-1">¿Cómo estuvo la comida y el servicio del repartidor?</p>
+          <p class="text-xs text-gray-400 mt-1">¿Cómo estuvo el producto recibido y el servicio de entrega?</p>
         </div>
 
         <div class="flex items-center justify-center gap-2 py-2" id="star-rating-container">
@@ -479,7 +479,7 @@ const steps = [
           iconAnchor: [24, 24]
         });
 
-        L.marker([storeLocation.lat, storeLocation.lng], { icon: storeIcon }).addTo(map).bindPopup('Restaurante');
+        L.marker([storeLocation.lat, storeLocation.lng], { icon: storeIcon }).addTo(map).bindPopup('Tienda / Comercio');
         L.marker([clientLocation.lat, clientLocation.lng], { icon: clientIcon }).addTo(map).bindPopup('Tu ubicación');
         driverMarker = L.marker([currentDriverPos.lat, currentDriverPos.lng], { icon: motoIcon }).addTo(map);
 
