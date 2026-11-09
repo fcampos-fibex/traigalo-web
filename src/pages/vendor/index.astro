@@ -10,7 +10,7 @@ const selectedStoreParam = Astro.url.searchParams.get("store_id") || "";
 function cleanProductName(rawName: string): string {
   return String(rawName || '')
     .replace(/^Ariculares/i, 'Auriculares')
-    .replace(/^5-Sprinng/i, '5-Spring Chest Pull')
+    .replace(/^5-Sprinng\s*(CHEST\s*PULL)?/i, '5-Spring Chest Pull')
     .replace(/^Abdominal musclw/i, 'Abdominal Muscle Trainer')
     .replace(/^Aceite de resino/i, 'Aceite de Ricino')
     .replace(/^After chave/i, 'After Shave Profesional')
@@ -43,7 +43,22 @@ try {
   if (oRes.ok) {
     const oData = await oRes.json();
     if (Array.isArray(oData)) {
-      storeOrders = oData.filter((o) => !o.store_id || o.store_id === currentStore.id);
+      const filtered = oData.filter((o) => !o.store_id || o.store_id === currentStore.id);
+      storeOrders = await Promise.all(
+        filtered.map(async (ord) => {
+          if (Array.isArray(ord.items) && ord.items.length > 0) return ord;
+          try {
+            const dRes = await fetch(`${API_BASE}/orders/${ord.id}`);
+            if (dRes.ok) {
+              const detail = await dRes.json();
+              if (detail && Array.isArray(detail.items)) {
+                return { ...ord, items: detail.items };
+              }
+            }
+          } catch {}
+          return ord;
+        })
+      );
     }
   }
 } catch {}

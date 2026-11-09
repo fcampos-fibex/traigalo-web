@@ -14,7 +14,7 @@ const bcvRate = await getOfficialExchangeRate();
 function cleanProductName(rawName: string): string {
   return String(rawName || '')
     .replace(/^Ariculares/i, 'Auriculares')
-    .replace(/^5-Sprinng/i, '5-Spring Chest Pull')
+    .replace(/^5-Sprinng\s*(CHEST\s*PULL)?/i, '5-Spring Chest Pull')
     .replace(/^Abdominal musclw/i, 'Abdominal Muscle Trainer')
     .replace(/^Aceite de resino/i, 'Aceite de Ricino')
     .replace(/^After chave/i, 'After Shave Profesional')
