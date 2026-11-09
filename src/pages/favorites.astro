@@ -1,0 +1,137 @@
+---
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import BottomNav from '../components/BottomNav.astro';
+import RoleSwitcher from '../components/RoleSwitcher.astro';
+import { getOfficialExchangeRate, formatBs } from '../adapters/rates';
+import '../styles/global.css';
+
+const API_BASE = 'https://api.traigalo.org/v2';
+const ASSET_BASE = 'https://admin.traigalo.org/assets';
+const bcvRate = await getOfficialExchangeRate();
+
+let favoriteStores: any[] = [];
+try {
+  const sRes = await fetch(`${API_BASE}/stores`);
+  if (sRes.ok) {
+    const list = await sRes.json();
+    favoriteStores = list.slice(0, 2);
+  }
+} catch {}
+
+const defaultCovers: Record<string, string> = {
+  'WILY VIDEO': 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=700&q=80',
+  'El Sitio del Barbero': 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=700&q=80',
+  'Burger Crave': 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=700&q=80',
+  'Sushi Omakase Roll': 'https://images.unsplash.com/photo-1611143669185-af224c5e3252?auto=format&fit=crop&w=700&q=80'
+};
+
+const favoriteProducts = [
+  {
+    id: 'fav-1',
+    name: 'Crispy Supreme Smash',
+    storeName: 'Burger Crave',
+    storeId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    price: 14.50,
+    priceBs: formatBs(14.50, bcvRate),
+    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=400&q=80'
+  },
+  {
+    id: 'fav-2',
+    name: 'Combo Tokio Special 16 pcs',
+    storeName: 'Sushi Omakase Roll',
+    storeId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+    price: 18.00,
+    priceBs: formatBs(18.00, bcvRate),
+    image: 'https://images.unsplash.com/photo-1611143669185-af224c5e3252?auto=format&fit=crop&w=400&q=80'
+  }
+];
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Mis Favoritos | Traigalo ⚡</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  </head>
+  <body class="bg-[#FAFAFC] text-[#1A1D20] min-h-screen flex flex-col pb-28 antialiased selection:bg-[#FF7A00] selection:text-white">
+    <RoleSwitcher currentRole="client" />
+    <Header />
+
+    <main class="flex-1 max-w-4xl mx-auto px-4 sm:px-6 py-6 w-full space-y-6">
+      
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">Tus Favoritos</h1>
+          <p class="text-xs text-gray-400 mt-0.5">Tiendas y platos que más te encantan</p>
+        </div>
+        <div class="w-10 h-10 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center text-lg font-black shadow-xs">
+          ❤️
+        </div>
+      </div>
+
+      <section class="space-y-3">
+        <h2 class="text-sm font-black uppercase tracking-wider text-gray-400">Tiendas Guardadas</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {favoriteStores.map((store) => (
+            <a 
+              href={`/stores/${store.id}`}
+              class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs hover:shadow-md transition-all flex items-center gap-3.5"
+            >
+              <div class="w-16 h-16 rounded-2xl overflow-hidden bg-gray-100 shrink-0">
+                <img 
+                  src={defaultCovers[store.name] || 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=300&q=80'} 
+                  alt={store.name} 
+                  class="w-full h-full object-cover" 
+                />
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="text-sm font-black text-gray-900 truncate">{store.name}</h3>
+                <p class="text-xs text-gray-400 truncate mt-0.5">{store.address_line}</p>
+                <span class="text-[10px] font-bold text-[#FF7A00] mt-1 block">★ 4.9 • 15-25 min</span>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      <section class="space-y-3 pt-2">
+        <h2 class="text-sm font-black uppercase tracking-wider text-gray-400">Platos y Productos Guardados</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {favoriteProducts.map((p) => (
+            <div class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs hover:shadow-md transition-all flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="w-16 h-16 rounded-2xl overflow-hidden bg-gray-100 shrink-0">
+                  <img src={p.image} alt={p.name} class="w-full h-full object-cover" />
+                </div>
+                <div>
+                  <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{p.storeName}</span>
+                  <h4 class="text-xs font-black text-gray-900 leading-tight">{p.name}</h4>
+                  <div class="mt-1">
+                    <span class="text-xs font-black text-gray-950">${p.price.toFixed(2)}</span>
+                    <span class="text-[9px] text-gray-400 font-semibold ml-1.5">{p.priceBs}</span>
+                  </div>
+                </div>
+              </div>
+
+              <a 
+                href={`/stores/${p.storeId}`}
+                class="w-9 h-9 rounded-full bg-[#FF7A00] hover:bg-[#E66E00] text-white flex items-center justify-center font-black text-base shadow-sm active:scale-95 transition-all"
+              >
+                +
+              </a>
+            </div>
+          ))}
+        </div>
+      </section>
+
+    </main>
+
+    <Footer />
+    <BottomNav />
+  </body>
+</html>

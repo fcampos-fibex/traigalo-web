@@ -93,6 +93,18 @@ const totalOrdersCount = storeOrders.length;
     </header>
 
     <main class="max-w-md mx-auto px-5 pt-4 space-y-5">
+      <div id="incoming-order-alert" class="hidden p-4 rounded-3xl bg-[#FF7A00] text-white shadow-xl shadow-orange-600/30 animate-pulse flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl animate-bounce">🔔</span>
+          <div>
+            <h4 class="text-xs font-black uppercase tracking-wider">¡Nueva Orden Entrante!</h4>
+            <p class="text-[11px] text-white/90 font-medium">Tienes pedidos pendientes por aceptar en cocina</p>
+          </div>
+        </div>
+        <button id="btn-silence-alert" class="px-3 py-1.5 rounded-xl bg-white text-[#FF7A00] font-black text-xs active:scale-95 shadow-sm">
+          Atender
+        </button>
+      </div>
       <div class="grid grid-cols-3 gap-3">
         <div class="bg-white rounded-2xl p-3 border border-gray-100 shadow-sm text-center">
           <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Hoy USD</p>
@@ -294,6 +306,62 @@ const totalOrdersCount = storeOrders.length;
       if (refreshBtn) {
         refreshBtn.addEventListener("click", () => window.location.reload());
       }
+
+      function playAlertChime() {
+        try {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContext) return;
+          const ctx = new AudioContext();
+
+          const now = ctx.currentTime;
+          const osc1 = ctx.createOscillator();
+          const osc2 = ctx.createOscillator();
+          const gain = ctx.createGain();
+
+          osc1.type = 'triangle';
+          osc1.frequency.setValueAtTime(587.33, now); // D5
+          osc1.frequency.exponentialRampToValueAtTime(880.00, now + 0.15); // A5
+
+          osc2.type = 'sine';
+          osc2.frequency.setValueAtTime(880.00, now + 0.15);
+          osc2.frequency.exponentialRampToValueAtTime(1174.66, now + 0.35); // D6
+
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+
+          osc1.connect(gain);
+          osc2.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc1.start(now);
+          osc1.stop(now + 0.2);
+          osc2.start(now + 0.15);
+          osc2.stop(now + 0.5);
+        } catch {}
+      }
+
+      function checkIncomingOrders() {
+        const hasIncoming = document.querySelector('.btn-order-action[data-action="accept"]') !== null;
+        const alertBanner = document.getElementById('incoming-order-alert');
+        if (hasIncoming) {
+          if (alertBanner) alertBanner.classList.remove('hidden');
+          playAlertChime();
+        } else {
+          if (alertBanner) alertBanner.classList.add('hidden');
+        }
+      }
+
+      const silenceBtn = document.getElementById('btn-silence-alert');
+      if (silenceBtn) {
+        silenceBtn.addEventListener('click', () => {
+          const alertBanner = document.getElementById('incoming-order-alert');
+          if (alertBanner) alertBanner.classList.add('hidden');
+        });
+      }
+
+      window.addEventListener('load', () => {
+        checkIncomingOrders();
+      });
 
       attachActionHandlers();
     </script>

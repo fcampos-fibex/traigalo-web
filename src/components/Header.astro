@@ -1,33 +1,50 @@
 ---
 import { getOfficialExchangeRate } from '../adapters/rates';
+import Logo from './Logo.astro';
 
-const directusUrl = import.meta.env.PUBLIC_DIRECTUS_URL || 'http://directus.44.217.190.140.sslip.io';
+const directusUrl = import.meta.env.PUBLIC_DIRECTUS_URL || 'https://admin.traigalo.org';
 const bcvRate = await getOfficialExchangeRate();
 const bcvFormatted = bcvRate.toFixed(2);
 ---
 
 <header class="bg-white/95 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40">
-  <div class="max-w-4xl mx-auto px-4 sm:px-6 py-3.5">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
     
     <div class="flex items-center justify-between gap-4">
-      <div class="flex items-center gap-2.5">
-        <div class="w-9 h-9 rounded-full bg-orange-50 text-[#FF7A00] flex items-center justify-center text-base shadow-xs shrink-0">
-          📍
-        </div>
-        <div class="flex flex-col">
-          <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider leading-tight">Entregar en</span>
-          <div class="flex items-center gap-1 cursor-pointer group">
-            <span class="text-sm font-bold text-gray-900 group-hover:text-[#FF7A00] transition-colors">
-              Av. Libertador 102, Caracas
-            </span>
-            <svg class="w-3.5 h-3.5 text-[#FF7A00] transform group-hover:translate-y-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
-            </svg>
+      <div class="flex items-center gap-3">
+        <a href="/" class="flex items-center gap-2">
+          <Logo size="sm" />
+        </a>
+
+        <div class="h-6 w-px bg-gray-200 hidden sm:block"></div>
+
+        <a href="/rides" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-black shadow-sm shadow-blue-500/20 active:scale-95 transition-all">
+          <span>🚗</span>
+          <span class="hidden sm:inline">Pedir Taxi / Viajes</span>
+          <span class="sm:hidden">Viajes</span>
+        </a>
+
+        <div class="h-6 w-px bg-gray-200 hidden lg:block"></div>
+
+        <div class="hidden lg:flex items-center gap-2">
+          <div class="w-8 h-8 rounded-full bg-orange-50 text-[#FF7A00] flex items-center justify-center text-sm shadow-xs shrink-0">
+            📍
+          </div>
+          <div class="flex flex-col">
+            <span class="text-[9px] font-semibold text-gray-400 uppercase tracking-wider leading-tight">Entregar en</span>
+            <div class="flex items-center gap-1 cursor-pointer group">
+              <span class="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-[#FF7A00] transition-colors truncate max-w-[140px] sm:max-w-none">
+                Av. Libertador 102, Caracas
+              </span>
+              <svg class="w-3.5 h-3.5 text-[#FF7A00] transform group-hover:translate-y-0.5 transition-transform shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="flex items-center gap-2 sm:gap-2.5">
+      <div class="flex items-center gap-2 sm:gap-3">
         <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-[10px] sm:text-xs font-extrabold shadow-2xs">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
           <span>Tasa BCV: {bcvFormatted} Bs/$</span>
@@ -37,26 +54,82 @@ const bcvFormatted = bcvRate.toFixed(2);
           href={directusUrl} 
           target="_blank" 
           rel="noopener noreferrer" 
-          class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-50 hover:bg-orange-100 text-[#FF7A00] text-xs font-bold transition-colors"
+          class="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-50 hover:bg-orange-100 text-[#FF7A00] text-xs font-bold transition-colors"
         >
           <span>CMS</span>
           <span class="text-[10px]">↗</span>
         </a>
 
-        <button class="w-10 h-10 rounded-full bg-gray-50 hover:bg-gray-100 border border-gray-100 flex items-center justify-center text-gray-700 transition-colors relative">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-          </svg>
-          <span class="absolute top-2 right-2 w-2 h-2 bg-[#FF7A00] rounded-full ring-2 ring-white"></span>
-        </button>
+        <div class="relative" id="user-menu-container">
+          <div id="unauth-actions" class="flex items-center gap-2">
+            <a 
+              href="/login" 
+              class="px-3.5 py-1.5 rounded-2xl bg-gray-50 hover:bg-gray-100 border border-gray-100 text-gray-800 text-xs font-extrabold transition-all"
+            >
+              Iniciar Sesión
+            </a>
+            <a 
+              href="/register" 
+              class="hidden sm:inline-flex px-3.5 py-1.5 rounded-2xl bg-[#FF7A00] hover:bg-[#E66E00] text-white text-xs font-black shadow-sm transition-all"
+            >
+              Registro
+            </a>
+          </div>
 
-        <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-[#FF7A00] to-amber-400 p-0.5 shadow-sm">
-          <img 
-            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80" 
-            alt="User profile" 
-            class="w-full h-full object-cover rounded-full"
-          />
+          <div id="auth-actions" class="hidden items-center gap-2">
+            <button 
+              id="user-profile-trigger"
+              type="button"
+              class="flex items-center gap-2 p-1 pl-2.5 rounded-full bg-gray-50 border border-gray-100 hover:border-gray-200 transition-all cursor-pointer"
+            >
+              <span id="user-display-name" class="text-xs font-black text-gray-900 max-w-[100px] truncate">Usuario</span>
+              <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-[#FF7A00] to-amber-400 p-0.5 shadow-sm">
+                <img 
+                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80" 
+                  alt="User avatar" 
+                  class="w-full h-full object-cover rounded-full"
+                />
+              </div>
+            </button>
+
+            <div 
+              id="user-dropdown" 
+              class="hidden absolute right-0 top-12 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50 transition-all duration-150"
+            >
+              <div class="px-3 py-2 border-b border-gray-50">
+                <p id="dropdown-user-name" class="text-xs font-black text-gray-900 truncate">Usuario</p>
+                <p id="dropdown-user-email" class="text-[10px] text-gray-400 truncate">usuario@traigalo.org</p>
+              </div>
+
+              <div class="py-1 space-y-0.5 text-xs font-bold text-gray-700">
+                <a href="/orders" class="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-orange-50 hover:text-[#FF7A00] transition-colors">
+                  <span>📦</span>
+                  <span>Mis Pedidos</span>
+                </a>
+                <a href="/favorites" class="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-orange-50 hover:text-[#FF7A00] transition-colors">
+                  <span>❤️</span>
+                  <span>Favoritos</span>
+                </a>
+                <a href="/profile" class="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-orange-50 hover:text-[#FF7A00] transition-colors">
+                  <span>👤</span>
+                  <span>Mi Perfil</span>
+                </a>
+              </div>
+
+              <div class="pt-1 border-t border-gray-50">
+                <button 
+                  id="btn-logout"
+                  type="button" 
+                  class="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors text-left"
+                >
+                  <span>🚪</span>
+                  <span>Cerrar Sesión</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
+
       </div>
     </div>
 
@@ -82,3 +155,65 @@ const bcvFormatted = bcvRate.toFixed(2);
 
   </div>
 </header>
+
+<script is:inline>
+  function setupUserMenu() {
+    const unauthEl = document.getElementById('unauth-actions');
+    const authEl = document.getElementById('auth-actions');
+    const nameEl = document.getElementById('user-display-name');
+    const dropNameEl = document.getElementById('dropdown-user-name');
+    const dropEmailEl = document.getElementById('dropdown-user-email');
+    const trigger = document.getElementById('user-profile-trigger');
+    const dropdown = document.getElementById('user-dropdown');
+    const logoutBtn = document.getElementById('btn-logout');
+
+    const token = localStorage.getItem('traigalo_token');
+    const rawUser = localStorage.getItem('traigalo_user');
+
+    if (token && rawUser) {
+      try {
+        const user = JSON.parse(rawUser);
+        if (unauthEl) unauthEl.classList.add('hidden');
+        if (authEl) {
+          authEl.classList.remove('hidden');
+          authEl.classList.add('flex');
+        }
+        if (nameEl) nameEl.textContent = user.name || 'Usuario';
+        if (dropNameEl) dropNameEl.textContent = user.name || 'Usuario';
+        if (dropEmailEl) dropEmailEl.textContent = user.email || 'usuario@traigalo.org';
+      } catch {
+        localStorage.removeItem('traigalo_token');
+        localStorage.removeItem('traigalo_user');
+      }
+    } else {
+      if (unauthEl) unauthEl.classList.remove('hidden');
+      if (authEl) {
+        authEl.classList.add('hidden');
+        authEl.classList.remove('flex');
+      }
+    }
+
+    if (trigger && dropdown) {
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dropdown.classList.toggle('hidden');
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!dropdown.contains(e.target) && !trigger.contains(e.target)) {
+          dropdown.classList.add('hidden');
+        }
+      });
+    }
+
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => {
+        localStorage.removeItem('traigalo_token');
+        localStorage.removeItem('traigalo_user');
+        window.location.reload();
+      });
+    }
+  }
+
+  setupUserMenu();
+</script>

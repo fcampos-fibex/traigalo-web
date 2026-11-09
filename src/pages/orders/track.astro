@@ -195,15 +195,113 @@ const steps = [
       </section>
     </main>
 
+    <div id="rating-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl text-center space-y-4">
+        <div class="w-14 h-14 rounded-3xl bg-amber-50 text-amber-500 mx-auto flex items-center justify-center text-3xl shadow-sm">
+          ⭐
+        </div>
+        <div>
+          <h3 class="text-base font-black text-gray-900 leading-snug">¡Tu pedido ha sido entregado!</h3>
+          <p class="text-xs text-gray-400 mt-1">¿Cómo estuvo la comida y el servicio del repartidor?</p>
+        </div>
+
+        <div class="flex items-center justify-center gap-2 py-2" id="star-rating-container">
+          <button type="button" data-val="1" class="star-btn text-3xl text-amber-400 hover:scale-110 transition-transform">★</button>
+          <button type="button" data-val="2" class="star-btn text-3xl text-amber-400 hover:scale-110 transition-transform">★</button>
+          <button type="button" data-val="3" class="star-btn text-3xl text-amber-400 hover:scale-110 transition-transform">★</button>
+          <button type="button" data-val="4" class="star-btn text-3xl text-amber-400 hover:scale-110 transition-transform">★</button>
+          <button type="button" data-val="5" class="star-btn text-3xl text-amber-400 hover:scale-110 transition-transform">★</button>
+        </div>
+
+        <textarea 
+          id="rating-comment"
+          rows="2" 
+          placeholder="Escribe un comentario opcional..." 
+          class="w-full p-3 bg-gray-50 border border-gray-100 rounded-2xl text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-[#FF7A00] transition-all"
+        ></textarea>
+
+        <div class="grid grid-cols-2 gap-2 pt-2">
+          <button 
+            id="btn-skip-rating"
+            type="button" 
+            class="h-11 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs active:scale-95 transition-all"
+          >
+            Omitir
+          </button>
+          <button 
+            id="btn-submit-rating"
+            type="button" 
+            class="h-11 rounded-xl bg-[#FF7A00] hover:bg-[#E66E00] text-white font-black text-xs shadow-md shadow-orange-600/20 active:scale-95 transition-all"
+          >
+            Enviar
+          </button>
+        </div>
+      </div>
+    </div>
+
     <BottomNav />
 
-    <script is:inline define:vars={{ mapsApiKey, orderId }}>
+    <script is:inline define:vars={{ mapsApiKey, orderId, orderStatus: mockOrder.status }}>
       let map = null;
       let driverMarker = null;
       let currentDriverPos = { lat: 10.4880, lng: -66.8575 };
       let targetDriverPos = { lat: 10.4880, lng: -66.8575 };
       const clientLocation = { lat: 10.4855, lng: -66.8530 };
       const storeLocation = { lat: 10.4910, lng: -66.8620 };
+
+      function checkDeliveredModal() {
+        const ratingModal = document.getElementById('rating-modal');
+        if (orderStatus === 'delivered' && ratingModal) {
+          ratingModal.classList.remove('hidden');
+        }
+      }
+
+      let selectedStars = 5;
+      document.querySelectorAll('.star-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          selectedStars = parseInt(btn.getAttribute('data-val') || '5', 10);
+          document.querySelectorAll('.star-btn').forEach((b) => {
+            const val = parseInt(b.getAttribute('data-val') || '0', 10);
+            b.className = val <= selectedStars 
+              ? 'star-btn text-3xl text-amber-400 hover:scale-110 transition-transform' 
+              : 'star-btn text-3xl text-gray-200 hover:scale-110 transition-transform';
+          });
+        });
+      });
+
+      const skipBtn = document.getElementById('btn-skip-rating');
+      if (skipBtn) {
+        skipBtn.addEventListener('click', () => {
+          const ratingModal = document.getElementById('rating-modal');
+          if (ratingModal) ratingModal.classList.add('hidden');
+        });
+      }
+
+      const submitRatingBtn = document.getElementById('btn-submit-rating');
+      if (submitRatingBtn) {
+        submitRatingBtn.addEventListener('click', async () => {
+          submitRatingBtn.textContent = 'Enviando...';
+          submitRatingBtn.disabled = true;
+
+          const comment = document.getElementById('rating-comment') ? document.getElementById('rating-comment').value : '';
+
+          try {
+            await fetch(`https://api.traigalo.org/v2/orders/${orderId}/actions`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'rate',
+                rating: selectedStars,
+                comment: comment
+              })
+            }).catch(() => {});
+          } finally {
+            const ratingModal = document.getElementById('rating-modal');
+            if (ratingModal) ratingModal.classList.add('hidden');
+            alert('¡Gracias por calificar tu pedido!');
+          }
+        });
+      }
 
       function loadGoogleMaps() {
         if (window.google && window.google.maps) {
@@ -347,6 +445,7 @@ const steps = [
 
         requestAnimationFrame(smoothAnimateMarker);
         initTelemetryWebSocket();
+        checkDeliveredModal();
       };
 
       if (document.readyState === 'complete') {

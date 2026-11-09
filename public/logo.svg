@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 64" fill="none">
+  <defs>
+    <linearGradient id="t-brand-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF7A00"/>
+      <stop offset="50%" stop-color="#FF5A00"/>
+      <stop offset="100%" stop-color="#E54600"/>
+    </linearGradient>
+    <linearGradient id="t-bolt-inner" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#FFF8E7"/>
+    </linearGradient>
+    <filter id="icon-soft-shadow" x="-10%" y="-10%" width="125%" height="125%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#FF5A00" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <g filter="url(#icon-soft-shadow)">
+    <rect x="4" y="6" width="52" height="52" rx="16" fill="url(#t-brand-grad)"/>
+    <path d="M33 13L18 33.5H29.5L25.5 51L42 29.5H30.5L33 13Z" fill="url(#t-bolt-inner)"/>
+  </g>
+  
+  <text x="68" y="44" font-family="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif" font-weight="900" font-size="34" letter-spacing="-1.2" fill="#0B0D10">
+    Traigalo
+  </text>
+  
+  <circle cx="218" cy="40" r="4" fill="#FF5A00"/>
+</svg>

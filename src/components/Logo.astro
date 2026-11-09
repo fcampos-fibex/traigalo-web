@@ -1,0 +1,45 @@
+---
+interface Props {
+  variant?: 'dark' | 'light';
+  size?: 'sm' | 'md' | 'lg';
+  showText?: boolean;
+}
+
+const { variant = 'dark', size = 'md', showText = true } = Astro.props;
+
+const heightClasses = {
+  sm: 'h-8',
+  md: 'h-10',
+  lg: 'h-12'
+};
+
+const iconSizes = {
+  sm: 'w-8 h-8 rounded-xl',
+  md: 'w-10 h-10 rounded-2xl',
+  lg: 'w-12 h-12 rounded-2xl'
+};
+
+const textSizes = {
+  sm: 'text-xl',
+  md: 'text-2xl',
+  lg: 'text-3xl'
+};
+---
+
+<div class={`inline-flex items-center gap-2.5 select-none ${heightClasses[size]}`}>
+  <div class={`${iconSizes[size]} bg-gradient-to-tr from-[#FF7A00] via-[#FF5A00] to-[#E54600] flex items-center justify-center shadow-lg shadow-[#FF5A00]/25 shrink-0 relative overflow-hidden group`}>
+    <svg class="w-3/5 h-3/5 text-white drop-shadow-sm transition-transform duration-300 group-hover:scale-110" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z"/>
+    </svg>
+    <div class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+  </div>
+
+  {showText && (
+    <div class="flex items-center">
+      <span class={`font-black tracking-tight font-sans ${textSizes[size]} ${variant === 'light' ? 'text-white' : 'text-[#0B0D10]'}`}>
+        Traigalo
+      </span>
+      <span class="w-1.5 h-1.5 rounded-full bg-[#FF5A00] ml-0.5 mt-2 shrink-0 animate-pulse"></span>
+    </div>
+  )}
+</div>
