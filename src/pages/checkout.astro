@@ -1,5 +1,6 @@
 ---
 import { getOfficialExchangeRate } from '../adapters/rates';
+import LocationModal from '../components/LocationModal.astro';
 import '../styles/global.css';
 
 const bcvRate = await getOfficialExchangeRate();
@@ -39,15 +40,17 @@ const bcvRate = await getOfficialExchangeRate();
       <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs">
         <div class="flex items-center justify-between mb-2">
           <span class="text-[10px] font-extrabold uppercase tracking-wider text-gray-400">Dirección de Entrega</span>
-          <span class="text-xs font-bold text-[#FF7A00] hover:underline cursor-pointer">Cambiar</span>
+          <button id="btn-change-checkout-address" type="button" class="text-xs font-bold text-[#FF7A00] hover:underline cursor-pointer">
+            Cambiar en Mapa
+          </button>
         </div>
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-2xl bg-orange-50 text-[#FF7A00] flex items-center justify-center text-lg shrink-0">
-            🏠
+            📍
           </div>
           <div class="flex-1 min-w-0">
-            <h3 class="text-sm font-bold text-gray-900 truncate">Casa (Residencias El Roble)</h3>
-            <p id="checkout-address" class="text-xs text-gray-400 truncate">Av. Libertador 102, Caracas</p>
+            <h3 class="text-sm font-bold text-gray-900 truncate">Punto de Entrega Confirmado</h3>
+            <p id="checkout-address" class="text-xs text-gray-400 truncate">Av. Libertador, Caracas</p>
           </div>
         </div>
       </section>
@@ -386,14 +389,31 @@ const bcvRate = await getOfficialExchangeRate();
           return;
         }
 
-        const addressText = document.getElementById('checkout-address') ? document.getElementById('checkout-address').textContent : 'Av. Libertador 102, Caracas';
+        let deliveryLat = 10.4855;
+        let deliveryLng = -66.8530;
+        let addressText = document.getElementById('checkout-address') ? document.getElementById('checkout-address').textContent : 'Av. Libertador, Caracas';
+
+        const savedLoc = localStorage.getItem('traigalo_location');
+        if (savedLoc) {
+          try {
+            const parsedLoc = JSON.parse(savedLoc);
+            if (parsedLoc.latitude && parsedLoc.longitude) {
+              deliveryLat = parsedLoc.latitude;
+              deliveryLng = parsedLoc.longitude;
+            }
+            if (parsedLoc.address) {
+              addressText = parsedLoc.address;
+            }
+          } catch {}
+        }
+
         const finalDeliveryAddress = bankRef ? `${addressText} (Ref PagoMóvil: ${bankRef})` : addressText;
 
         const payload = {
           customer_id: '44444444-4444-4444-4444-444444444444',
           store_id: storeId,
-          delivery_latitude: 10.4855,
-          delivery_longitude: -66.853,
+          delivery_latitude: deliveryLat,
+          delivery_longitude: deliveryLng,
           delivery_address: finalDeliveryAddress,
           payment_method: paymentMethod,
           delivery_fee: DELIVERY_FEE,
@@ -435,7 +455,43 @@ const bcvRate = await getOfficialExchangeRate();
         confirmBtn.addEventListener('click', handleCheckout);
       }
 
+      const changeAddressBtn = document.getElementById('btn-change-checkout-address');
+      if (changeAddressBtn) {
+        changeAddressBtn.addEventListener('click', () => {
+          if (typeof window.openLocationModal === 'function') {
+            window.openLocationModal();
+          }
+        });
+      }
+
+      function updateCheckoutAddressDisplay() {
+        const addressEl = document.getElementById('checkout-address');
+        const savedLoc = localStorage.getItem('traigalo_location');
+        if (savedLoc) {
+          try {
+            const parsed = JSON.parse(savedLoc);
+            if (parsed.address && addressEl) {
+              addressEl.textContent = parsed.address;
+            }
+          } catch {}
+        } else {
+          const savedAddr = localStorage.getItem('traigalo_address');
+          if (savedAddr && addressEl) {
+            addressEl.textContent = savedAddr;
+          }
+        }
+      }
+
+      window.addEventListener('traigalo:location-changed', (e) => {
+        if (e.detail && e.detail.address) {
+          const addressEl = document.getElementById('checkout-address');
+          if (addressEl) addressEl.textContent = e.detail.address;
+        }
+      });
+
+      updateCheckoutAddressDisplay();
       renderCart();
     </script>
+    <LocationModal />
   </body>
 </html>
