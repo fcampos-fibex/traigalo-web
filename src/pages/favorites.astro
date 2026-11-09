@@ -114,8 +114,8 @@ for (const store of favoriteStores) {
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {favoriteStores.map((store) => {
             const isBarbero = store.name.includes('Barbero');
-            const logoUrl = isBarbero ? '/store-barbero-logo.svg' : '/store-wily-logo.svg';
-            const coverUrl = isBarbero ? '/store-barbero-cover.svg' : '/store-wily-cover.svg';
+            const logoUrl = isBarbero ? '/stores/barbero-logo.webp' : '/stores/wily-logo.webp';
+            const coverUrl = isBarbero ? '/stores/barbero-cover.webp' : '/stores/wily-cover.webp';
             return (
               <a 
                 href={`/stores/${store.id}`}

@@ -35,7 +35,7 @@ const currentStore = stores.find((s) => s.id === selectedStoreParam) || stores[0
 };
 
 const isBarbero = currentStore.id === "03577774-2f0b-4b68-bb11-5c91628dbd5f" || String(currentStore.name).toLowerCase().includes("barbero");
-const storeLogo = isBarbero ? "/store-barbero-logo.svg" : "/store-wily-logo.svg";
+const storeLogo = isBarbero ? "/stores/barbero-logo.webp" : "/stores/wily-logo.webp";
 
 let storeOrders: any[] = [];
 try {

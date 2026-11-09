@@ -127,7 +127,7 @@ function formatPaymentMethod(pm: string): string {
             const isLive = ord.status === 'in_transit' || ord.status === 'driver_in_transit' || ord.status === 'driver_assigned' || ord.status === 'preparing' || ord.status === 'accepted_by_store';
             const isBarbero = ord.store_id === '03577774-2f0b-4b68-bb11-5c91628dbd5f';
             const storeName = isBarbero ? 'El Sitio del Barbero' : 'WILY VIDEO';
-            const storeLogo = isBarbero ? '/store-barbero-logo.svg' : '/store-wily-logo.svg';
+            const storeLogo = isBarbero ? '/stores/barbero-logo.webp' : '/stores/wily-logo.webp';
             const orderItems = Array.isArray(ord.items) ? ord.items : [];
 
             return (

@@ -139,6 +139,37 @@ const bcvFormatted = bcvRate.toFixed(2);
       </button>
     </div>
 
+    <nav aria-label="Categorías de Tiendas" class="mt-2.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1">
+      <a href="/?rubro=all#store-verticals" data-header-rubro="all" class="header-rubro-link shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 text-[#FF7A00] hover:bg-orange-100 text-[11px] font-extrabold transition-colors">
+        <span>🏬</span>
+        <span>Todos los Rubros</span>
+      </a>
+      <a href="/?rubro=restaurantes#store-verticals" data-header-rubro="restaurantes" class="header-rubro-link shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-50 hover:bg-orange-50 text-gray-700 hover:text-[#FF7A00] text-[11px] font-bold transition-colors border border-gray-100">
+        <span>🍔</span>
+        <span>Comida y Restaurantes</span>
+      </a>
+      <a href="/?rubro=supermercados#store-verticals" data-header-rubro="supermercados" class="header-rubro-link shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-50 hover:bg-orange-50 text-gray-700 hover:text-[#FF7A00] text-[11px] font-bold transition-colors border border-gray-100">
+        <span>🛒</span>
+        <span>Supermercados</span>
+      </a>
+      <a href="/?rubro=farmacias#store-verticals" data-header-rubro="farmacias" class="header-rubro-link shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-50 hover:bg-orange-50 text-gray-700 hover:text-[#FF7A00] text-[11px] font-bold transition-colors border border-gray-100">
+        <span>💊</span>
+        <span>Farmacias</span>
+      </a>
+      <a href="/?rubro=tecnologia#store-verticals" data-header-rubro="tecnologia" class="header-rubro-link shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-50 hover:bg-orange-50 text-gray-700 hover:text-[#FF7A00] text-[11px] font-bold transition-colors border border-gray-100">
+        <span>🎮</span>
+        <span>Tecnología y Tiendas</span>
+      </a>
+      <a href="/?rubro=barberia#store-verticals" data-header-rubro="barberia" class="header-rubro-link shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-50 hover:bg-orange-50 text-gray-700 hover:text-[#FF7A00] text-[11px] font-bold transition-colors border border-gray-100">
+        <span>💈</span>
+        <span>Barbería y Belleza</span>
+      </a>
+      <a href="/?rubro=mascotas#store-verticals" data-header-rubro="mascotas" class="header-rubro-link shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-50 hover:bg-orange-50 text-gray-700 hover:text-[#FF7A00] text-[11px] font-bold transition-colors border border-gray-100">
+        <span>🐾</span>
+        <span>Mascotas</span>
+      </a>
+    </nav>
+
   </div>
 </header>
 
@@ -255,12 +286,22 @@ const bcvFormatted = bcvRate.toFixed(2);
   const filterBtn = document.getElementById('global-filter-btn');
   if (filterBtn) {
     filterBtn.addEventListener('click', () => {
-      const catBar = document.getElementById('categories-bar') || document.getElementById('stores');
+      const catBar = document.getElementById('store-verticals') || document.getElementById('categories-bar') || document.getElementById('stores');
       if (catBar) {
-        catBar.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        catBar.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     });
   }
+
+  document.querySelectorAll('.header-rubro-link').forEach((link) => {
+    link.addEventListener('click', (e) => {
+      const rubro = link.getAttribute('data-header-rubro') || 'all';
+      if (window.location.pathname === '/' || window.location.pathname === '') {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent('traigalo:select-rubro', { detail: { rubro } }));
+      }
+    });
+  });
 
   setupUserMenu();
   setupAddressGeo();

@@ -358,8 +358,8 @@ const bcvRate = await getOfficialExchangeRate();
           '03577774-2f0b-4b68-bb11-5c91628dbd5f': 'El Sitio del Barbero'
         };
         const STORE_LOGOS = {
-          '46a0baf0-4100-465d-934a-f2d14f004ba5': '/store-wily-logo.svg',
-          '03577774-2f0b-4b68-bb11-5c91628dbd5f': '/store-barbero-logo.svg'
+          '46a0baf0-4100-465d-934a-f2d14f004ba5': '/stores/wily-logo.webp',
+          '03577774-2f0b-4b68-bb11-5c91628dbd5f': '/stores/barbero-logo.webp'
         };
 
         let baseDeliveryFeePerStore = 1.50;
@@ -426,7 +426,7 @@ const bcvRate = await getOfficialExchangeRate();
               map.set(sid, {
                 storeId: sid,
                 storeName: sname,
-                logo: STORE_LOGOS[sid] || '/store-wily-logo.svg',
+                logo: STORE_LOGOS[sid] || '/stores/wily-logo.webp',
                 items: []
               });
             }
