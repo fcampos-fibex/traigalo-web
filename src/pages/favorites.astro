@@ -8,42 +8,68 @@ import '../styles/global.css';
 
 const API_BASE = 'https://api.traigalo.org/v2';
 const ASSET_BASE = 'https://admin.traigalo.org/assets';
+const FALLBACK_PRODUCT_IMAGE = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' width='200' height='200'><rect width='200' height='200' rx='28' fill='%23F5F6F8'/><circle cx='100' cy='100' r='52' fill='%23FFF3E0'/><path d='M108 55L76 108h36l-8 42 40-58h-36z' fill='%23FF7A00'/></svg>";
 const bcvRate = await getOfficialExchangeRate();
+
+let assetMap: Record<string, string> = {};
+try {
+  const assetModule = await import('../data/product_assets.json');
+  assetMap = assetModule.default || {};
+} catch {}
 
 let favoriteStores: any[] = [];
 try {
   const sRes = await fetch(`${API_BASE}/stores`);
   if (sRes.ok) {
     const list = await sRes.json();
-    favoriteStores = Array.isArray(list) ? list.filter((s: any) => s.is_open !== false).slice(0, 2) : [];
+    favoriteStores = Array.isArray(list)
+      ? list.filter((s: any) => s.is_open !== false && s.slug !== 'burger-crave' && s.slug !== 'sushi-omakase')
+      : [];
   }
 } catch {}
 
-const favoriteProducts = [
-  {
-    id: 'fav-1',
-    name: 'Crispy Supreme Smash',
-    storeName: 'Burger Crave',
-    storeId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-    price: 14.50,
-    priceBs: formatBs(14.50, bcvRate),
-    image: `${ASSET_BASE}/e20f2cbd-295f-41ad-be33-56517ab5eff2`
-  },
-  {
-    id: 'fav-2',
-    name: 'Combo Tokio Special 16 pcs',
-    storeName: 'Sushi Omakase Roll',
-    storeId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
-    price: 18.00,
-    priceBs: formatBs(18.00, bcvRate),
-    image: `${ASSET_BASE}/4f92eda1-b38b-4804-bcc4-d24523bb8c4d`
-  }
-];
+let favoriteProducts: any[] = [];
+for (const store of favoriteStores) {
+  try {
+    const pRes = await fetch(`${API_BASE}/stores/${store.id}/products`);
+    if (pRes.ok) {
+      const items = await pRes.json();
+      if (Array.isArray(items)) {
+        const mapped = items.slice(0, 3).map((it: any) => {
+          let img = '';
+          if (it.attributes?.image_url) {
+            img = it.attributes.image_url;
+          } else if (it.attributes?.asset_id) {
+            img = `${ASSET_BASE}/${it.attributes.asset_id}`;
+          } else if (assetMap[it.name]) {
+            img = `${ASSET_BASE}/${assetMap[it.name]}`;
+          } else {
+            img = FALLBACK_PRODUCT_IMAGE;
+          }
+          const price = Number(it.base_price) || 0;
+          return {
+            id: it.id,
+            name: it.name,
+            storeName: store.name,
+            storeId: store.id,
+            price,
+            priceBs: formatBs(price, bcvRate),
+            image: img
+          };
+        });
+        favoriteProducts.push(...mapped);
+      }
+    }
+  } catch {}
+}
 ---
 
 <!doctype html>
 <html lang="es">
   <head>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#FF5A00" />
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <title>Mis Favoritos | Traigalo ⚡</title>
@@ -60,7 +86,7 @@ const favoriteProducts = [
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">Tus Favoritos</h1>
-          <p class="text-xs text-gray-400 mt-0.5">Tiendas y platos que más te encantan</p>
+          <p class="text-xs text-gray-400 mt-0.5">Comercios verificados y artículos destacados</p>
         </div>
         <div class="w-10 h-10 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center text-lg font-black shadow-xs">
           ❤️
@@ -68,15 +94,17 @@ const favoriteProducts = [
       </div>
 
       <section class="space-y-3">
-        <h2 class="text-sm font-black uppercase tracking-wider text-gray-400">Tiendas Guardadas</h2>
+        <h2 class="text-sm font-black uppercase tracking-wider text-gray-400">Tiendas Oficiales Guardadas</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {favoriteStores.map((store) => (
             <a 
               href={`/stores/${store.id}`}
               class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs hover:shadow-md transition-all flex items-center gap-3.5"
             >
-              <div class="w-16 h-16 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center text-2xl shrink-0">
-                {store.name.includes('Burger') ? '🍔' : store.name.includes('Sushi') ? '🍣' : '💈'}
+              <div class="w-16 h-16 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center text-2xl shrink-0 overflow-hidden">
+                {store.logo_url ? (
+                  <img src={store.logo_url} alt={store.name} class="w-full h-full object-cover" />
+                ) : store.name.includes('Barbero') ? '💈' : '🎧'}
               </div>
               <div class="flex-1 min-w-0">
                 <h3 class="text-sm font-black text-gray-900 truncate">{store.name}</h3>
@@ -89,22 +117,22 @@ const favoriteProducts = [
       </section>
 
       <section class="space-y-3 pt-2">
-        <h2 class="text-sm font-black uppercase tracking-wider text-gray-400">Platos y Productos Guardados</h2>
+        <h2 class="text-sm font-black uppercase tracking-wider text-gray-400">Artículos y Productos Guardados</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {favoriteProducts.map((p) => (
             <div class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs hover:shadow-md transition-all flex items-center justify-between gap-3">
-              <div class="flex items-center gap-3">
+              <div class="flex items-center gap-3 min-w-0">
                 <div class="w-16 h-16 rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 shrink-0 flex items-center justify-center p-2">
                   <img 
                     src={p.image} 
                     alt={p.name} 
                     class="w-full h-full object-contain"
-                    onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' fill=\'none\' stroke=\'%23FF7A00\' stroke-width=\'2\'><rect width=\'44\' height=\'44\' x=\'2\' y=\'2\' rx=\'8\' fill=\'%23FFF3E0\'/><path d=\'M16 24h16M24 16v16\'/></svg>';"
+                    onerror={`this.onerror=null; this.src='${FALLBACK_PRODUCT_IMAGE}';`}
                   />
                 </div>
-                <div>
-                  <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{p.storeName}</span>
-                  <h4 class="text-xs font-black text-gray-900 leading-tight">{p.name}</h4>
+                <div class="min-w-0">
+                  <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block truncate">{p.storeName}</span>
+                  <h4 class="text-xs font-black text-gray-900 leading-tight truncate">{p.name}</h4>
                   <div class="mt-1">
                     <span class="text-xs font-black text-gray-950">${p.price.toFixed(2)}</span>
                     <span class="text-[9px] text-gray-400 font-semibold ml-1.5">{p.priceBs}</span>
@@ -114,7 +142,7 @@ const favoriteProducts = [
 
               <a 
                 href={`/stores/${p.storeId}`}
-                class="w-9 h-9 rounded-full bg-[#FF7A00] hover:bg-[#E66E00] text-white flex items-center justify-center font-black text-base shadow-sm active:scale-95 transition-all"
+                class="w-9 h-9 rounded-full bg-[#FF7A00] hover:bg-[#E66E00] text-white flex items-center justify-center font-black text-base shadow-sm active:scale-95 transition-all shrink-0"
               >
                 +
               </a>

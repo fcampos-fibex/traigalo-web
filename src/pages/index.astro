@@ -209,7 +209,7 @@ for (const store of stores) {
         <div class="flex items-center justify-between">
           <div>
             <h2 class="text-lg sm:text-xl font-extrabold text-gray-900 tracking-tight">Tiendas Oficiales</h2>
-            <p class="text-xs text-gray-400">Canónico PostgreSQL 16 + PostGIS</p>
+            <p class="text-xs text-gray-400">Comercios verificados con inventario en tiempo real y entrega express</p>
           </div>
           <span class="text-xs sm:text-sm font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
             ● 100% Operativas
@@ -228,12 +228,8 @@ for (const store of stores) {
                 <div class="w-20 h-20 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center text-3xl shrink-0 shadow-inner overflow-hidden">
                   {store.logo_url ? (
                     <img src={store.logo_url} alt={store.name} class="w-full h-full object-cover" />
-                  ) : store.name.includes('Burger') ? (
-                    '🍔'
                   ) : store.name.includes('Barbero') ? (
                     '💈'
-                  ) : store.name.includes('Sushi') ? (
-                    '🍣'
                   ) : (
                     '🎧'
                   )}

@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background / Glow Filter -->
+    <filter id="traigalo-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#FF5A00" flood-opacity="0.28"/>
+    </filter>
+    <filter id="badge-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#0B0D10" flood-opacity="0.15"/>
+    </filter>
+
+    <!-- Gradients -->
+    <!-- Pin Ring: Dual Tone (Electric Tech Blue to Rapid Energy Orange) -->
+    <linearGradient id="pin-grad-blue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00C6FF"/>
+      <stop offset="100%" stop-color="#0072FF"/>
+    </linearGradient>
+
+    <linearGradient id="pin-grad-orange" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF8A00"/>
+      <stop offset="50%" stop-color="#FF5A00"/>
+      <stop offset="100%" stop-color="#E52E00"/>
+    </linearGradient>
+
+    <!-- Metallic Central Badge -->
+    <linearGradient id="badge-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F4F6F9"/>
+    </linearGradient>
+
+    <!-- Shopping Bag / Cart Metallic Gradient -->
+    <linearGradient id="cart-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1A1D24"/>
+      <stop offset="100%" stop-color="#0B0D10"/>
+    </linearGradient>
+
+    <!-- Store Awning Stripes -->
+    <linearGradient id="awning-orange" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FF6B00"/>
+      <stop offset="100%" stop-color="#E64A00"/>
+    </linearGradient>
+
+    <!-- Speed Bolt -->
+    <linearGradient id="bolt-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFD600"/>
+      <stop offset="100%" stop-color="#FF9100"/>
+    </linearGradient>
+  </defs>
+
+  <!-- MAIN PIN HOUSING (Aerodynamic Geo Pin) -->
+  <g filter="url(#traigalo-glow)">
+    <!-- Left Half: Tech Delivery Blue -->
+    <path d="M256 36 C143 36 52 127 52 240 C52 355 212 458 256 476 L256 36 Z" 
+          fill="url(#pin-grad-blue)"/>
+    
+    <!-- Right Half: Super Commerce Energy Orange -->
+    <path d="M256 36 L256 476 C300 458 460 355 460 240 C460 127 369 36 256 36 Z" 
+          fill="url(#pin-grad-orange)"/>
+  </g>
+
+  <!-- INNER SHOCK ABSORBER RING (White Contrast Groove) -->
+  <circle cx="256" cy="228" r="168" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-opacity="0.95"/>
+
+  <!-- CENTRAL PORCELAIN BADGE -->
+  <circle cx="256" cy="228" r="150" fill="url(#badge-grad)" filter="url(#badge-shadow)"/>
+
+  <!-- GEOMETRIC EMBEDDED SHOPPING CART & STOREFRONT MOTIF -->
+  <g id="core-symbol" transform="translate(136, 120)">
+    <!-- Shopping Cart Handle & Frame -->
+    <path d="M8 20 H42 L66 128 H184 L204 46 H54" 
+          fill="none" 
+          stroke="url(#cart-grad)" 
+          stroke-width="14" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+
+    <!-- Cart Basket Grid (Sleek Vertical Modern Lines) -->
+    <line x1="94" y1="56" x2="94" y2="116" stroke="url(#cart-grad)" stroke-width="10" stroke-linecap="round"/>
+    <line x1="128" y1="56" x2="128" y2="116" stroke="url(#cart-grad)" stroke-width="10" stroke-linecap="round"/>
+    <line x1="162" y1="56" x2="162" y2="116" stroke="url(#cart-grad)" stroke-width="10" stroke-linecap="round"/>
+
+    <!-- Cart Wheels (Bearing Circles with Accent Core) -->
+    <circle cx="84" cy="158" r="16" fill="#0B0D10"/>
+    <circle cx="84" cy="158" r="7" fill="#00B4FF"/>
+
+    <circle cx="166" cy="158" r="16" fill="#0B0D10"/>
+    <circle cx="166" cy="158" r="7" fill="#FF5A00"/>
+
+    <!-- Speed Lightning Accent in Cart -->
+    <path d="M138 24 L114 68 H138 L126 102 L162 52 H136 L150 24 Z" 
+          fill="url(#bolt-grad)" 
+          stroke="#FFFFFF" 
+          stroke-width="3" 
+          stroke-linejoin="round"/>
+  </g>
+
+  <!-- STORE / MARKET BADGE FLOATING ANCHOR (Bottom Right) -->
+  <g id="store-anchor" transform="translate(310, 290)" filter="url(#badge-shadow)">
+    <!-- Store Base Building -->
+    <rect x="10" y="46" width="140" height="96" rx="14" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="5"/>
+    
+    <!-- Store Glass Door & Window -->
+    <rect x="28" y="72" width="38" height="70" rx="6" fill="#00C6FF" fill-opacity="0.2" stroke="#0088FF" stroke-width="4"/>
+    <circle cx="60" cy="108" r="3.5" fill="#0088FF"/>
+
+    <rect x="78" y="72" width="58" height="52" rx="6" fill="#00C6FF" fill-opacity="0.15" stroke="#0088FF" stroke-width="4"/>
+    <line x1="78" y1="98" x2="136" y2="98" stroke="#0088FF" stroke-width="3" stroke-opacity="0.5"/>
+
+    <!-- Store Roof Awning Canopy -->
+    <path d="M4 46 L156 46 L144 14 L16 14 Z" fill="#0B0D10"/>
+    
+    <!-- Awning Scallops / Stripes -->
+    <path d="M10 46 C10 56 26 56 26 46 C26 56 42 56 42 46 C42 56 58 56 58 46 C58 56 74 56 74 46 C74 56 90 56 90 46 C90 56 106 56 106 46 C106 56 122 56 122 46 C122 56 138 56 138 46 C138 56 150 56 150 46" 
+          fill="none" stroke="#FF5A00" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Roof Top Plate -->
+    <rect x="12" y="8" width="136" height="8" rx="4" fill="url(#awning-orange)"/>
+  </g>
+</svg>

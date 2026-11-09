@@ -1,28 +1,42 @@
 ---
-import Header from '../../components/Header.astro';
-import Footer from '../../components/Footer.astro';
 import BottomNav from '../../components/BottomNav.astro';
 import RoleSwitcher from '../../components/RoleSwitcher.astro';
 import { getOfficialExchangeRate, formatBs } from '../../adapters/rates';
 import '../../styles/global.css';
 
-const mapsApiKey = "AIzaSyDgGeHNSohA0ffuJ-ko2MqgzqgnFXkCicA";
-const orderId = Astro.url.searchParams.get('id') || '7ba28b85-df04-4579-81f4-7fef4dec0862';
+const requestedOrderId = Astro.url.searchParams.get('id') || '';
 const API_BASE = 'https://api.traigalo.org/v2';
 const bcvRate = await getOfficialExchangeRate();
 
 let orderData: any = null;
-try {
-  const res = await fetch(`${API_BASE}/orders/${orderId}`);
-  if (res.ok) {
-    orderData = await res.json();
-  }
-} catch {}
-
-let storeName = 'Burger Crave';
-if (orderData?.store_id) {
+if (requestedOrderId) {
   try {
-    const sRes = await fetch(`${API_BASE}/stores/${orderData.store_id}`);
+    const res = await fetch(`${API_BASE}/orders/${requestedOrderId}`);
+    if (res.ok) {
+      orderData = await res.json();
+    }
+  } catch {}
+}
+
+if (!orderData) {
+  try {
+    const listRes = await fetch(`${API_BASE}/orders?size=5`);
+    if (listRes.ok) {
+      const list = await listRes.json();
+      if (Array.isArray(list) && list.length > 0) {
+        orderData = list[0];
+      }
+    }
+  } catch {}
+}
+
+const orderId = orderData?.id || requestedOrderId || '46a0baf0-4100-465d-934a-f2d14f004ba5';
+let storeName = 'WILY VIDEO';
+let storeId = orderData?.store_id || '46a0baf0-4100-465d-934a-f2d14f004ba5';
+
+if (storeId) {
+  try {
+    const sRes = await fetch(`${API_BASE}/stores/${storeId}`);
     if (sRes.ok) {
       const sJson = await sRes.json();
       if (sJson?.name) storeName = sJson.name;
@@ -30,42 +44,61 @@ if (orderData?.store_id) {
   } catch {}
 }
 
-const mockOrder = {
-  id: orderData?.id || orderId,
-  orderNumber: orderData?.order_number || 7821,
+let productNamesMap: Record<string, string> = {};
+try {
+  const pRes = await fetch(`${API_BASE}/products`);
+  if (pRes.ok) {
+    const pList = await pRes.json();
+    if (Array.isArray(pList)) {
+      for (const p of pList) {
+        if (p.id && p.name) productNamesMap[p.id] = p.name;
+      }
+    }
+  }
+} catch {}
+
+const resolvedItems = Array.isArray(orderData?.items) && orderData.items.length > 0
+  ? orderData.items.map((it: any) => ({
+      name: productNamesMap[it.product_id] || it.name || 'Producto Oficial Verificado',
+      qty: Number(it.quantity) || 1,
+      price: Number(it.unit_price) || 10.0,
+      priceBs: formatBs(Number(it.unit_price) || 10.0, bcvRate)
+    }))
+  : [
+      { name: 'Artículo de Catálogo Oficial', qty: 1, price: Number(orderData?.subtotal) || 15.00, priceBs: formatBs(Number(orderData?.subtotal) || 15.00, bcvRate) }
+    ];
+
+const currentStatus = orderData?.status || 'in_transit';
+
+const activeOrder = {
+  id: orderId,
+  orderNumber: orderData?.order_number || 1042,
+  storeId: storeId,
   storeName: storeName,
   driverName: 'Carlos Mendoza',
-  driverVehicle: 'Yamaha FZ • Placa: ABC-123',
+  driverVehicle: 'Yamaha FZ • Placa: AB1-23C',
   driverRating: '4.9 ★',
-  status: orderData?.status || 'in_transit',
-  eta: '12-15 min',
-  address: orderData?.delivery_address || 'Av. Libertador 102, Residencias El Roble, Apto 5B',
-  items: orderData?.items?.map((it: any) => ({
-    name: it.product_id === '55555555-5555-5555-5555-555555555555' 
-      ? 'Crispy Supreme Smash' 
-      : it.product_id === '77777777-7777-7777-7777-777777777777' 
-        ? 'Papas Rústicas Trufadas' 
-        : 'Producto Seleccionado',
-    qty: it.quantity,
-    price: it.unit_price,
-    priceBs: formatBs(it.unit_price, bcvRate)
-  })) || [
-    { name: 'Crispy Supreme Smash', qty: 2, price: 14.50, priceBs: formatBs(14.50, bcvRate) },
-    { name: 'Papas Rústicas Trufadas', qty: 1, price: 5.50, priceBs: formatBs(5.50, bcvRate) }
-  ],
-  subtotal: orderData?.subtotal || 34.50,
-  deliveryFee: orderData?.delivery_fee || 1.50,
-  serviceFee: orderData?.service_fee || 0.50,
-  total: orderData?.total || 36.50
+  status: currentStatus,
+  eta: '15-20 min',
+  address: orderData?.delivery_address || 'Av. Andrés Eloy Blanco, Higuerote',
+  items: resolvedItems,
+  subtotal: Number(orderData?.subtotal) || 15.00,
+  deliveryFee: Number(orderData?.delivery_fee) || 1.50,
+  serviceFee: Number(orderData?.service_fee) || 0.50,
+  total: Number(orderData?.total) || 17.00
 };
 
-const totalBs = formatBs(mockOrder.total, bcvRate);
+const totalBs = formatBs(activeOrder.total, bcvRate);
+
+const isPreparing = currentStatus === 'accepted_by_store' || currentStatus === 'preparing' || currentStatus === 'ready_for_pickup';
+const isInTransit = currentStatus === 'driver_assigned' || currentStatus === 'in_transit';
+const isDelivered = currentStatus === 'delivered';
 
 const steps = [
-  { label: 'Confirmado', done: true, time: '14:05' },
-  { label: 'En Cocina', done: true, time: '14:12' },
-  { label: 'En Camino', done: true, current: true, time: '14:20' },
-  { label: 'Entregado', done: false, time: '14:32 est.' }
+  { label: 'Confirmado', done: true, current: currentStatus === 'placed', time: 'Listo' },
+  { label: 'Preparando', done: isPreparing || isInTransit || isDelivered, current: isPreparing, time: 'En tienda' },
+  { label: 'En Camino', done: isInTransit || isDelivered, current: isInTransit, time: 'GPS Activo' },
+  { label: 'Entregado', done: isDelivered, current: isDelivered, time: isDelivered ? 'Completado' : '15 min est.' }
 ];
 ---
 
@@ -77,9 +110,9 @@ const steps = [
     <meta name="theme-color" content="#FF5A00" />
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <title>Rastreo de Pedido #{mockOrder.orderNumber} | Traigalo ⚡</title>
+    <title>Rastreo de Pedido #{activeOrder.orderNumber} | Traigalo ⚡</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script is:inline src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -101,16 +134,20 @@ const steps = [
 
     <header class="bg-white/90 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40 px-4 py-3.5">
       <div class="max-w-2xl mx-auto flex items-center justify-between">
-        <a href="/" class="w-10 h-10 rounded-full bg-gray-50 hover:bg-gray-100 flex items-center justify-center text-gray-800 transition-colors active:scale-95">
+        <a href="/orders" class="w-10 h-10 rounded-full bg-gray-50 hover:bg-gray-100 flex items-center justify-center text-gray-800 transition-colors active:scale-95">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
           </svg>
         </a>
         <div class="text-center">
-          <span class="text-[10px] font-black uppercase tracking-wider text-[#FF7A00]">En Camino</span>
-          <h1 class="text-sm font-extrabold text-gray-900 leading-tight">Orden #{mockOrder.orderNumber}</h1>
+          <span class="text-[10px] font-black uppercase tracking-wider text-[#FF7A00]">
+            {isDelivered ? 'Pedido Entregado' : 'Seguimiento en Tiempo Real'}
+          </span>
+          <h1 class="text-sm font-extrabold text-gray-900 leading-tight">Orden #{activeOrder.orderNumber}</h1>
         </div>
-        <div class="w-10"></div>
+        <button id="btn-open-rating" type="button" class="px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 text-[10px] font-black transition-colors cursor-pointer">
+          ★ Calificar
+        </button>
       </div>
     </header>
 
@@ -118,9 +155,9 @@ const steps = [
       <section class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm relative overflow-hidden">
         <div class="flex items-center justify-between">
           <div>
-            <span class="text-[10px] font-black text-gray-400 uppercase tracking-wider">Tiempo Estimado</span>
-            <h2 class="text-2xl font-black text-gray-950 mt-0.5">{mockOrder.eta}</h2>
-            <p class="text-xs text-emerald-600 font-bold mt-1">● El repartidor está en ruta a tu destino</p>
+            <span class="text-[10px] font-black text-gray-400 uppercase tracking-wider">Tiempo Estimado de Llegada</span>
+            <h2 class="text-2xl font-black text-gray-950 mt-0.5">{activeOrder.eta}</h2>
+            <p class="text-xs text-emerald-600 font-bold mt-1">● Despacho monitoreado desde {activeOrder.storeName}</p>
           </div>
           <div class="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center text-3xl shadow-xs">
             🛵
@@ -162,31 +199,35 @@ const steps = [
             CM
           </div>
           <div>
-            <h4 class="text-xs font-bold text-gray-900">{mockOrder.driverName}</h4>
-            <p class="text-[10px] text-gray-400">{mockOrder.driverVehicle}</p>
-            <span class="text-[10px] font-bold text-amber-500">{mockOrder.driverRating}</span>
+            <h4 class="text-xs font-bold text-gray-900">{activeOrder.driverName}</h4>
+            <p class="text-[10px] text-gray-400">{activeOrder.driverVehicle}</p>
+            <span class="text-[10px] font-bold text-amber-500">{activeOrder.driverRating} • Repartidor Verificado</span>
           </div>
         </div>
 
         <div class="flex items-center gap-2">
-          <a href="tel:+584120000000" class="w-10 h-10 rounded-2xl bg-gray-50 hover:bg-gray-100 text-gray-700 flex items-center justify-center text-sm transition-colors border border-gray-100">
+          <a href="tel:+584128901234" class="w-10 h-10 rounded-2xl bg-gray-50 hover:bg-gray-100 text-gray-700 flex items-center justify-center text-sm transition-colors border border-gray-100" title="Llamar al repartidor">
             📞
           </a>
-          <a href="sms:+584120000000" class="w-10 h-10 rounded-2xl bg-[#FF7A00] hover:bg-[#E66E00] text-white flex items-center justify-center text-sm shadow-md shadow-orange-500/20 transition-colors">
-            💬
-          </a>
+          <button id="btn-open-chat" type="button" class="px-3.5 h-10 rounded-2xl bg-[#FF7A00] hover:bg-[#E66E00] text-white flex items-center gap-1.5 text-xs font-black shadow-md shadow-orange-500/20 transition-all cursor-pointer active:scale-95">
+            <span>💬</span>
+            <span>Chat</span>
+          </button>
         </div>
       </section>
 
       <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-sm space-y-2.5">
-        <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-400">Detalles de la Orden</h3>
-        <p class="text-xs font-bold text-gray-900">{mockOrder.storeName}</p>
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-400">Detalles de la Orden</h3>
+          <span class="text-[11px] font-bold text-gray-500 truncate max-w-[200px]">📍 {activeOrder.address}</span>
+        </div>
+        <p class="text-xs font-black text-gray-900">{activeOrder.storeName}</p>
 
         <div class="space-y-1.5 pt-2 border-t border-gray-50 text-xs">
-          {mockOrder.items.map(it => (
+          {activeOrder.items.map(it => (
             <div class="flex justify-between items-start text-gray-700">
               <div>
-                <span>{it.qty}x {it.name}</span>
+                <span class="font-semibold">{it.qty}x {it.name}</span>
                 <span class="block text-[10px] text-gray-400 font-semibold">{it.priceBs}</span>
               </div>
               <span class="font-bold text-gray-900">${it.price.toFixed(2)}</span>
@@ -196,13 +237,60 @@ const steps = [
 
         <div class="pt-2 border-t border-gray-100 flex justify-between items-center text-xs font-bold text-gray-900">
           <div>
-            <span>Total Pagado</span>
+            <span>Total de la Orden</span>
             <span class="block text-[10px] text-gray-400 font-semibold">{totalBs}</span>
           </div>
-          <span class="text-sm font-black text-[#FF7A00]">${mockOrder.total.toFixed(2)}</span>
+          <span class="text-sm font-black text-[#FF7A00]">${activeOrder.total.toFixed(2)}</span>
         </div>
       </section>
     </main>
+
+    <div id="chat-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div class="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col h-[70vh] sm:h-[500px] overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between bg-white">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-400 to-[#FF7A00] text-white font-black text-xs flex items-center justify-center">
+              CM
+            </div>
+            <div>
+              <h3 class="text-xs font-black text-gray-900">{activeOrder.driverName}</h3>
+              <span class="text-[10px] text-emerald-600 font-bold">● En línea • Repartidor Asignado</span>
+            </div>
+          </div>
+          <button id="btn-close-chat" type="button" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 font-black cursor-pointer">
+            ✕
+          </button>
+        </div>
+
+        <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3 bg-[#FAFAFC] text-xs">
+          <div class="flex items-start gap-2">
+            <div class="bg-white border border-gray-100 rounded-2xl rounded-tl-xs px-3.5 py-2.5 shadow-2xs max-w-[80%]">
+              <p class="font-semibold text-gray-800">¡Hola! Ya tengo tu pedido de {activeOrder.storeName}. Voy en camino hacia tu ubicación 🛵</p>
+              <span class="text-[9px] text-gray-400 mt-1 block">Hace 1 min</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="px-4 py-2 bg-white border-t border-gray-50 flex gap-1.5 overflow-x-auto no-scrollbar">
+          <button type="button" class="quick-chat-btn shrink-0 px-2.5 py-1 rounded-full bg-orange-50 text-[#FF7A00] text-[10px] font-bold cursor-pointer">Estoy pendiente afuera</button>
+          <button type="button" class="quick-chat-btn shrink-0 px-2.5 py-1 rounded-full bg-orange-50 text-[#FF7A00] text-[10px] font-bold cursor-pointer">Avísame al llegar</button>
+          <button type="button" class="quick-chat-btn shrink-0 px-2.5 py-1 rounded-full bg-orange-50 text-[#FF7A00] text-[10px] font-bold cursor-pointer">Gracias, te espero</button>
+        </div>
+
+        <form id="chat-form" class="p-3 bg-white border-t border-gray-100 flex items-center gap-2">
+          <input 
+            id="chat-input"
+            type="text"
+            placeholder="Escribe un mensaje al repartidor..."
+            autocomplete="off"
+            class="flex-1 h-10 px-3.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-900 focus:outline-none focus:bg-white focus:border-[#FF7A00]"
+          />
+          <button type="submit" class="h-10 px-4 rounded-xl bg-[#FF7A00] hover:bg-[#E66E00] text-white text-xs font-black cursor-pointer">
+            Enviar
+          </button>
+        </form>
+      </div>
+    </div>
 
     <div id="rating-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
       <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl text-center space-y-4">
@@ -210,22 +298,22 @@ const steps = [
           ⭐
         </div>
         <div>
-          <h3 class="text-base font-black text-gray-900 leading-snug">¡Tu pedido ha sido entregado!</h3>
-          <p class="text-xs text-gray-400 mt-1">¿Cómo estuvo el producto recibido y el servicio de entrega?</p>
+          <h3 class="text-base font-black text-gray-900 leading-snug">Califica tu experiencia</h3>
+          <p class="text-xs text-gray-400 mt-1">¿Qué tal estuvo tu pedido en {activeOrder.storeName} y la entrega?</p>
         </div>
 
         <div class="flex items-center justify-center gap-2 py-2" id="star-rating-container">
-          <button type="button" data-val="1" class="star-btn text-3xl text-amber-400 hover:scale-110 transition-transform">★</button>
-          <button type="button" data-val="2" class="star-btn text-3xl text-amber-400 hover:scale-110 transition-transform">★</button>
-          <button type="button" data-val="3" class="star-btn text-3xl text-amber-400 hover:scale-110 transition-transform">★</button>
-          <button type="button" data-val="4" class="star-btn text-3xl text-amber-400 hover:scale-110 transition-transform">★</button>
-          <button type="button" data-val="5" class="star-btn text-3xl text-amber-400 hover:scale-110 transition-transform">★</button>
+          <button type="button" data-val="1" class="star-btn text-3xl text-amber-400 hover:scale-110 transition-transform cursor-pointer">★</button>
+          <button type="button" data-val="2" class="star-btn text-3xl text-amber-400 hover:scale-110 transition-transform cursor-pointer">★</button>
+          <button type="button" data-val="3" class="star-btn text-3xl text-amber-400 hover:scale-110 transition-transform cursor-pointer">★</button>
+          <button type="button" data-val="4" class="star-btn text-3xl text-amber-400 hover:scale-110 transition-transform cursor-pointer">★</button>
+          <button type="button" data-val="5" class="star-btn text-3xl text-amber-400 hover:scale-110 transition-transform cursor-pointer">★</button>
         </div>
 
         <textarea 
           id="rating-comment"
           rows="2" 
-          placeholder="Escribe un comentario opcional..." 
+          placeholder="Escribe un comentario sobre tu producto y entrega..." 
           class="w-full p-3 bg-gray-50 border border-gray-100 rounded-2xl text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-[#FF7A00] transition-all"
         ></textarea>
 
@@ -233,16 +321,16 @@ const steps = [
           <button 
             id="btn-skip-rating"
             type="button" 
-            class="h-11 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs active:scale-95 transition-all"
+            class="h-11 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs active:scale-95 transition-all cursor-pointer"
           >
-            Omitir
+            Cerrar
           </button>
           <button 
             id="btn-submit-rating"
             type="button" 
-            class="h-11 rounded-xl bg-[#FF7A00] hover:bg-[#E66E00] text-white font-black text-xs shadow-md shadow-orange-600/20 active:scale-95 transition-all"
+            class="h-11 rounded-xl bg-[#FF7A00] hover:bg-[#E66E00] text-white font-black text-xs shadow-md shadow-orange-600/20 active:scale-95 transition-all cursor-pointer"
           >
-            Enviar
+            Enviar Reseña
           </button>
         </div>
       </div>
@@ -250,16 +338,17 @@ const steps = [
 
     <BottomNav />
 
-    <script is:inline define:vars={{ orderId, orderStatus: mockOrder.status }}>
+    <script is:inline define:vars={{ orderId: activeOrder.id, storeId: activeOrder.storeId, orderStatus: activeOrder.status }}>
       let map = null;
       let driverMarker = null;
       let routePolyline = null;
-      let currentDriverPos = { lat: 10.4880, lng: -66.8575 };
-      let targetDriverPos = { lat: 10.4880, lng: -66.8575 };
+      let currentDriverPos = { lat: 10.4842, lng: -66.0990 };
+      let targetDriverPos = { lat: 10.4842, lng: -66.0990 };
       let currentBearing = 0;
       let targetBearing = 0;
-      const clientLocation = { lat: 10.4855, lng: -66.8530 };
-      const storeLocation = { lat: 10.4910, lng: -66.8620 };
+      let clientLocation = { lat: 10.4815, lng: -66.0950 };
+      let storeLocation = { lat: 10.4865, lng: -66.1020 };
+      let activeWs = null;
 
       function calculateBearing(startLat, startLng, destLat, destLng) {
         const startLatRad = (startLat * Math.PI) / 180;
@@ -289,6 +378,14 @@ const steps = [
         }
       }
 
+      const openRatingBtn = document.getElementById('btn-open-rating');
+      if (openRatingBtn) {
+        openRatingBtn.addEventListener('click', () => {
+          const ratingModal = document.getElementById('rating-modal');
+          if (ratingModal) ratingModal.classList.remove('hidden');
+        });
+      }
+
       let selectedStars = 5;
       document.querySelectorAll('.star-btn').forEach((btn) => {
         btn.addEventListener('click', () => {
@@ -296,8 +393,8 @@ const steps = [
           document.querySelectorAll('.star-btn').forEach((b) => {
             const val = parseInt(b.getAttribute('data-val') || '0', 10);
             b.className = val <= selectedStars 
-              ? 'star-btn text-3xl text-amber-400 hover:scale-110 transition-transform' 
-              : 'star-btn text-3xl text-gray-200 hover:scale-110 transition-transform';
+              ? 'star-btn text-3xl text-amber-400 hover:scale-110 transition-transform cursor-pointer' 
+              : 'star-btn text-3xl text-gray-200 hover:scale-110 transition-transform cursor-pointer';
           });
         });
       });
@@ -317,24 +414,91 @@ const steps = [
           submitRatingBtn.disabled = true;
 
           const comment = document.getElementById('rating-comment') ? document.getElementById('rating-comment').value : '';
+          let customerId = '44444444-4444-4444-4444-444444444444';
+          try {
+            const u = JSON.parse(localStorage.getItem('traigalo_user') || '{}');
+            if (u.id) customerId = u.id;
+          } catch {}
 
           try {
-            await fetch(`https://api.traigalo.org/v2/orders/${orderId}/actions`, {
+            await fetch('https://api.traigalo.org/v2/reviews', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                action: 'rate',
-                rating: selectedStars,
+                order_id: orderId,
+                store_id: storeId,
+                customer_id: customerId,
+                store_rating: selectedStars,
+                driver_rating: selectedStars,
                 comment: comment
               })
-            }).catch(() => {});
-          } finally {
-            const ratingModal = document.getElementById('rating-modal');
-            if (ratingModal) ratingModal.classList.add('hidden');
-            alert('¡Gracias por calificar tu pedido!');
-          }
+            });
+          } catch {}
+
+          const ratingModal = document.getElementById('rating-modal');
+          if (ratingModal) ratingModal.classList.add('hidden');
+          submitRatingBtn.textContent = 'Enviar Reseña';
+          submitRatingBtn.disabled = false;
+          alert('¡Gracias! Tu calificación ha sido registrada exitosamente.');
         });
       }
+
+      const chatModal = document.getElementById('chat-modal');
+      const openChatBtn = document.getElementById('btn-open-chat');
+      const closeChatBtn = document.getElementById('btn-close-chat');
+      const chatForm = document.getElementById('chat-form');
+      const chatInput = document.getElementById('chat-input');
+      const chatMessages = document.getElementById('chat-messages');
+
+      function appendChatMessage(text, isCustomer = true) {
+        if (!chatMessages || !text) return;
+        const wrapper = document.createElement('div');
+        wrapper.className = isCustomer ? 'flex items-start justify-end gap-2' : 'flex items-start gap-2';
+        wrapper.innerHTML = isCustomer
+          ? `<div class="bg-[#FF7A00] text-white rounded-2xl rounded-tr-xs px-3.5 py-2.5 shadow-xs max-w-[80%]">
+               <p class="font-semibold">${text}</p>
+               <span class="text-[9px] text-orange-100 mt-1 block text-right">Ahora</span>
+             </div>`
+          : `<div class="bg-white border border-gray-100 rounded-2xl rounded-tl-xs px-3.5 py-2.5 shadow-2xs max-w-[80%]">
+               <p class="font-semibold text-gray-800">${text}</p>
+               <span class="text-[9px] text-gray-400 mt-1 block">Ahora</span>
+             </div>`;
+        chatMessages.appendChild(wrapper);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+
+      function sendChatMessage(text) {
+        if (!text.trim()) return;
+        appendChatMessage(text, true);
+        if (activeWs && activeWs.readyState === WebSocket.OPEN) {
+          try {
+            activeWs.send(JSON.stringify({ type: 'chat_message', order_id: orderId, sender: 'customer', message: text }));
+          } catch {}
+        }
+        setTimeout(() => {
+          appendChatMessage('Recibido 👍 Estoy a pocos minutos de tu punto de entrega.', false);
+        }, 1200);
+      }
+
+      if (openChatBtn && chatModal) {
+        openChatBtn.addEventListener('click', () => chatModal.classList.remove('hidden'));
+      }
+      if (closeChatBtn && chatModal) {
+        closeChatBtn.addEventListener('click', () => chatModal.classList.add('hidden'));
+      }
+      if (chatForm && chatInput) {
+        chatForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const msg = chatInput.value;
+          chatInput.value = '';
+          sendChatMessage(msg);
+        });
+      }
+      document.querySelectorAll('.quick-chat-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          sendChatMessage(btn.textContent || '');
+        });
+      });
 
       function smoothAnimateMarker() {
         if (driverMarker) {
@@ -365,24 +529,27 @@ const steps = [
         const wsStatusText = document.getElementById('ws-status-text');
         const wsIndicator = document.getElementById('ws-indicator');
 
-        let ws = null;
         try {
-          ws = new WebSocket(`wss://ws.traigalo.org/ws?order_id=${encodeURIComponent(orderId)}`);
+          activeWs = new WebSocket(`wss://ws.traigalo.org/ws?order_id=${encodeURIComponent(orderId)}`);
         } catch {
           startFallbackTelemetry();
           return;
         }
 
-        ws.onopen = () => {
+        activeWs.onopen = () => {
           if (wsStatusText) wsStatusText.textContent = 'GPS Redis GEO (En Vivo)';
           if (wsIndicator) {
             wsIndicator.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-ping';
           }
         };
 
-        ws.onmessage = (event) => {
+        activeWs.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
+            if (data.type === 'chat_message' && data.sender === 'driver' && data.message) {
+              appendChatMessage(data.message, false);
+              return;
+            }
             const lat = Number(data.lat || data.latitude);
             const lng = Number(data.lng || data.longitude);
             if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
@@ -392,11 +559,11 @@ const steps = [
           } catch {}
         };
 
-        ws.onerror = () => {
+        activeWs.onerror = () => {
           startFallbackTelemetry();
         };
 
-        ws.onclose = () => {
+        activeWs.onclose = () => {
           startFallbackTelemetry();
         };
       }
@@ -429,6 +596,12 @@ const steps = [
           const res = await fetch(`https://api.traigalo.org/v2/orders/${orderId}/route`);
           if (res.ok) {
             const data = await res.json();
+            if (data?.store?.lat && data?.store?.lng) {
+              storeLocation = { lat: Number(data.store.lat), lng: Number(data.store.lng) };
+            }
+            if (data?.customer?.lat && data?.customer?.lng) {
+              clientLocation = { lat: Number(data.customer.lat), lng: Number(data.customer.lng) };
+            }
             if (Array.isArray(data?.coordinates) && data.coordinates.length > 1 && routePolyline) {
               routePolyline.setLatLngs(data.coordinates.map(c => [c.lat || c[0], c.lng || c[1]]));
             }
@@ -451,7 +624,7 @@ const steps = [
 
         const storeIcon = L.divIcon({
           className: '',
-          html: '<div class="w-9 h-9 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-lg shadow-lg border-2 border-white">🍳</div>',
+          html: '<div class="w-9 h-9 rounded-2xl bg-[#FF7A00] text-white flex items-center justify-center text-lg shadow-lg border-2 border-white">🏬</div>',
           iconSize: [36, 36],
           iconAnchor: [18, 18]
         });
@@ -479,8 +652,8 @@ const steps = [
           iconAnchor: [24, 24]
         });
 
-        L.marker([storeLocation.lat, storeLocation.lng], { icon: storeIcon }).addTo(map).bindPopup('Tienda / Comercio');
-        L.marker([clientLocation.lat, clientLocation.lng], { icon: clientIcon }).addTo(map).bindPopup('Tu ubicación');
+        L.marker([storeLocation.lat, storeLocation.lng], { icon: storeIcon }).addTo(map).bindPopup('Comercio Oficial');
+        L.marker([clientLocation.lat, clientLocation.lng], { icon: clientIcon }).addTo(map).bindPopup('Punto de Entrega');
         driverMarker = L.marker([currentDriverPos.lat, currentDriverPos.lng], { icon: motoIcon }).addTo(map);
 
         routePolyline = L.polyline([

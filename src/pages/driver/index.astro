@@ -10,7 +10,7 @@ const driverId = '33333333-3333-3333-3333-333333333333';
 const driver = {
   id: driverId,
   name: 'Carlos Mendoza',
-  vehicle: 'Yamaha FZ • Placa: ABC-123',
+  vehicle: 'Yamaha FZ • Placa: AB1-23C',
   rating: '4.9 ★',
   todayEarningsUSD: 52.40,
   todayDeliveries: 8,
@@ -21,14 +21,18 @@ const driver = {
 const earningsBs = formatBs(driver.todayEarningsUSD, bcvRate);
 const tipsBs = formatBs(driver.todayTipsUSD, bcvRate);
 
-let availableOrders: any[] = [];
+let allOrders: any[] = [];
 try {
-  const placedRes = await fetch(`${API_BASE}/orders?status=placed&size=20`);
-  if (placedRes.ok) {
-    const data = await placedRes.json();
-    if (Array.isArray(data)) availableOrders = data;
+  const res = await fetch(`${API_BASE}/orders?size=30`);
+  if (res.ok) {
+    const data = await res.json();
+    if (Array.isArray(data)) allOrders = data;
   }
 } catch {}
+
+const availableOrders = allOrders.filter(
+  (o) => o && (o.status === 'placed' || o.status === 'accepted_by_store' || o.status === 'preparing' || o.status === 'ready_for_pickup')
+);
 
 let assignedOrders: any[] = [];
 try {
@@ -39,7 +43,13 @@ try {
   }
 } catch {}
 
-const currentActiveOrder = (Array.isArray(assignedOrders) ? assignedOrders : []).find(
+if (assignedOrders.length === 0) {
+  assignedOrders = allOrders.filter(
+    (o) => o && (o.status === 'driver_assigned' || o.status === 'in_transit' || o.status === 'delivered')
+  );
+}
+
+const currentActiveOrder = assignedOrders.find(
   (o) => o && (o.status === 'driver_assigned' || o.status === 'driver_in_transit' || o.status === 'in_transit')
 ) || null;
 ---
@@ -62,9 +72,9 @@ const currentActiveOrder = (Array.isArray(assignedOrders) ? assignedOrders : [])
     <header class="bg-white/95 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40 px-4 py-3.5">
       <div class="max-w-2xl mx-auto flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-400 to-[#FF7A00] flex items-center justify-center text-xl shadow-xs text-white font-black">
+          <a href="/" class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-400 to-[#FF7A00] flex items-center justify-center text-xl shadow-xs text-white font-black">
             🛵
-          </div>
+          </a>
           <div>
             <h1 class="text-sm font-extrabold text-gray-900 leading-tight">{driver.name}</h1>
             <span class="text-[10px] font-bold text-amber-500">{driver.rating} • Nivel Diamante</span>
@@ -84,7 +94,7 @@ const currentActiveOrder = (Array.isArray(assignedOrders) ? assignedOrders : [])
       </div>
     </header>
 
-    <main class="flex-1 max-w-2xl mx-auto px-4 py-5 w-full space-y-4">
+    <main class="max-w-2xl mx-auto px-4 py-5 w-full space-y-4">
       
       <section class="bg-gradient-to-r from-[#FF7A00] to-[#FF9432] rounded-3xl p-5 text-white shadow-lg shadow-orange-500/15">
         <span class="text-[10px] font-extrabold uppercase tracking-wider text-orange-100">Ganancias Acumuladas Hoy</span>
@@ -132,9 +142,11 @@ const currentActiveOrder = (Array.isArray(assignedOrders) ? assignedOrders : [])
                 1
               </div>
               <div class="flex-1 min-w-0">
-                <span class="text-[10px] font-bold text-gray-400 uppercase">Recoger en</span>
-                <h4 class="text-xs font-bold text-gray-900 truncate">Comercio #{currentActiveOrder.store_id.slice(0, 8)}</h4>
-                <p class="text-[11px] text-gray-500 truncate">Cocina Traigalo Express</p>
+                <span class="text-[10px] font-bold text-gray-400 uppercase">Recoger en Comercio Oficial</span>
+                <h4 class="text-xs font-bold text-gray-900 truncate">
+                  {currentActiveOrder.store_id === '03577774-2f0b-4b68-bb11-5c91628dbd5f' ? 'El Sitio del Barbero' : 'WILY VIDEO'}
+                </h4>
+                <p class="text-[11px] text-gray-500 truncate">Higuerote, Estado Miranda</p>
               </div>
             </div>
 
@@ -144,8 +156,8 @@ const currentActiveOrder = (Array.isArray(assignedOrders) ? assignedOrders : [])
               </div>
               <div class="flex-1 min-w-0">
                 <span class="text-[10px] font-bold text-gray-400 uppercase">Entregar en Destino</span>
-                <h4 class="text-xs font-bold text-gray-900 truncate">{currentActiveOrder.delivery_address || 'Av. Libertador 102, Caracas'}</h4>
-                <p class="text-[11px] text-gray-500 truncate">Cliente prioritario</p>
+                <h4 class="text-xs font-bold text-gray-900 truncate">{currentActiveOrder.delivery_address || 'Av. Andrés Eloy Blanco, Higuerote'}</h4>
+                <p class="text-[11px] text-gray-500 truncate">Entrega Express Prioritaria</p>
               </div>
             </div>
           </div>
@@ -163,7 +175,7 @@ const currentActiveOrder = (Array.isArray(assignedOrders) ? assignedOrders : [])
               <button 
                 data-action="transit"
                 data-order-id={currentActiveOrder.id}
-                class="btn-driver-action h-12 rounded-2xl bg-[#FF7A00] hover:bg-[#E66E00] text-white font-extrabold text-xs shadow-md shadow-orange-600/20 flex items-center justify-center gap-1.5 transition-all active:scale-95"
+                class="btn-driver-action h-12 rounded-2xl bg-[#FF7A00] hover:bg-[#E66E00] text-white font-extrabold text-xs shadow-md shadow-orange-600/20 flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
               >
                 <span>🚀</span>
                 <span>Iniciar Ruta</span>
@@ -174,7 +186,7 @@ const currentActiveOrder = (Array.isArray(assignedOrders) ? assignedOrders : [])
               <button 
                 data-action="deliver"
                 data-order-id={currentActiveOrder.id}
-                class="btn-driver-action h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition-all active:scale-95"
+                class="btn-driver-action h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
               >
                 <span>✓</span>
                 <span>Confirmar Entrega</span>
@@ -206,14 +218,15 @@ const currentActiveOrder = (Array.isArray(assignedOrders) ? assignedOrders : [])
             {availableOrders.map((ord) => {
               const totalUSD = Number(ord.total) || 0;
               const totalBsFormatted = formatBs(totalUSD, bcvRate);
+              const sName = ord.store_id === '03577774-2f0b-4b68-bb11-5c91628dbd5f' ? 'El Sitio del Barbero' : 'WILY VIDEO';
               return (
                 <div class="p-4 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-between gap-3">
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">
                       <span class="text-xs font-black text-gray-900 font-mono">#{ord.order_number || ord.id.slice(0, 8)}</span>
-                      <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Disponible</span>
+                      <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">{sName}</span>
                     </div>
-                    <p class="text-xs text-gray-600 font-medium truncate mt-1">📍 {ord.delivery_address}</p>
+                    <p class="text-xs text-gray-600 font-medium truncate mt-1">📍 {ord.delivery_address || 'Higuerote, Miranda'}</p>
                     <div class="flex items-center gap-2 mt-1">
                       <span class="text-xs font-black text-gray-900">${totalUSD.toFixed(2)}</span>
                       <span class="text-[10px] font-bold text-gray-400">{totalBsFormatted}</span>
@@ -223,7 +236,7 @@ const currentActiveOrder = (Array.isArray(assignedOrders) ? assignedOrders : [])
                   <button 
                     data-action="assign_driver"
                     data-order-id={ord.id}
-                    class="btn-driver-action shrink-0 px-4 py-2.5 rounded-xl bg-[#FF7A00] hover:bg-[#E66E00] text-white text-xs font-black shadow-sm active:scale-95 transition-all"
+                    class="btn-driver-action shrink-0 px-4 py-2.5 rounded-xl bg-[#FF7A00] hover:bg-[#E66E00] text-white text-xs font-black shadow-sm active:scale-95 transition-all cursor-pointer"
                   >
                     Aceptar Pedido
                   </button>
@@ -247,7 +260,7 @@ const currentActiveOrder = (Array.isArray(assignedOrders) ? assignedOrders : [])
                   {ord.status === 'delivered' ? '✓' : '🛵'}
                 </span>
                 <div>
-                  <h4 class="font-bold text-gray-900 leading-tight">#{ord.order_number || ord.id.slice(0, 8)} • {ord.delivery_address}</h4>
+                  <h4 class="font-bold text-gray-900 leading-tight">#{ord.order_number || ord.id.slice(0, 8)} • {ord.delivery_address || 'Higuerote, Miranda'}</h4>
                   <span class="text-[10px] text-gray-400">{new Date(ord.placed_at || Date.now()).toLocaleTimeString()} • Estado: {ord.status}</span>
                 </div>
               </div>
@@ -291,8 +304,8 @@ const currentActiveOrder = (Array.isArray(assignedOrders) ? assignedOrders : [])
           <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider">
             ¡Nueva Oferta de Pedido!
           </span>
-          <h3 id="offer-store-name" class="text-base font-black text-gray-900 mt-2">Burger Crave</h3>
-          <p id="offer-store-dist" class="text-xs text-gray-500 font-semibold mt-0.5">Retiro a 1.2 km de tu ubicación</p>
+          <h3 id="offer-store-name" class="text-base font-black text-gray-900 mt-2">WILY VIDEO</h3>
+          <p id="offer-store-dist" class="text-xs text-gray-500 font-semibold mt-0.5">Retiro a 0.8 km de tu ubicación</p>
         </div>
 
         <div class="p-3 bg-gray-50 rounded-2xl border border-gray-100 text-left space-y-1.5 text-xs">
@@ -300,14 +313,14 @@ const currentActiveOrder = (Array.isArray(assignedOrders) ? assignedOrders : [])
             <span class="text-sm">📍</span>
             <div class="flex-1 min-w-0">
               <span class="text-[9px] text-gray-400 font-black uppercase block">Entrega en</span>
-              <p id="offer-delivery-addr" class="font-bold text-gray-800 truncate">Av. Libertador 102, Caracas</p>
+              <p id="offer-delivery-addr" class="font-bold text-gray-800 truncate">Av. Andrés Eloy Blanco, Higuerote</p>
             </div>
           </div>
           <div class="pt-2 border-t border-gray-100 flex items-center justify-between">
             <span class="text-[10px] text-gray-400 font-black uppercase">Ganancia Neta</span>
             <div class="text-right">
-              <span id="offer-earnings-usd" class="text-base font-black text-emerald-600 block">$4.50</span>
-              <span id="offer-earnings-bs" class="text-[9px] text-gray-400 font-semibold block">~ Bs. 4.032,55 @ BCV</span>
+              <span id="offer-earnings-usd" class="text-base font-black text-emerald-600 block">$3.50</span>
+              <span id="offer-earnings-bs" class="text-[9px] text-gray-400 font-semibold block">~ Bs. 3.136,43 @ BCV</span>
             </div>
           </div>
         </div>
@@ -392,11 +405,11 @@ const currentActiveOrder = (Array.isArray(assignedOrders) ? assignedOrders : [])
         const earnUsdEl = document.getElementById('offer-earnings-usd');
         const earnBsEl = document.getElementById('offer-earnings-bs');
 
-        if (storeNameEl) storeNameEl.textContent = offer.store_name || 'Burger Crave';
-        if (storeDistEl) storeDistEl.textContent = `Retiro a ${offer.pickup_distance || '1.2 km'} de tu ubicación`;
-        if (addrEl) addrEl.textContent = offer.delivery_address || 'Av. Libertador, Caracas';
+        if (storeNameEl) storeNameEl.textContent = offer.store_name || 'WILY VIDEO';
+        if (storeDistEl) storeDistEl.textContent = `Retiro a ${offer.pickup_distance || '0.8 km'} de tu ubicación`;
+        if (addrEl) addrEl.textContent = offer.delivery_address || 'Av. Andrés Eloy Blanco, Higuerote';
 
-        const earningsUSD = Number(offer.earnings_usd || 4.50);
+        const earningsUSD = Number(offer.earnings_usd || 3.50);
         const earningsBS = earningsUSD * (bcvRate || 896.12);
         if (earnUsdEl) earnUsdEl.textContent = `$${earningsUSD.toFixed(2)}`;
         if (earnBsEl) {
@@ -444,11 +457,11 @@ const currentActiveOrder = (Array.isArray(assignedOrders) ? assignedOrders : [])
           acceptOfferBtn.textContent = 'Aceptando...';
 
           try {
-            const offerId = currentOffer.id || currentOffer.offer_id;
+            const offerId = currentOffer.id || currentOffer.offer_id || currentOffer.order_id;
             const res = await fetch(`${API_DISPATCH}/offers/${offerId}/actions`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ action: 'accept' })
+              body: JSON.stringify({ action: 'accept', driver_id: driverId })
             });
 
             if (!res.ok) {
@@ -470,7 +483,15 @@ const currentActiveOrder = (Array.isArray(assignedOrders) ? assignedOrders : [])
 
       const rejectOfferBtn = document.getElementById('btn-reject-offer');
       if (rejectOfferBtn) {
-        rejectOfferBtn.addEventListener('click', () => {
+        rejectOfferBtn.addEventListener('click', async () => {
+          if (currentOffer) {
+            const offerId = currentOffer.id || currentOffer.offer_id || currentOffer.order_id;
+            await fetch(`${API_DISPATCH}/offers/${offerId}/actions`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'reject', driver_id: driverId })
+            }).catch(() => {});
+          }
           closeDispatchOfferModal();
         });
       }
@@ -485,7 +506,7 @@ const currentActiveOrder = (Array.isArray(assignedOrders) ? assignedOrders : [])
           ws.onmessage = (event) => {
             try {
               const data = JSON.parse(event.data);
-              if (data.event === 'dispatch_offer' || data.type === 'dispatch_offer') {
+              if (data.event === 'dispatch_offer' || data.type === 'dispatch_offer' || data.type === 'driver_offer') {
                 showDispatchOfferModal(data.payload || data);
               }
             } catch {}
@@ -566,8 +587,9 @@ const currentActiveOrder = (Array.isArray(assignedOrders) ? assignedOrders : [])
 
       let simStep = 0;
       function simulateGpsMovement() {
-        const baseLat = 10.4880;
-        const baseLng = -66.8575;
+        const baseLat = 10.4842;
+        const baseLng = -66.0990;
+        sendLocationUpdate(baseLat, baseLng, 90.0, 25.0);
         setInterval(() => {
           simStep = (simStep + 1) % 100;
           const lat = baseLat + (Math.sin(simStep * 0.1) * 0.005);
@@ -587,10 +609,10 @@ const currentActiveOrder = (Array.isArray(assignedOrders) ? assignedOrders : [])
           const gain = ctx.createGain();
 
           osc.type = 'sine';
-          osc.frequency.setValueAtTime(523.25, now); // C5
-          osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
-          osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
-          osc.frequency.setValueAtTime(1046.50, now + 0.3); // C6
+          osc.frequency.setValueAtTime(523.25, now);
+          osc.frequency.setValueAtTime(659.25, now + 0.1);
+          osc.frequency.setValueAtTime(783.99, now + 0.2);
+          osc.frequency.setValueAtTime(1046.50, now + 0.3);
 
           gain.gain.setValueAtTime(0.25, now);
           gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);

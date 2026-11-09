@@ -5,18 +5,22 @@ import { getOfficialExchangeRate, formatBs } from "../../adapters/rates";
 
 const API_BASE = "https://api.traigalo.org/v2";
 const bcvRate = await getOfficialExchangeRate();
+const selectedStoreParam = Astro.url.searchParams.get("store_id") || "";
 
 let stores: any[] = [];
 try {
   const sRes = await fetch(`${API_BASE}/stores`);
   if (sRes.ok) {
-    stores = await sRes.json();
+    const raw = await sRes.json();
+    if (Array.isArray(raw)) {
+      stores = raw.filter((s) => s.slug !== "burger-crave" && s.slug !== "sushi-omakase");
+    }
   }
 } catch {}
 
-const currentStore = stores.find((s) => s.id === "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa") || stores[0] || {
-  id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-  name: "Burger Crave"
+const currentStore = stores.find((s) => s.id === selectedStoreParam) || stores[0] || {
+  id: "46a0baf0-4100-465d-934a-f2d14f004ba5",
+  name: "WILY VIDEO"
 };
 
 let storeOrders: any[] = [];
@@ -57,7 +61,7 @@ const totalOrdersCount = storeOrders.length;
     <meta name="theme-color" content="#FF5A00" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Traigalo KDS | Portal Comercio</title>
+    <title>{currentStore.name} | Portal Comercio Traigalo ⚡</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -66,32 +70,51 @@ const totalOrdersCount = storeOrders.length;
     <RoleSwitcher currentRole="vendor" />
 
     <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-gray-100 px-5 py-4">
-      <div class="max-w-md mx-auto flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#FF7A00] to-[#FFA726] flex items-center justify-center text-white shadow-md shadow-orange-500/20">
-            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-          </div>
-          <div>
-            <div class="flex items-center gap-1.5">
-              <h1 class="text-base font-extrabold text-gray-900 leading-tight">{currentStore.name} KDS</h1>
-              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+      <div class="max-w-md mx-auto space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <a href="/" class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#FF7A00] to-[#FFA726] flex items-center justify-center text-white shadow-md shadow-orange-500/20">
+              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </a>
+            <div>
+              <div class="flex items-center gap-1.5">
+                <h1 class="text-base font-extrabold text-gray-900 leading-tight">{currentStore.name}</h1>
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              </div>
+              <p class="text-xs text-gray-500 font-medium">Comercio Oficial • <span class="font-mono text-gray-700">#{currentStore.id.slice(0, 8)}</span></p>
             </div>
-            <p class="text-xs text-gray-500 font-medium">Comercio ID: <span class="font-mono text-gray-700">#{currentStore.id.slice(0, 8)}</span></p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <div class="text-right hidden sm:block">
+              <span class="text-[10px] text-gray-400 block font-semibold">Tasa BCV</span>
+              <span class="text-xs font-black text-gray-800">{bcvRate.toFixed(2)} Bs/$</span>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer" title="Estado de Tienda">
+              <input type="checkbox" checked class="sr-only peer" id="store-toggle">
+              <div class="w-12 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+            </label>
           </div>
         </div>
 
-        <div class="flex items-center gap-2">
-          <div class="text-right hidden sm:block">
-            <span class="text-[10px] text-gray-400 block font-semibold">Tasa BCV</span>
-            <span class="text-xs font-black text-gray-800">{bcvRate.toFixed(2)} Bs/$</span>
+        {stores.length > 1 && (
+          <div class="flex items-center gap-2 pt-1">
+            {stores.map((st) => (
+              <a
+                href={`/vendor?store_id=${st.id}`}
+                class={`flex-1 text-center py-1.5 px-3 rounded-xl text-xs font-extrabold transition-all ${
+                  st.id === currentStore.id
+                    ? "bg-[#FF7A00] text-white shadow-xs"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {st.name}
+              </a>
+            ))}
           </div>
-          <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" checked class="sr-only peer" id="store-toggle">
-            <div class="w-12 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-          </label>
-        </div>
+        )}
       </div>
     </header>
 
@@ -101,13 +124,14 @@ const totalOrdersCount = storeOrders.length;
           <span class="text-2xl animate-bounce">🔔</span>
           <div>
             <h4 class="text-xs font-black uppercase tracking-wider">¡Nueva Orden Entrante!</h4>
-            <p class="text-[11px] text-white/90 font-medium">Tienes pedidos pendientes por preparar / empaquetar</p>
+            <p class="text-[11px] text-white/90 font-medium">Tienes pedidos pendientes por preparar y despachar</p>
           </div>
         </div>
-        <button id="btn-silence-alert" class="px-3 py-1.5 rounded-xl bg-white text-[#FF7A00] font-black text-xs active:scale-95 shadow-sm">
+        <button id="btn-silence-alert" class="px-3 py-1.5 rounded-xl bg-white text-[#FF7A00] font-black text-xs active:scale-95 shadow-sm cursor-pointer">
           Atender
         </button>
       </div>
+
       <div class="grid grid-cols-3 gap-3">
         <div class="bg-white rounded-2xl p-3 border border-gray-100 shadow-sm text-center">
           <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Hoy USD</p>
@@ -120,9 +144,9 @@ const totalOrdersCount = storeOrders.length;
           <span class="text-[10px] font-semibold text-emerald-600">En sistema</span>
         </div>
         <div class="bg-white rounded-2xl p-3 border border-gray-100 shadow-sm text-center">
-          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Productos</p>
+          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Catálogo</p>
           <p class="text-lg font-black text-gray-900 mt-0.5">{storeProducts.length}</p>
-          <span class="text-[10px] font-semibold text-gray-500">En catálogo</span>
+          <span class="text-[10px] font-semibold text-gray-500">Artículos</span>
         </div>
       </div>
 
@@ -132,7 +156,7 @@ const totalOrdersCount = storeOrders.length;
             <h2 class="text-base font-extrabold text-gray-900">Órdenes del Comercio</h2>
             <span id="order-count-badge" class="bg-[#FF7A00] text-white text-[11px] font-black px-2 py-0.5 rounded-full">{storeOrders.length}</span>
           </div>
-          <button id="refresh-orders-btn" class="text-xs font-bold text-[#FF7A00] hover:underline flex items-center gap-1">
+          <button id="refresh-orders-btn" class="text-xs font-bold text-[#FF7A00] hover:underline flex items-center gap-1 cursor-pointer">
             <span>🔄</span>
             <span>Actualizar</span>
           </button>
@@ -145,7 +169,7 @@ const totalOrdersCount = storeOrders.length;
             const statusLabel = 
               order.status === 'placed' ? 'Nuevo Pedido' :
               order.status === 'accepted_by_store' ? 'Aceptado' :
-              order.status === 'preparing' ? 'En Cocina' :
+              order.status === 'preparing' ? 'Preparando Pedido' :
               order.status === 'ready_for_pickup' ? 'Listo p/ Despacho' :
               order.status === 'driver_assigned' ? 'Repartidor Asignado' :
               order.status === 'in_transit' ? 'En Camino' :
@@ -155,6 +179,7 @@ const totalOrdersCount = storeOrders.length;
             const isAccepted = order.status === 'accepted_by_store';
             const isPreparing = order.status === 'preparing';
             const isReady = order.status === 'ready_for_pickup';
+            const isPaid = order.payment_status === 'paid';
 
             return (
               <div class={`bg-white rounded-3xl p-4 border transition-all ${
@@ -179,8 +204,10 @@ const totalOrdersCount = storeOrders.length;
 
                 <div class="py-3 space-y-2 border-b border-gray-100">
                   <div class="flex items-center justify-between text-xs text-gray-500">
-                    <span>Destino: <strong class="text-gray-900 font-bold truncate max-w-[180px] inline-block align-bottom">{order.delivery_address || 'Dirección no especificada'}</strong></span>
-                    <span class="font-medium capitalize">{order.payment_method || 'Pago Móvil'}</span>
+                    <span>Destino: <strong class="text-gray-900 font-bold truncate max-w-[180px] inline-block align-bottom">{order.delivery_address || 'Higuerote, Miranda'}</strong></span>
+                    <span class={`font-black px-2 py-0.5 rounded-md text-[10px] uppercase ${isPaid ? 'bg-emerald-50 text-emerald-700' : 'bg-orange-50 text-[#FF7A00]'}`}>
+                      {isPaid ? '✓ Pagado' : (order.payment_method || 'Pago Móvil')}
+                    </span>
                   </div>
                 </div>
 
@@ -195,7 +222,7 @@ const totalOrdersCount = storeOrders.length;
                       <button 
                         data-action="accept" 
                         data-order-id={order.id}
-                        class="btn-order-action px-4 py-2 rounded-xl bg-[#FF7A00] hover:bg-[#E66E00] text-white text-xs font-extrabold shadow-sm active:scale-95 transition-all"
+                        class="btn-order-action px-4 py-2 rounded-xl bg-[#FF7A00] hover:bg-[#E66E00] text-white text-xs font-extrabold shadow-sm active:scale-95 transition-all cursor-pointer"
                       >
                         Aceptar Pedido
                       </button>
@@ -205,9 +232,9 @@ const totalOrdersCount = storeOrders.length;
                       <button 
                         data-action="prepare" 
                         data-order-id={order.id}
-                        class="btn-order-action px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold shadow-sm active:scale-95 transition-all"
+                        class="btn-order-action px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold shadow-sm active:scale-95 transition-all cursor-pointer"
                       >
-                        Comenzar Cocina
+                        Comenzar Preparación
                       </button>
                     )}
 
@@ -215,7 +242,7 @@ const totalOrdersCount = storeOrders.length;
                       <button 
                         data-action="ready" 
                         data-order-id={order.id}
-                        class="btn-order-action px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-sm active:scale-95 transition-all"
+                        class="btn-order-action px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-sm active:scale-95 transition-all cursor-pointer"
                       >
                         Marcar Listo p/ Despacho
                       </button>
@@ -224,7 +251,7 @@ const totalOrdersCount = storeOrders.length;
                     {isReady && (
                       <span class="text-xs font-bold text-emerald-600 flex items-center gap-1">
                         <span>✓</span>
-                        <span>Listo en barra</span>
+                        <span>Listo p/ Retiro</span>
                       </span>
                     )}
                   </div>
@@ -238,8 +265,8 @@ const totalOrdersCount = storeOrders.length;
       <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-4">
         <div class="flex items-center justify-between">
           <div>
-            <h3 class="text-sm font-extrabold text-gray-900">Control de Menú y Precios</h3>
-            <p class="text-xs text-gray-400">Precios duales actualizados con BCV</p>
+            <h3 class="text-sm font-extrabold text-gray-900">Control de Catálogo y Precios</h3>
+            <p class="text-xs text-gray-400">Precios duales sincronizados con BCV</p>
           </div>
           <span class="text-xs font-bold text-[#FF7A00]">Catálogo Oficial</span>
         </div>
@@ -272,6 +299,7 @@ const totalOrdersCount = storeOrders.length;
 
     <script is:inline>
       const API_ORDERS = "https://api.traigalo.org/v2/orders";
+      const API_DISPATCH = "https://api.traigalo.org/v2/dispatch/assign";
 
       async function triggerOrderAction(orderId, actionName) {
         try {
@@ -283,6 +311,14 @@ const totalOrdersCount = storeOrders.length;
 
           if (!res.ok) {
             throw new Error(`Error en servidor: ${res.status}`);
+          }
+
+          if (actionName === "ready") {
+            await fetch(API_DISPATCH, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ order_id: orderId })
+            }).catch(() => {});
           }
 
           window.location.reload();
@@ -322,12 +358,12 @@ const totalOrdersCount = storeOrders.length;
           const gain = ctx.createGain();
 
           osc1.type = 'triangle';
-          osc1.frequency.setValueAtTime(587.33, now); // D5
-          osc1.frequency.exponentialRampToValueAtTime(880.00, now + 0.15); // A5
+          osc1.frequency.setValueAtTime(587.33, now);
+          osc1.frequency.exponentialRampToValueAtTime(880.00, now + 0.15);
 
           osc2.type = 'sine';
           osc2.frequency.setValueAtTime(880.00, now + 0.15);
-          osc2.frequency.exponentialRampToValueAtTime(1174.66, now + 0.35); // D6
+          osc2.frequency.exponentialRampToValueAtTime(1174.66, now + 0.35);
 
           gain.gain.setValueAtTime(0.3, now);
           gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);

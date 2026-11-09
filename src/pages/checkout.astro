@@ -50,7 +50,7 @@ const bcvRate = await getOfficialExchangeRate();
           </div>
           <div class="flex-1 min-w-0">
             <h3 class="text-sm font-bold text-gray-900 truncate">Punto de Entrega Confirmado</h3>
-            <p id="checkout-address" class="text-xs text-gray-400 truncate">Av. Libertador, Caracas</p>
+            <p id="checkout-address" class="text-xs text-gray-500 truncate">Av. Andrés Eloy Blanco, Higuerote</p>
           </div>
         </div>
       </section>
@@ -62,18 +62,18 @@ const bcvRate = await getOfficialExchangeRate();
           </div>
           <div>
             <h4 class="text-xs font-bold text-gray-900">Entrega Express</h4>
-            <p class="text-[11px] text-gray-400">Estimado: 15-25 minutos</p>
+            <p id="checkout-eta-label" class="text-[11px] text-gray-400">Estimado: 15-25 minutos</p>
           </div>
         </div>
-        <span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px]">
-          En ruta prioritaria
+        <span id="checkout-distance-badge" class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px]">
+          Tarifa calculada por GPS
         </span>
       </section>
 
       <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs">
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-400">Tu Pedido</h3>
-          <button id="clear-cart-btn" class="text-[11px] font-bold text-gray-400 hover:text-red-500 transition-colors">
+          <button id="clear-cart-btn" class="text-[11px] font-bold text-gray-400 hover:text-red-500 transition-colors cursor-pointer">
             Vaciar
           </button>
         </div>
@@ -86,7 +86,7 @@ const bcvRate = await getOfficialExchangeRate();
         <label for="order-notes" class="block text-xs font-extrabold uppercase tracking-wider text-gray-400 mb-1">
           Notas del Pedido
         </label>
-        <p class="text-[11px] text-gray-400 font-medium mb-2">Instrucciones de entrega o notas para la tienda (ej. cuidado con el paquete, color, especificaciones)</p>
+        <p class="text-[11px] text-gray-400 font-medium mb-2">Instrucciones de entrega o especificaciones para la tienda (ej. referencia de casa, color, modelo)</p>
         <textarea 
           id="order-notes"
           rows="2"
@@ -143,17 +143,34 @@ const bcvRate = await getOfficialExchangeRate();
                 <strong class="text-gray-900">Traigalo Corp C.A.</strong>
               </div>
             </div>
-            <div class="pt-2 border-t border-orange-100">
-              <label for="mobile-pay-ref" class="block text-[10px] font-black uppercase tracking-wider text-gray-600 mb-1">
-                Número de Referencia Bancaria (últimos 6 dígitos)
-              </label>
-              <input 
-                type="text" 
-                id="mobile-pay-ref"
-                placeholder="Ej. 849201" 
-                maxlength="10"
-                class="w-full h-11 px-3.5 bg-white border border-gray-200 rounded-xl text-xs font-mono font-bold text-gray-900 focus:outline-none focus:border-[#FF7A00] focus:ring-2 focus:ring-[#FF7A00]/20 transition-all"
-              />
+            <div class="pt-2 border-t border-orange-100 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label for="mobile-pay-bank" class="block text-[10px] font-black uppercase tracking-wider text-gray-600 mb-1">
+                  Banco Emisor
+                </label>
+                <select 
+                  id="mobile-pay-bank"
+                  class="w-full h-11 px-3 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:border-[#FF7A00]"
+                >
+                  <option value="0134">Banesco (0134)</option>
+                  <option value="0102">Banco de Venezuela (0102)</option>
+                  <option value="0105">Mercantil (0105)</option>
+                  <option value="0108">BBVA Provincial (0108)</option>
+                  <option value="0191">BNC (0191)</option>
+                </select>
+              </div>
+              <div>
+                <label for="mobile-pay-ref" class="block text-[10px] font-black uppercase tracking-wider text-gray-600 mb-1">
+                  Referencia (últimos 6 dígitos)
+                </label>
+                <input 
+                  type="text" 
+                  id="mobile-pay-ref"
+                  placeholder="Ej. 849201" 
+                  maxlength="12"
+                  class="w-full h-11 px-3.5 bg-white border border-gray-200 rounded-xl text-xs font-mono font-bold text-gray-900 focus:outline-none focus:border-[#FF7A00] focus:ring-2 focus:ring-[#FF7A00]/20 transition-all"
+                />
+              </div>
             </div>
           </div>
 
@@ -174,7 +191,7 @@ const bcvRate = await getOfficialExchangeRate();
         <div class="flex items-center justify-between mb-3">
           <div>
             <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-400">Propina para el Repartidor</h3>
-            <p class="text-[11px] text-gray-500 font-medium">Reconoce el esfuerzo de tu repartidor</p>
+            <p class="text-[11px] text-gray-500 font-medium">100% íntegra para tu repartidor asignado</p>
           </div>
           <span class="text-xl">🛵</span>
         </div>
@@ -182,7 +199,7 @@ const bcvRate = await getOfficialExchangeRate();
           <button 
             type="button" 
             data-tip="0" 
-            class="btn-tip py-2.5 px-2 rounded-2xl border-2 border-[#FF7A00] bg-orange-50/40 text-gray-900 text-xs font-extrabold flex flex-col items-center justify-center transition-all"
+            class="btn-tip py-2.5 px-2 rounded-2xl border-2 border-[#FF7A00] bg-orange-50/40 text-gray-900 text-xs font-extrabold flex flex-col items-center justify-center transition-all cursor-pointer"
           >
             <span>Sin propina</span>
             <span class="text-[9px] text-gray-400 font-bold">$0.00</span>
@@ -190,7 +207,7 @@ const bcvRate = await getOfficialExchangeRate();
           <button 
             type="button" 
             data-tip="0.5" 
-            class="btn-tip py-2.5 px-2 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white text-gray-900 text-xs font-extrabold flex flex-col items-center justify-center transition-all"
+            class="btn-tip py-2.5 px-2 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white text-gray-900 text-xs font-extrabold flex flex-col items-center justify-center transition-all cursor-pointer"
           >
             <span>$0.50</span>
             <span class="text-[9px] text-gray-400 font-bold">Pequeña</span>
@@ -198,7 +215,7 @@ const bcvRate = await getOfficialExchangeRate();
           <button 
             type="button" 
             data-tip="1.0" 
-            class="btn-tip py-2.5 px-2 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white text-gray-900 text-xs font-extrabold flex flex-col items-center justify-center transition-all"
+            class="btn-tip py-2.5 px-2 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white text-gray-900 text-xs font-extrabold flex flex-col items-center justify-center transition-all cursor-pointer"
           >
             <span>$1.00</span>
             <span class="text-[9px] text-gray-400 font-bold">Estándar</span>
@@ -206,7 +223,7 @@ const bcvRate = await getOfficialExchangeRate();
           <button 
             type="button" 
             data-tip="2.0" 
-            class="btn-tip py-2.5 px-2 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white text-gray-900 text-xs font-extrabold flex flex-col items-center justify-center transition-all"
+            class="btn-tip py-2.5 px-2 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white text-gray-900 text-xs font-extrabold flex flex-col items-center justify-center transition-all cursor-pointer"
           >
             <span>$2.00</span>
             <span class="text-[9px] text-gray-400 font-bold">Generosa</span>
@@ -260,7 +277,7 @@ const bcvRate = await getOfficialExchangeRate();
         <button 
           id="btn-confirm-order"
           type="button"
-          class="w-full h-14 rounded-2xl bg-gradient-to-r from-[#FF7A00] to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-orange-600/30 active:scale-98 transition-all disabled:opacity-50 disabled:pointer-events-none"
+          class="w-full h-14 rounded-2xl bg-gradient-to-r from-[#FF7A00] to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-orange-600/30 active:scale-98 transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
         >
           <span id="btn-text">Confirmar y Enviar Pedido</span>
           <span>•</span>
@@ -272,7 +289,8 @@ const bcvRate = await getOfficialExchangeRate();
     <script is:inline define:vars={{ bcvRate }}>
       const CART_STORAGE_KEY = 'traigalo_cart';
       const API_ORDERS_URL = 'https://api.traigalo.org/v2/orders';
-      const DELIVERY_FEE = 1.50;
+      const API_PAYMENTS_URL = 'https://api.traigalo.org/v2/payments/receipts';
+      let currentDeliveryFee = 1.50;
       const SERVICE_FEE = 0.50;
       let currentDriverTip = 0.0;
 
@@ -283,9 +301,9 @@ const bcvRate = await getOfficialExchangeRate();
           currentDriverTip = val;
 
           tipButtons.forEach(b => {
-            b.className = 'btn-tip py-2.5 px-2 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white text-gray-900 text-xs font-extrabold flex flex-col items-center justify-center transition-all';
+            b.className = 'btn-tip py-2.5 px-2 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white text-gray-900 text-xs font-extrabold flex flex-col items-center justify-center transition-all cursor-pointer';
           });
-          btn.className = 'btn-tip py-2.5 px-2 rounded-2xl border-2 border-[#FF7A00] bg-orange-50/40 text-gray-900 text-xs font-extrabold flex flex-col items-center justify-center transition-all';
+          btn.className = 'btn-tip py-2.5 px-2 rounded-2xl border-2 border-[#FF7A00] bg-orange-50/40 text-gray-900 text-xs font-extrabold flex flex-col items-center justify-center transition-all cursor-pointer';
 
           renderCart();
         });
@@ -314,6 +332,43 @@ const bcvRate = await getOfficialExchangeRate();
           maximumFractionDigits: 2
         }).format(val);
         return `~ Bs. ${formatted} @ BCV`;
+      }
+
+      async function refreshDynamicDeliveryEstimate() {
+        const cart = getCart();
+        const storeId = (cart[0] && cart[0].storeId) ? cart[0].storeId : '46a0baf0-4100-465d-934a-f2d14f004ba5';
+        let lat = 10.4842;
+        let lng = -66.0990;
+
+        const savedLoc = localStorage.getItem('traigalo_location');
+        if (savedLoc) {
+          try {
+            const parsed = JSON.parse(savedLoc);
+            if (parsed.latitude && parsed.longitude) {
+              lat = parsed.latitude;
+              lng = parsed.longitude;
+            }
+          } catch {}
+        }
+
+        try {
+          const res = await fetch(`${API_ORDERS_URL}/estimate?store-id=${encodeURIComponent(storeId)}&lat=${lat}&lng=${lng}`);
+          if (res.ok) {
+            const est = await res.json();
+            if (est.delivery_fee_usd) {
+              currentDeliveryFee = Number(est.delivery_fee_usd);
+            }
+            const etaEl = document.getElementById('checkout-eta-label');
+            const distBadge = document.getElementById('checkout-distance-badge');
+            if (etaEl && est.eta_minutes) {
+              etaEl.textContent = `Estimado: ${est.eta_minutes}-${est.eta_minutes + 10} minutos`;
+            }
+            if (distBadge && typeof est.distance_km === 'number') {
+              distBadge.textContent = `${est.distance_km.toFixed(1)} km • $${currentDeliveryFee.toFixed(2)}`;
+            }
+            renderCart();
+          }
+        } catch {}
       }
 
       function getSelectedPayment() {
@@ -398,7 +453,7 @@ const bcvRate = await getOfficialExchangeRate();
           if (confirmBtn) confirmBtn.disabled = true;
           if (subtotalEl) subtotalEl.textContent = '$0.00';
           if (subtotalBsEl) subtotalBsEl.textContent = formatBs(0);
-          if (deliveryBsEl) deliveryBsEl.textContent = formatBs(DELIVERY_FEE);
+          if (deliveryBsEl) deliveryBsEl.textContent = formatBs(currentDeliveryFee);
           if (serviceBsEl) serviceBsEl.textContent = formatBs(SERVICE_FEE);
           if (tipRowEl) tipRowEl.classList.add('hidden');
           if (totalEl) totalEl.textContent = '$0.00';
@@ -410,12 +465,12 @@ const bcvRate = await getOfficialExchangeRate();
         if (confirmBtn) confirmBtn.disabled = false;
 
         const subtotal = cart.reduce((acc, it) => acc + (it.price * (it.qty || 1)), 0);
-        const total = subtotal + DELIVERY_FEE + SERVICE_FEE + currentDriverTip;
+        const total = subtotal + currentDeliveryFee + SERVICE_FEE + currentDriverTip;
 
         if (subtotalEl) subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
         if (subtotalBsEl) subtotalBsEl.textContent = formatBs(subtotal);
-        if (deliveryEl) deliveryEl.textContent = `$${DELIVERY_FEE.toFixed(2)}`;
-        if (deliveryBsEl) deliveryBsEl.textContent = formatBs(DELIVERY_FEE);
+        if (deliveryEl) deliveryEl.textContent = `$${currentDeliveryFee.toFixed(2)}`;
+        if (deliveryBsEl) deliveryBsEl.textContent = formatBs(currentDeliveryFee);
         if (serviceEl) serviceEl.textContent = `$${SERVICE_FEE.toFixed(2)}`;
         if (serviceBsEl) serviceBsEl.textContent = formatBs(SERVICE_FEE);
 
@@ -437,18 +492,19 @@ const bcvRate = await getOfficialExchangeRate();
 
         container.innerHTML = cart.map(item => `
           <div class="flex items-center justify-between gap-3 pb-3 border-b border-gray-50 last:border-0 last:pb-0">
-            <div class="w-12 h-12 rounded-xl overflow-hidden bg-gray-100 shrink-0">
-              <img src="${item.image || ''}" alt="${item.name}" class="w-full h-full object-cover" />
+            <div class="w-12 h-12 rounded-xl overflow-hidden bg-gray-100 shrink-0 p-1">
+              <img src="${item.image || ''}" alt="${item.name}" class="w-full h-full object-contain" />
             </div>
             <div class="flex-1 min-w-0">
               <h4 class="text-xs font-bold text-gray-900 truncate">${item.name}</h4>
+              ${item.notes ? `<p class="text-[10px] text-gray-400 truncate">Nota: ${item.notes}</p>` : ''}
               <p class="text-[11px] font-extrabold text-[#FF7A00] mt-0.5">$${item.price.toFixed(2)}</p>
               <p class="text-[9px] text-gray-400 font-semibold">${formatBs(item.price)}</p>
             </div>
             <div class="flex items-center gap-2 bg-gray-50 rounded-xl px-2 py-1 border border-gray-100">
-              <button data-action="minus" data-id="${item.id}" class="btn-qty text-xs font-black text-gray-500 hover:text-[#FF7A00] w-5 h-5 flex items-center justify-center">-</button>
+              <button data-action="minus" data-id="${item.id}" class="btn-qty text-xs font-black text-gray-500 hover:text-[#FF7A00] w-5 h-5 flex items-center justify-center cursor-pointer">-</button>
               <span class="text-xs font-black text-gray-900">${item.qty}</span>
-              <button data-action="plus" data-id="${item.id}" class="btn-qty text-xs font-black text-gray-500 hover:text-[#FF7A00] w-5 h-5 flex items-center justify-center">+</button>
+              <button data-action="plus" data-id="${item.id}" class="btn-qty text-xs font-black text-gray-500 hover:text-[#FF7A00] w-5 h-5 flex items-center justify-center cursor-pointer">+</button>
             </div>
           </div>
         `).join('');
@@ -474,21 +530,23 @@ const bcvRate = await getOfficialExchangeRate();
         if (confirmBtn) confirmBtn.disabled = true;
         if (btnText) btnText.textContent = 'Procesando Pedido...';
 
-        const storeId = cart[0].storeId || 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+        const storeId = cart[0].storeId || '46a0baf0-4100-465d-934a-f2d14f004ba5';
         const paymentMethod = getSelectedPayment();
         const refInput = document.getElementById('mobile-pay-ref');
+        const bankSelect = document.getElementById('mobile-pay-bank');
         const bankRef = refInput ? refInput.value.trim() : '';
+        const bankOrigin = bankSelect ? bankSelect.value : '0134';
 
-        if (paymentMethod === 'mobile_pay' && !bankRef) {
-          alert('Por favor introduce el número de referencia de tu Pago Móvil');
+        if (paymentMethod === 'mobile_pay' && (!bankRef || bankRef.length < 4)) {
+          alert('Por favor introduce los últimos dígitos del número de referencia de tu Pago Móvil');
           if (confirmBtn) confirmBtn.disabled = false;
           if (btnText) btnText.textContent = 'Confirmar y Enviar Pedido';
           return;
         }
 
-        let deliveryLat = 10.4855;
-        let deliveryLng = -66.8530;
-        let addressText = document.getElementById('checkout-address') ? document.getElementById('checkout-address').textContent : 'Av. Libertador, Caracas';
+        let deliveryLat = 10.4842;
+        let deliveryLng = -66.0990;
+        let addressText = document.getElementById('checkout-address') ? document.getElementById('checkout-address').textContent : 'Av. Andrés Eloy Blanco, Higuerote';
 
         const savedLoc = localStorage.getItem('traigalo_location');
         if (savedLoc) {
@@ -504,13 +562,26 @@ const bcvRate = await getOfficialExchangeRate();
           } catch {}
         }
 
+        let customerId = '44444444-4444-4444-4444-444444444444';
+        const rawUser = localStorage.getItem('traigalo_user');
+        if (rawUser) {
+          try {
+            const parsedUser = JSON.parse(rawUser);
+            if (parsedUser.id) customerId = parsedUser.id;
+          } catch {}
+        }
+
         const finalDeliveryAddress = bankRef ? `${addressText} (Ref PagoMóvil: ${bankRef})` : addressText;
 
         const orderNotesInput = document.getElementById('order-notes');
         const orderNotes = orderNotesInput ? orderNotesInput.value.trim() : '';
 
+        const subtotal = cart.reduce((acc, it) => acc + (it.price * (it.qty || 1)), 0);
+        const totalUSD = subtotal + currentDeliveryFee + SERVICE_FEE + currentDriverTip;
+        const totalBS = totalUSD * (bcvRate || 896.12);
+
         const payload = {
-          customer_id: '44444444-4444-4444-4444-444444444444',
+          customer_id: customerId,
           store_id: storeId,
           delivery_latitude: deliveryLat,
           delivery_longitude: deliveryLng,
@@ -518,7 +589,7 @@ const bcvRate = await getOfficialExchangeRate();
           instructions: orderNotes,
           notes: orderNotes,
           payment_method: paymentMethod,
-          delivery_fee: DELIVERY_FEE,
+          delivery_fee: currentDeliveryFee,
           service_fee: SERVICE_FEE,
           tip: currentDriverTip,
           items: cart.map(item => ({
@@ -543,9 +614,25 @@ const bcvRate = await getOfficialExchangeRate();
           }
 
           const createdOrder = await res.json();
-          localStorage.removeItem(CART_STORAGE_KEY);
+          const targetOrderId = createdOrder.id;
 
-          const targetOrderId = createdOrder.id || 'TRG-7821';
+          if (paymentMethod === 'mobile_pay' && targetOrderId && bankRef) {
+            await fetch(API_PAYMENTS_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                order_id: targetOrderId,
+                payment_method: 'pago_movil',
+                reference_number: bankRef,
+                bank_origin: bankOrigin,
+                bank_destination: '0134',
+                amount_bs: parseFloat(totalBS.toFixed(2)),
+                exchange_rate: bcvRate || 896.12
+              })
+            }).catch(() => {});
+          }
+
+          localStorage.removeItem(CART_STORAGE_KEY);
           window.location.href = `/orders/track?id=${targetOrderId}`;
         } catch (err) {
           alert('No se pudo procesar la orden. Intente nuevamente.');
@@ -590,11 +677,13 @@ const bcvRate = await getOfficialExchangeRate();
         if (e.detail && e.detail.address) {
           const addressEl = document.getElementById('checkout-address');
           if (addressEl) addressEl.textContent = e.detail.address;
+          refreshDynamicDeliveryEstimate();
         }
       });
 
       updateCheckoutAddressDisplay();
       renderCart();
+      refreshDynamicDeliveryEstimate();
     </script>
     <LocationModal />
   </body>
