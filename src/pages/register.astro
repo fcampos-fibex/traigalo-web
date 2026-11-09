@@ -12,7 +12,7 @@ import RoleSwitcher from '../components/RoleSwitcher.astro';
     <meta name="theme-color" content="#FF5A00" />
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <title>Crear Cuenta | Traigalo ⚡</title>
+    <title>Crear Cuenta en Keycloak OIDC | Traigalo ⚡</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -31,12 +31,32 @@ import RoleSwitcher from '../components/RoleSwitcher.astro';
     </header>
 
     <main class="flex-1 max-w-md mx-auto px-5 py-4 w-full flex flex-col justify-center">
-      <div class="text-center mb-6">
+      <div class="text-center mb-5">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-black uppercase tracking-wider mb-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span>Registro OIDC • Keycloak Realm: traigalo</span>
+        </div>
         <h1 class="text-2xl font-black text-gray-900 tracking-tight">Únete a Traigalo</h1>
-        <p class="text-xs text-gray-400 mt-1">Crea tu cuenta personal o de comercio en segundos</p>
+        <p class="text-xs text-gray-500 mt-1">Tu identidad se aprovisiona en <code class="text-[#FF7A00] font-bold">auth.traigalo.org</code></p>
       </div>
 
       <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
+        <button
+          id="btn-keycloak-register-redirect"
+          type="button"
+          class="w-full py-3.5 px-4 rounded-2xl bg-[#0B132B] hover:bg-[#151E38] text-white font-black text-xs sm:text-sm shadow-md flex items-center justify-center gap-2.5 transition-all active:scale-98 cursor-pointer"
+        >
+          <span>🔐</span>
+          <span>Registrarse en Portal Keycloak SSO</span>
+          <span>↗</span>
+        </button>
+
+        <div class="relative flex py-1 items-center">
+          <div class="flex-grow border-t border-gray-100"></div>
+          <span class="shrink mx-3 text-[10px] font-black uppercase tracking-wider text-gray-400">O registro directo OIDC</span>
+          <div class="flex-grow border-t border-gray-100"></div>
+        </div>
+
         <div>
           <label class="block text-[11px] font-black uppercase tracking-wider text-gray-400 mb-2">Quiero registrarme como</label>
           <div class="grid grid-cols-3 gap-2" id="reg-role-selector">
@@ -51,6 +71,8 @@ import RoleSwitcher from '../components/RoleSwitcher.astro';
             </button>
           </div>
         </div>
+
+        <div id="reg-status-box" class="hidden p-3 rounded-2xl text-xs font-bold"></div>
 
         <div>
           <label for="reg-name" class="block text-[11px] font-black uppercase tracking-wider text-gray-400 mb-1.5">Nombre Completo o Razón Social</label>
@@ -98,23 +120,46 @@ import RoleSwitcher from '../components/RoleSwitcher.astro';
           type="button" 
           class="w-full h-13 rounded-2xl bg-[#FF7A00] hover:bg-[#E66E00] text-white font-black text-sm shadow-lg shadow-orange-600/25 active:scale-98 transition-all flex items-center justify-center gap-2 mt-2 cursor-pointer"
         >
-          <span>Crear Mi Cuenta</span>
+          <span>Crear Cuenta en Keycloak OIDC</span>
           <span>→</span>
         </button>
 
         <p class="text-center text-xs text-gray-400 pt-2">
           ¿Ya tienes cuenta? 
-          <a href="/login" class="text-[#FF7A00] font-black hover:underline">Inicia sesión</a>
+          <a href="/login" class="text-[#FF7A00] font-black hover:underline">Inicia sesión con Keycloak</a>
         </p>
       </div>
     </main>
 
     <footer class="p-6 text-center text-[11px] text-gray-400">
-      Al registrarte aceptas las políticas de privacidad y términos de Traigalo ⚡
+      Al registrarte tu identidad se crea en <code class="text-gray-600 font-bold">https://auth.traigalo.org/realms/traigalo</code>
     </footer>
 
     <script is:inline>
+    (() => {
+      const KEYCLOAK_ISSUER = 'https://auth.traigalo.org/realms/traigalo';
+      const KEYCLOAK_CLIENT_ID = 'traigalo-web';
+      const API_BASE = 'https://api.traigalo.org/v2';
+
       let selectedRole = 'client';
+      const statusBox = document.getElementById('reg-status-box');
+      const ssoRegBtn = document.getElementById('btn-keycloak-register-redirect');
+
+      function showStatus(msg, isError = false) {
+        if (!statusBox) return;
+        statusBox.textContent = msg;
+        statusBox.className = isError
+          ? 'p-3 rounded-2xl text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200'
+          : 'p-3 rounded-2xl text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200';
+      }
+
+      if (ssoRegBtn) {
+        ssoRegBtn.addEventListener('click', () => {
+          const redirectUri = `${window.location.origin}/login`;
+          const regUrl = `${KEYCLOAK_ISSUER}/protocol/openid-connect/registrations?client_id=${encodeURIComponent(KEYCLOAK_CLIENT_ID)}&response_type=code&scope=${encodeURIComponent('openid profile email')}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+          window.location.href = regUrl;
+        });
+      }
 
       document.querySelectorAll('.reg-role-btn').forEach((btn) => {
         btn.addEventListener('click', () => {
@@ -133,60 +178,70 @@ import RoleSwitcher from '../components/RoleSwitcher.astro';
           const emailInput = document.getElementById('reg-email');
           const phoneInput = document.getElementById('reg-phone');
           const passInput = document.getElementById('reg-password');
-          const name = nameInput && nameInput.value.trim() ? nameInput.value.trim() : 'Freddy Campos';
+          const fullName = nameInput && nameInput.value.trim() ? nameInput.value.trim() : 'Freddy Campos';
           const email = emailInput && emailInput.value.trim() ? emailInput.value.trim() : `usuario_${Date.now()}@traigalo.org`;
           const phone = phoneInput && phoneInput.value.trim() ? phoneInput.value.trim() : '+584128901234';
           const password = passInput && passInput.value ? passInput.value : 'Traigalo2026!';
 
-          submitBtn.disabled = true;
-          submitBtn.textContent = 'Creando Cuenta...';
+          const parts = fullName.split(' ');
+          const firstName = parts[0] || 'Usuario';
+          const lastName = parts.slice(1).join(' ') || 'Traigalo';
 
-          let token = `trg_jwt_${Date.now()}`;
-          let user = {
-            id: '44444444-4444-4444-4444-444444444444',
-            name: name,
-            email: email,
-            role: selectedRole
-          };
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Aprovisionando en Keycloak...';
 
           try {
-            const res = await fetch('https://api.traigalo.org/v2/auth/register', {
+            const res = await fetch(`${API_BASE}/auth/register`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 email,
                 phone,
-                full_name: name,
+                first_name: firstName,
+                last_name: lastName,
+                full_name: fullName,
                 password,
                 role: selectedRole === 'client' ? 'customer' : selectedRole
               })
             });
+
             if (res.ok) {
               const data = await res.json();
-              if (data.token) token = data.token;
-              if (data.user) {
-                user = {
-                  id: data.user.id || user.id,
-                  name: data.user.full_name || name,
-                  email: data.user.email || email,
-                  role: selectedRole
-                };
+              if (data.token) {
+                showStatus('Cuenta creada en Keycloak Realm traigalo. Redirigiendo...', false);
+                localStorage.setItem('traigalo_token', data.token);
+                if (data.refresh_token) localStorage.setItem('traigalo_refresh_token', data.refresh_token);
+                localStorage.setItem('traigalo_user', JSON.stringify({
+                  id: data.user?.id || '',
+                  keycloak_id: data.user?.keycloak_id || '',
+                  name: data.user?.full_name || fullName,
+                  email: data.user?.email || email,
+                  role: selectedRole,
+                  issuer: KEYCLOAK_ISSUER,
+                  auth_provider: 'keycloak_oidc'
+                }));
+
+                if (selectedRole === 'vendor') {
+                  window.location.href = '/vendor';
+                } else if (selectedRole === 'driver') {
+                  window.location.href = '/driver';
+                } else {
+                  window.location.href = '/';
+                }
+                return;
               }
             }
-          } catch {}
-
-          localStorage.setItem('traigalo_token', token);
-          localStorage.setItem('traigalo_user', JSON.stringify(user));
-
-          if (selectedRole === 'vendor') {
-            window.location.href = '/vendor';
-          } else if (selectedRole === 'driver') {
-            window.location.href = '/driver';
-          } else {
-            window.location.href = '/';
+            const errJson = await res.json().catch(() => ({}));
+            showStatus(errJson.error || 'No se pudo registrar el usuario en Keycloak.', true);
+          } catch {
+            showStatus('Error de red al conectar con Keycloak.', true);
+          } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<span>Crear Cuenta en Keycloak OIDC</span><span>→</span>';
           }
         });
       }
+    })();
     </script>
   </body>
 </html>
