@@ -262,9 +262,238 @@ const currentActiveOrder = (Array.isArray(assignedOrders) ? assignedOrders : [])
 
     </main>
 
-    <script is:inline define:vars={{ driverId }}>
+    <div id="urgent-dispatch-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl text-center space-y-4 border-2 border-emerald-500 animate-pulse">
+        <div class="relative w-20 h-20 mx-auto flex items-center justify-center">
+          <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+            <path
+              class="text-gray-100"
+              stroke-width="3.5"
+              stroke="currentColor"
+              fill="none"
+              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+            />
+            <path
+              id="countdown-circle"
+              class="text-emerald-500 transition-all duration-1000 ease-linear"
+              stroke-dasharray="100, 100"
+              stroke-width="3.5"
+              stroke-linecap="round"
+              stroke="currentColor"
+              fill="none"
+              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+            />
+          </svg>
+          <span id="dispatch-countdown" class="absolute text-xl font-black text-gray-900">45</span>
+        </div>
+
+        <div>
+          <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider">
+            ¡Nueva Oferta de Pedido!
+          </span>
+          <h3 id="offer-store-name" class="text-base font-black text-gray-900 mt-2">Burger Crave</h3>
+          <p id="offer-store-dist" class="text-xs text-gray-500 font-semibold mt-0.5">Retiro a 1.2 km de tu ubicación</p>
+        </div>
+
+        <div class="p-3 bg-gray-50 rounded-2xl border border-gray-100 text-left space-y-1.5 text-xs">
+          <div class="flex items-start gap-2">
+            <span class="text-sm">📍</span>
+            <div class="flex-1 min-w-0">
+              <span class="text-[9px] text-gray-400 font-black uppercase block">Entrega en</span>
+              <p id="offer-delivery-addr" class="font-bold text-gray-800 truncate">Av. Libertador 102, Caracas</p>
+            </div>
+          </div>
+          <div class="pt-2 border-t border-gray-100 flex items-center justify-between">
+            <span class="text-[10px] text-gray-400 font-black uppercase">Ganancia Neta</span>
+            <div class="text-right">
+              <span id="offer-earnings-usd" class="text-base font-black text-emerald-600 block">$4.50</span>
+              <span id="offer-earnings-bs" class="text-[9px] text-gray-400 font-semibold block">~ Bs. 4.032,55 @ BCV</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-2 pt-2">
+          <button 
+            id="btn-accept-offer"
+            type="button" 
+            class="w-full h-14 rounded-2xl bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-black text-base shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 cursor-pointer transition-all"
+          >
+            <span>ACEPTAR PEDIDO</span>
+            <span>✓</span>
+          </button>
+          <button 
+            id="btn-reject-offer"
+            type="button" 
+            class="w-full py-2.5 text-xs font-bold text-gray-400 hover:text-rose-500 cursor-pointer transition-colors"
+          >
+            Rechazar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script is:inline define:vars={{ driverId, bcvRate }}>
       const API_ORDERS = 'https://api.traigalo.org/v2/orders';
       const API_LOCATIONS = 'https://api.traigalo.org/v2/drivers/locations';
+      const API_DISPATCH = 'https://api.traigalo.org/v2/dispatch';
+
+      let dispatchCountdownTimer = null;
+      let alertSoundInterval = null;
+      let currentOffer = null;
+
+      function playUrgentArpeggio() {
+        try {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContext) return;
+          const ctx = new AudioContext();
+          const now = ctx.currentTime;
+
+          const notes = [440, 554.37, 659.25, 880];
+          notes.forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + (idx * 0.08));
+
+            gain.gain.setValueAtTime(0.3, now + (idx * 0.08));
+            gain.gain.exponentialRampToValueAtTime(0.01, now + (idx * 0.08) + 0.15);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start(now + (idx * 0.08));
+            osc.stop(now + (idx * 0.08) + 0.15);
+          });
+        } catch {}
+      }
+
+      function startUrgentAlertAudio() {
+        playUrgentArpeggio();
+        if (!alertSoundInterval) {
+          alertSoundInterval = setInterval(playUrgentArpeggio, 1200);
+        }
+      }
+
+      function stopUrgentAlertAudio() {
+        if (alertSoundInterval) {
+          clearInterval(alertSoundInterval);
+          alertSoundInterval = null;
+        }
+      }
+
+      function showDispatchOfferModal(offer) {
+        currentOffer = offer;
+        const modal = document.getElementById('urgent-dispatch-modal');
+        const countdownEl = document.getElementById('dispatch-countdown');
+        const circle = document.getElementById('countdown-circle');
+        const storeNameEl = document.getElementById('offer-store-name');
+        const storeDistEl = document.getElementById('offer-store-dist');
+        const addrEl = document.getElementById('offer-delivery-addr');
+        const earnUsdEl = document.getElementById('offer-earnings-usd');
+        const earnBsEl = document.getElementById('offer-earnings-bs');
+
+        if (storeNameEl) storeNameEl.textContent = offer.store_name || 'Burger Crave';
+        if (storeDistEl) storeDistEl.textContent = `Retiro a ${offer.pickup_distance || '1.2 km'} de tu ubicación`;
+        if (addrEl) addrEl.textContent = offer.delivery_address || 'Av. Libertador, Caracas';
+
+        const earningsUSD = Number(offer.earnings_usd || 4.50);
+        const earningsBS = earningsUSD * (bcvRate || 896.12);
+        if (earnUsdEl) earnUsdEl.textContent = `$${earningsUSD.toFixed(2)}`;
+        if (earnBsEl) {
+          earnBsEl.textContent = `~ Bs. ${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2 }).format(earningsBS)} @ BCV`;
+        }
+
+        if (modal) modal.classList.remove('hidden');
+        startUrgentAlertAudio();
+
+        let timeLeft = 45;
+        if (countdownEl) countdownEl.textContent = String(timeLeft);
+        if (circle) circle.setAttribute('stroke-dasharray', '100, 100');
+
+        if (dispatchCountdownTimer) clearInterval(dispatchCountdownTimer);
+        dispatchCountdownTimer = setInterval(() => {
+          timeLeft--;
+          if (countdownEl) countdownEl.textContent = String(timeLeft);
+          if (circle) {
+            const pct = (timeLeft / 45) * 100;
+            circle.setAttribute('stroke-dasharray', `${pct}, 100`);
+          }
+
+          if (timeLeft <= 0) {
+            closeDispatchOfferModal();
+          }
+        }, 1000);
+      }
+
+      function closeDispatchOfferModal() {
+        const modal = document.getElementById('urgent-dispatch-modal');
+        if (modal) modal.classList.add('hidden');
+        stopUrgentAlertAudio();
+        if (dispatchCountdownTimer) {
+          clearInterval(dispatchCountdownTimer);
+          dispatchCountdownTimer = null;
+        }
+        currentOffer = null;
+      }
+
+      const acceptOfferBtn = document.getElementById('btn-accept-offer');
+      if (acceptOfferBtn) {
+        acceptOfferBtn.addEventListener('click', async () => {
+          if (!currentOffer) return;
+          acceptOfferBtn.disabled = true;
+          acceptOfferBtn.textContent = 'Aceptando...';
+
+          try {
+            const offerId = currentOffer.id || currentOffer.offer_id;
+            const res = await fetch(`${API_DISPATCH}/offers/${offerId}/actions`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'accept' })
+            });
+
+            if (!res.ok) {
+              await fetch(`${API_ORDERS}/${offerId}/actions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'assign_driver', driver_id: driverId })
+              });
+            }
+
+            closeDispatchOfferModal();
+            window.location.reload();
+          } catch (err) {
+            closeDispatchOfferModal();
+            window.location.reload();
+          }
+        });
+      }
+
+      const rejectOfferBtn = document.getElementById('btn-reject-offer');
+      if (rejectOfferBtn) {
+        rejectOfferBtn.addEventListener('click', () => {
+          closeDispatchOfferModal();
+        });
+      }
+
+      function initDriverWebSocket() {
+        let ws = null;
+        try {
+          ws = new WebSocket(`wss://ws.traigalo.org/ws?driver_id=${encodeURIComponent(driverId)}`);
+        } catch {}
+
+        if (ws) {
+          ws.onmessage = (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              if (data.event === 'dispatch_offer' || data.type === 'dispatch_offer') {
+                showDispatchOfferModal(data.payload || data);
+              }
+            } catch {}
+          };
+        }
+      }
+
+      initDriverWebSocket();
 
       async function triggerDriverAction(orderId, actionName) {
         try {

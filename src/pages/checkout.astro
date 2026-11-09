@@ -157,6 +157,50 @@ const bcvRate = await getOfficialExchangeRate();
         </div>
       </section>
 
+      <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-400">Propina para el Repartidor</h3>
+            <p class="text-[11px] text-gray-500 font-medium">Reconoce el esfuerzo de tu repartidor</p>
+          </div>
+          <span class="text-xl">🛵</span>
+        </div>
+        <div class="grid grid-cols-4 gap-2" id="tip-options">
+          <button 
+            type="button" 
+            data-tip="0" 
+            class="btn-tip py-2.5 px-2 rounded-2xl border-2 border-[#FF7A00] bg-orange-50/40 text-gray-900 text-xs font-extrabold flex flex-col items-center justify-center transition-all"
+          >
+            <span>Sin propina</span>
+            <span class="text-[9px] text-gray-400 font-bold">$0.00</span>
+          </button>
+          <button 
+            type="button" 
+            data-tip="0.5" 
+            class="btn-tip py-2.5 px-2 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white text-gray-900 text-xs font-extrabold flex flex-col items-center justify-center transition-all"
+          >
+            <span>$0.50</span>
+            <span class="text-[9px] text-gray-400 font-bold">Pequeña</span>
+          </button>
+          <button 
+            type="button" 
+            data-tip="1.0" 
+            class="btn-tip py-2.5 px-2 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white text-gray-900 text-xs font-extrabold flex flex-col items-center justify-center transition-all"
+          >
+            <span>$1.00</span>
+            <span class="text-[9px] text-gray-400 font-bold">Estándar</span>
+          </button>
+          <button 
+            type="button" 
+            data-tip="2.0" 
+            class="btn-tip py-2.5 px-2 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white text-gray-900 text-xs font-extrabold flex flex-col items-center justify-center transition-all"
+          >
+            <span>$2.00</span>
+            <span class="text-[9px] text-gray-400 font-bold">Generosa</span>
+          </button>
+        </div>
+      </section>
+
       <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs space-y-2 text-xs">
         <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-400 mb-2">Desglose de Pago</h3>
         <div class="flex justify-between text-gray-500">
@@ -178,6 +222,13 @@ const bcvRate = await getOfficialExchangeRate();
           <div class="text-right">
             <span id="breakdown-service" class="font-bold text-gray-800">$0.50</span>
             <span id="breakdown-service-bs" class="block text-[10px] text-gray-400 font-semibold"></span>
+          </div>
+        </div>
+        <div id="breakdown-tip-row" class="hidden justify-between text-gray-500">
+          <span>Propina al Repartidor</span>
+          <div class="text-right">
+            <span id="breakdown-tip" class="font-bold text-emerald-600">$0.00</span>
+            <span id="breakdown-tip-bs" class="block text-[10px] text-gray-400 font-semibold"></span>
           </div>
         </div>
         <div class="pt-3 border-t border-gray-100 flex justify-between items-center text-sm font-black text-gray-950">
@@ -210,6 +261,22 @@ const bcvRate = await getOfficialExchangeRate();
       const API_ORDERS_URL = 'https://api.traigalo.org/v2/orders';
       const DELIVERY_FEE = 1.50;
       const SERVICE_FEE = 0.50;
+      let currentDriverTip = 0.0;
+
+      const tipButtons = document.querySelectorAll('.btn-tip');
+      tipButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const val = parseFloat(btn.getAttribute('data-tip') || '0');
+          currentDriverTip = val;
+
+          tipButtons.forEach(b => {
+            b.className = 'btn-tip py-2.5 px-2 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white text-gray-900 text-xs font-extrabold flex flex-col items-center justify-center transition-all';
+          });
+          btn.className = 'btn-tip py-2.5 px-2 rounded-2xl border-2 border-[#FF7A00] bg-orange-50/40 text-gray-900 text-xs font-extrabold flex flex-col items-center justify-center transition-all';
+
+          renderCart();
+        });
+      });
 
       function getCart() {
         try {
@@ -296,6 +363,9 @@ const bcvRate = await getOfficialExchangeRate();
         const deliveryBsEl = document.getElementById('breakdown-delivery-bs');
         const serviceEl = document.getElementById('breakdown-service');
         const serviceBsEl = document.getElementById('breakdown-service-bs');
+        const tipRowEl = document.getElementById('breakdown-tip-row');
+        const tipEl = document.getElementById('breakdown-tip');
+        const tipBsEl = document.getElementById('breakdown-tip-bs');
         const totalEl = document.getElementById('breakdown-total');
         const totalBsEl = document.getElementById('breakdown-total-bs');
         const btnTotal = document.getElementById('btn-total');
@@ -317,6 +387,7 @@ const bcvRate = await getOfficialExchangeRate();
           if (subtotalBsEl) subtotalBsEl.textContent = formatBs(0);
           if (deliveryBsEl) deliveryBsEl.textContent = formatBs(DELIVERY_FEE);
           if (serviceBsEl) serviceBsEl.textContent = formatBs(SERVICE_FEE);
+          if (tipRowEl) tipRowEl.classList.add('hidden');
           if (totalEl) totalEl.textContent = '$0.00';
           if (totalBsEl) totalBsEl.textContent = formatBs(0);
           if (btnTotal) btnTotal.textContent = '$0.00';
@@ -326,7 +397,7 @@ const bcvRate = await getOfficialExchangeRate();
         if (confirmBtn) confirmBtn.disabled = false;
 
         const subtotal = cart.reduce((acc, it) => acc + (it.price * (it.qty || 1)), 0);
-        const total = subtotal + DELIVERY_FEE + SERVICE_FEE;
+        const total = subtotal + DELIVERY_FEE + SERVICE_FEE + currentDriverTip;
 
         if (subtotalEl) subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
         if (subtotalBsEl) subtotalBsEl.textContent = formatBs(subtotal);
@@ -334,6 +405,19 @@ const bcvRate = await getOfficialExchangeRate();
         if (deliveryBsEl) deliveryBsEl.textContent = formatBs(DELIVERY_FEE);
         if (serviceEl) serviceEl.textContent = `$${SERVICE_FEE.toFixed(2)}`;
         if (serviceBsEl) serviceBsEl.textContent = formatBs(SERVICE_FEE);
+
+        if (tipRowEl && tipEl && tipBsEl) {
+          if (currentDriverTip > 0) {
+            tipRowEl.classList.remove('hidden');
+            tipRowEl.classList.add('flex');
+            tipEl.textContent = `$${currentDriverTip.toFixed(2)}`;
+            tipBsEl.textContent = formatBs(currentDriverTip);
+          } else {
+            tipRowEl.classList.add('hidden');
+            tipRowEl.classList.remove('flex');
+          }
+        }
+
         if (totalEl) totalEl.textContent = `$${total.toFixed(2)}`;
         if (totalBsEl) totalBsEl.textContent = formatBs(total);
         if (btnTotal) btnTotal.textContent = `$${total.toFixed(2)}`;
@@ -418,10 +502,12 @@ const bcvRate = await getOfficialExchangeRate();
           payment_method: paymentMethod,
           delivery_fee: DELIVERY_FEE,
           service_fee: SERVICE_FEE,
+          tip: currentDriverTip,
           items: cart.map(item => ({
             product_id: item.id,
             quantity: item.qty || 1,
-            unit_price: Number(item.price)
+            unit_price: Number(item.price),
+            notes: item.notes || ''
           }))
         };
 
