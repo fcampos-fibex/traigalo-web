@@ -63,6 +63,7 @@ const bcvFormatted = bcvRate.toFixed(2);
     <div class="mt-3.5 flex items-center gap-2.5">
       <div class="relative flex-1">
         <input 
+          id="global-search-input"
           type="text" 
           placeholder="Buscar platos, restaurantes o supermercados..." 
           class="w-full h-11 pl-10 pr-4 bg-gray-50 border border-gray-100 rounded-2xl text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-[#FF7A00] focus:ring-2 focus:ring-[#FF7A00]/20 transition-all"
@@ -72,7 +73,7 @@ const bcvFormatted = bcvRate.toFixed(2);
         </svg>
       </div>
 
-      <button class="w-11 h-11 rounded-2xl bg-[#FF7A00] hover:bg-[#E66E00] text-white flex items-center justify-center shadow-md shadow-orange-600/20 transition-all shrink-0 active:scale-95">
+      <button id="global-filter-btn" class="w-11 h-11 rounded-2xl bg-[#FF7A00] hover:bg-[#E66E00] text-white flex items-center justify-center shadow-md shadow-orange-600/20 transition-all shrink-0 active:scale-95">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
         </svg>

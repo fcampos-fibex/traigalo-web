@@ -1,0 +1,201 @@
+---
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import BottomNav from '../../components/BottomNav.astro';
+import RoleSwitcher from '../../components/RoleSwitcher.astro';
+import { getOfficialExchangeRate, formatBs } from '../../adapters/rates';
+import '../../styles/global.css';
+
+const { slug } = Astro.params;
+const API_BASE = 'https://api.traigalo.org/v2';
+const ASSET_BASE = 'https://admin.traigalo.org/assets';
+
+const bcvRate = await getOfficialExchangeRate();
+
+let categories: any[] = [];
+try {
+  const catMod = await import('../../data/categories.json');
+  categories = catMod.default || [];
+} catch {}
+
+let assetMap: Record<string, string> = {};
+try {
+  const assetMod = await import('../../data/product_assets.json');
+  assetMap = assetMod.default || {};
+} catch {}
+
+const matchedCategory = categories.find(
+  (c) => c.slug === slug || c.id === slug || c.name.toLowerCase().replace(/\s+/g, '-') === slug
+) || {
+  id: slug || '0',
+  name: 'Categoría',
+  slug: slug || 'general',
+  image_url: 'https://admin.traigalo.org/assets/5ce76a26-f596-4b8b-8ad5-e70d04a8aa7f'
+};
+
+let stores: any[] = [];
+try {
+  const sRes = await fetch(`${API_BASE}/stores`);
+  if (sRes.ok) {
+    stores = await sRes.json();
+  }
+} catch {}
+
+const catNameLower = matchedCategory.name.toLowerCase();
+let targetStore = stores.find((s) => {
+  const sName = s.name.toLowerCase();
+  if (catNameLower.includes('video') || catNameLower.includes('audio') || catNameLower.includes('celular') || catNameLower.includes('computac')) {
+    return sName.includes('wily');
+  }
+  if (catNameLower.includes('barber') || catNameLower.includes('belleza') || catNameLower.includes('cuidado')) {
+    return sName.includes('barbero');
+  }
+  if (catNameLower.includes('sushi') || catNameLower.includes('asiat')) {
+    return sName.includes('sushi');
+  }
+  return sName.includes('burger');
+}) || stores[0];
+
+let products: any[] = [];
+if (targetStore) {
+  try {
+    const pRes = await fetch(`${API_BASE}/stores/${targetStore.id}/products`);
+    if (pRes.ok) {
+      const items = await pRes.json();
+      products = items.map((it: any) => {
+        let img = '';
+        if (it.attributes?.image_url) {
+          img = it.attributes.image_url;
+        } else if (it.attributes?.asset_id) {
+          img = `${ASSET_BASE}/${it.attributes.asset_id}`;
+        } else if (assetMap[it.name]) {
+          img = `${ASSET_BASE}/${assetMap[it.name]}`;
+        } else {
+          img = `${ASSET_BASE}/e20f2cbd-295f-41ad-be33-56517ab5eff2`;
+        }
+
+        const price = Number(it.base_price) || 0;
+        return {
+          id: it.id,
+          storeId: targetStore.id,
+          storeName: targetStore.name,
+          name: it.name,
+          desc: it.description || '',
+          price: price,
+          priceBs: formatBs(price, bcvRate),
+          image: img
+        };
+      });
+    }
+  } catch {}
+}
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>{matchedCategory.name} | Traigalo ⚡</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  </head>
+  <body class="bg-[#FAFAFC] text-[#1A1D20] min-h-screen flex flex-col pb-28 antialiased selection:bg-[#FF7A00] selection:text-white">
+    <RoleSwitcher currentRole="client" />
+    <Header />
+
+    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 w-full space-y-6">
+      
+      <div class="flex items-center gap-2 text-xs text-gray-400 font-bold">
+        <a href="/" class="hover:text-[#FF7A00] transition-colors">Inicio</a>
+        <span>/</span>
+        <span class="text-gray-700">{matchedCategory.name}</span>
+      </div>
+
+      <section class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+          <div class="w-16 h-16 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center p-2.5 overflow-hidden shrink-0 shadow-2xs">
+            <img 
+              src={matchedCategory.image_url || 'https://admin.traigalo.org/assets/5ce76a26-f596-4b8b-8ad5-e70d04a8aa7f'} 
+              alt={matchedCategory.name}
+              class="w-full h-full object-contain"
+              onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' fill=\'none\' stroke=\'%23FF7A00\' stroke-width=\'2\'><rect width=\'44\' height=\'44\' x=\'2\' y=\'2\' rx=\'8\' fill=\'%23FFF3E0\'/><path d=\'M16 24h16M24 16v16\'/></svg>';"
+            />
+          </div>
+          <div>
+            <h1 class="text-xl sm:text-2xl font-black text-gray-900 leading-tight">{matchedCategory.name}</h1>
+            <p class="text-xs text-gray-400 mt-0.5">Tienda aliada: <strong class="text-gray-700">{targetStore.name}</strong> • {products.length} productos disponibles</p>
+          </div>
+        </div>
+
+        <a 
+          href={`/stores/${targetStore.id}`}
+          class="shrink-0 px-4 py-2.5 rounded-2xl bg-orange-50 hover:bg-orange-100 text-[#FF7A00] text-xs font-black transition-all"
+        >
+          Visitar Tienda →
+        </a>
+      </section>
+
+      <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+        {categories.slice(0, 10).map((cat) => {
+          const isCurrent = cat.slug === slug || cat.id === slug;
+          return (
+            <a 
+              href={`/categories/${cat.slug || cat.id}`}
+              class={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-black transition-all ${
+                isCurrent 
+                  ? 'bg-[#FF7A00] text-white shadow-md shadow-orange-600/20' 
+                  : 'bg-white text-gray-700 border border-gray-100 hover:border-gray-200 shadow-2xs'
+              }`}
+            >
+              <span>{cat.name}</span>
+            </a>
+          );
+        })}
+      </div>
+
+      <section>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-5">
+          {products.map((p) => (
+            <div class="bg-white rounded-3xl p-3.5 sm:p-4 border border-gray-100 shadow-sm flex flex-col justify-between group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+              <div class="relative w-full aspect-square rounded-2xl bg-[#F8F9FA] overflow-hidden mb-3 flex items-center justify-center p-3">
+                <img 
+                  src={p.image} 
+                  alt={p.name}
+                  loading="lazy"
+                  class="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300"
+                  onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'64\' height=\'64\' fill=\'none\' stroke=\'%23FF7A00\' stroke-width=\'2\'><rect width=\'60\' height=\'60\' x=\'2\' y=\'2\' rx=\'12\' fill=\'%23FAFAFC\'/><path d=\'M24 32h16M32 24v16\'/></svg>';"
+                />
+              </div>
+
+              <div>
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider truncate">{p.storeName}</p>
+                <h3 class="text-xs sm:text-sm font-extrabold text-gray-900 line-clamp-2 leading-snug mt-1 min-h-[2.5rem]">
+                  {p.name}
+                </h3>
+              </div>
+
+              <div class="flex items-center justify-between mt-3 pt-2.5 border-t border-gray-50">
+                <div class="flex flex-col">
+                  <span class="text-sm sm:text-base font-black text-gray-950">${p.price.toFixed(2)}</span>
+                  <span class="text-[9px] text-gray-400 font-semibold">{p.priceBs}</span>
+                </div>
+                <a 
+                  href={`/stores/${p.storeId}`}
+                  class="w-9 h-9 rounded-full bg-[#FF7A00] hover:bg-[#E66E00] text-white flex items-center justify-center shadow-md shadow-orange-500/25 active:scale-90 transition-all font-black text-lg"
+                >
+                  +
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+    </main>
+
+    <Footer />
+    <BottomNav />
+  </body>
+</html>
