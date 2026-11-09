@@ -15,16 +15,9 @@ try {
   const sRes = await fetch(`${API_BASE}/stores`);
   if (sRes.ok) {
     const list = await sRes.json();
-    favoriteStores = list.slice(0, 2);
+    favoriteStores = Array.isArray(list) ? list.filter((s: any) => s.is_open !== false).slice(0, 2) : [];
   }
 } catch {}
-
-const defaultCovers: Record<string, string> = {
-  'WILY VIDEO': 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=700&q=80',
-  'El Sitio del Barbero': 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=700&q=80',
-  'Burger Crave': 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=700&q=80',
-  'Sushi Omakase Roll': 'https://images.unsplash.com/photo-1611143669185-af224c5e3252?auto=format&fit=crop&w=700&q=80'
-};
 
 const favoriteProducts = [
   {
@@ -34,7 +27,7 @@ const favoriteProducts = [
     storeId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
     price: 14.50,
     priceBs: formatBs(14.50, bcvRate),
-    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=400&q=80'
+    image: `${ASSET_BASE}/e20f2cbd-295f-41ad-be33-56517ab5eff2`
   },
   {
     id: 'fav-2',
@@ -43,7 +36,7 @@ const favoriteProducts = [
     storeId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
     price: 18.00,
     priceBs: formatBs(18.00, bcvRate),
-    image: 'https://images.unsplash.com/photo-1611143669185-af224c5e3252?auto=format&fit=crop&w=400&q=80'
+    image: `${ASSET_BASE}/4f92eda1-b38b-4804-bcc4-d24523bb8c4d`
   }
 ];
 ---
@@ -51,9 +44,6 @@ const favoriteProducts = [
 <!doctype html>
 <html lang="es">
   <head>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#FF5A00" />
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <title>Mis Favoritos | Traigalo ⚡</title>
@@ -85,12 +75,8 @@ const favoriteProducts = [
               href={`/stores/${store.id}`}
               class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs hover:shadow-md transition-all flex items-center gap-3.5"
             >
-              <div class="w-16 h-16 rounded-2xl overflow-hidden bg-gray-100 shrink-0">
-                <img 
-                  src={defaultCovers[store.name] || 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=300&q=80'} 
-                  alt={store.name} 
-                  class="w-full h-full object-cover" 
-                />
+              <div class="w-16 h-16 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center text-2xl shrink-0">
+                {store.name.includes('Burger') ? '🍔' : store.name.includes('Sushi') ? '🍣' : '💈'}
               </div>
               <div class="flex-1 min-w-0">
                 <h3 class="text-sm font-black text-gray-900 truncate">{store.name}</h3>
@@ -108,8 +94,13 @@ const favoriteProducts = [
           {favoriteProducts.map((p) => (
             <div class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs hover:shadow-md transition-all flex items-center justify-between gap-3">
               <div class="flex items-center gap-3">
-                <div class="w-16 h-16 rounded-2xl overflow-hidden bg-gray-100 shrink-0">
-                  <img src={p.image} alt={p.name} class="w-full h-full object-cover" />
+                <div class="w-16 h-16 rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 shrink-0 flex items-center justify-center p-2">
+                  <img 
+                    src={p.image} 
+                    alt={p.name} 
+                    class="w-full h-full object-contain"
+                    onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' fill=\'none\' stroke=\'%23FF7A00\' stroke-width=\'2\'><rect width=\'44\' height=\'44\' x=\'2\' y=\'2\' rx=\'8\' fill=\'%23FFF3E0\'/><path d=\'M16 24h16M24 16v16\'/></svg>';"
+                  />
                 </div>
                 <div>
                   <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{p.storeName}</span>

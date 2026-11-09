@@ -2,7 +2,6 @@
 import { getOfficialExchangeRate } from '../adapters/rates';
 import Logo from './Logo.astro';
 
-const directusUrl = import.meta.env.PUBLIC_DIRECTUS_URL || 'https://admin.traigalo.org';
 const bcvRate = await getOfficialExchangeRate();
 const bcvFormatted = bcvRate.toFixed(2);
 ---
@@ -32,9 +31,9 @@ const bcvFormatted = bcvRate.toFixed(2);
           </div>
           <div class="flex flex-col">
             <span class="text-[9px] font-semibold text-gray-400 uppercase tracking-wider leading-tight">Entregar en</span>
-            <div class="flex items-center gap-1 cursor-pointer group">
-              <span class="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-[#FF7A00] transition-colors truncate max-w-[140px] sm:max-w-none">
-                Av. Libertador 102, Caracas
+            <div id="address-selector-trigger" class="flex items-center gap-1 cursor-pointer group">
+              <span id="header-user-address" class="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-[#FF7A00] transition-colors truncate max-w-[180px] sm:max-w-none">
+                Seleccionar ubicación de entrega
               </span>
               <svg class="w-3.5 h-3.5 text-[#FF7A00] transform group-hover:translate-y-0.5 transition-transform shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
@@ -49,16 +48,6 @@ const bcvFormatted = bcvRate.toFixed(2);
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
           <span>Tasa BCV: {bcvFormatted} Bs/$</span>
         </div>
-
-        <a 
-          href={directusUrl} 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          class="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-50 hover:bg-orange-100 text-[#FF7A00] text-xs font-bold transition-colors"
-        >
-          <span>CMS</span>
-          <span class="text-[10px]">↗</span>
-        </a>
 
         <div class="relative" id="user-menu-container">
           <div id="unauth-actions" class="flex items-center gap-2">
@@ -83,12 +72,8 @@ const bcvFormatted = bcvRate.toFixed(2);
               class="flex items-center gap-2 p-1 pl-2.5 rounded-full bg-gray-50 border border-gray-100 hover:border-gray-200 transition-all cursor-pointer"
             >
               <span id="user-display-name" class="text-xs font-black text-gray-900 max-w-[100px] truncate">Usuario</span>
-              <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-[#FF7A00] to-amber-400 p-0.5 shadow-sm">
-                <img 
-                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80" 
-                  alt="User avatar" 
-                  class="w-full h-full object-cover rounded-full"
-                />
+              <div id="user-avatar-badge" class="w-8 h-8 rounded-full bg-gradient-to-tr from-[#FF7A00] to-amber-400 text-white font-black text-xs flex items-center justify-center shadow-sm">
+                U
               </div>
             </button>
 
@@ -120,7 +105,7 @@ const bcvFormatted = bcvRate.toFixed(2);
                 <button 
                   id="btn-logout"
                   type="button" 
-                  class="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors text-left"
+                  class="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors text-left cursor-pointer"
                 >
                   <span>🚪</span>
                   <span>Cerrar Sesión</span>
@@ -146,7 +131,7 @@ const bcvFormatted = bcvRate.toFixed(2);
         </svg>
       </div>
 
-      <button id="global-filter-btn" class="w-11 h-11 rounded-2xl bg-[#FF7A00] hover:bg-[#E66E00] text-white flex items-center justify-center shadow-md shadow-orange-600/20 transition-all shrink-0 active:scale-95">
+      <button id="global-filter-btn" class="w-11 h-11 rounded-2xl bg-[#FF7A00] hover:bg-[#E66E00] text-white flex items-center justify-center shadow-md shadow-orange-600/20 transition-all shrink-0 active:scale-95 cursor-pointer">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
         </svg>
@@ -161,6 +146,7 @@ const bcvFormatted = bcvRate.toFixed(2);
     const unauthEl = document.getElementById('unauth-actions');
     const authEl = document.getElementById('auth-actions');
     const nameEl = document.getElementById('user-display-name');
+    const avatarBadge = document.getElementById('user-avatar-badge');
     const dropNameEl = document.getElementById('dropdown-user-name');
     const dropEmailEl = document.getElementById('dropdown-user-email');
     const trigger = document.getElementById('user-profile-trigger');
@@ -178,9 +164,19 @@ const bcvFormatted = bcvRate.toFixed(2);
           authEl.classList.remove('hidden');
           authEl.classList.add('flex');
         }
-        if (nameEl) nameEl.textContent = user.name || 'Usuario';
-        if (dropNameEl) dropNameEl.textContent = user.name || 'Usuario';
+        const displayName = user.name || 'Usuario';
+        if (nameEl) nameEl.textContent = displayName;
+        if (dropNameEl) dropNameEl.textContent = displayName;
         if (dropEmailEl) dropEmailEl.textContent = user.email || 'usuario@traigalo.org';
+        if (avatarBadge) {
+          const initials = displayName
+            .split(' ')
+            .map(w => w[0])
+            .slice(0, 2)
+            .join('')
+            .toUpperCase() || 'U';
+          avatarBadge.textContent = initials;
+        }
       } catch {
         localStorage.removeItem('traigalo_token');
         localStorage.removeItem('traigalo_user');
@@ -215,5 +211,49 @@ const bcvFormatted = bcvRate.toFixed(2);
     }
   }
 
+  function setupAddressGeo() {
+    const addressEl = document.getElementById('header-user-address');
+    const trigger = document.getElementById('address-selector-trigger');
+    const savedAddress = localStorage.getItem('traigalo_address');
+
+    if (savedAddress && addressEl) {
+      addressEl.textContent = savedAddress;
+    } else if (addressEl) {
+      addressEl.textContent = 'Seleccionar ubicación de entrega';
+    }
+
+    if (trigger) {
+      trigger.addEventListener('click', () => {
+        if ('geolocation' in navigator) {
+          if (addressEl) addressEl.textContent = 'Obteniendo GPS...';
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              const detected = `Ubicación GPS (${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)})`;
+              localStorage.setItem('traigalo_address', detected);
+              if (addressEl) addressEl.textContent = detected;
+            },
+            () => {
+              const manual = prompt('Introduce tu dirección de entrega:', savedAddress || 'Av. Libertador 102, Caracas');
+              if (manual) {
+                localStorage.setItem('traigalo_address', manual.trim());
+                if (addressEl) addressEl.textContent = manual.trim();
+              } else if (addressEl) {
+                addressEl.textContent = savedAddress || 'Seleccionar ubicación de entrega';
+              }
+            },
+            { timeout: 6000 }
+          );
+        } else {
+          const manual = prompt('Introduce tu dirección de entrega:', savedAddress || 'Av. Libertador 102, Caracas');
+          if (manual && addressEl) {
+            localStorage.setItem('traigalo_address', manual.trim());
+            addressEl.textContent = manual.trim();
+          }
+        }
+      });
+    }
+  }
+
   setupUserMenu();
+  setupAddressGeo();
 </script>
