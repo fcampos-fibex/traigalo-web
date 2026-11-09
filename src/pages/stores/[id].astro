@@ -1,6 +1,7 @@
 ---
 import BottomNav from '../../components/BottomNav.astro';
 import { getOfficialExchangeRate, formatBs } from '../../adapters/rates';
+import { fetchActiveStores, enrichStore } from '../../adapters/stores';
 import '../../styles/global.css';
 
 const { id } = Astro.params;
@@ -31,9 +32,9 @@ function normalizeName(rawName: string): string {
   return NAME_FIXES[trimmed] || trimmed.replace(/\s{2,}/g, ' ');
 }
 
-function classifyStoreSubcategory(name: string, isWily: boolean): string {
+function classifyStoreSubcategory(name: string, rubroKey: string): string {
   const n = name.toLowerCase();
-  if (isWily) {
+  if (rubroKey === 'tecnologia') {
     if (n.includes('funda') || n.includes('carcasa') || n.includes('tecno') || n.includes('ufone') || n.includes('phone') || n.includes('móvil') || n.includes('movil')) {
       return 'Fundas y Celulares';
     }
@@ -41,44 +42,30 @@ function classifyStoreSubcategory(name: string, isWily: boolean): string {
       return 'Gaming y Consolas';
     }
     return 'Audífonos y Audio';
-  } else {
-    if (n.includes('training') || n.includes('chest') || n.includes('abdominal') || n.includes('lumbar') || n.includes('back pain')) {
-      return 'Fitness y Salud';
-    }
-    if (n.includes('cepillo') || n.includes('peine') || n.includes('bigudies')) {
-      return 'Cepillos y Peines';
-    }
-    if (n.includes('plancha') || n.includes('secador') || n.includes('rizador')) {
-      return 'Planchas y Eléctricos';
-    }
-    if (n.includes('máquina') || n.includes('maquina') || n.includes('brocha') || n.includes('capa') || n.includes('atomizador') || n.includes('grip') || n.includes('navaja') || n.includes('cuchilla') || n.includes('tijera')) {
-      return 'Barbería y Equipos';
-    }
-    return 'Cuidado Capilar y Barba';
   }
+  if (n.includes('training') || n.includes('chest') || n.includes('abdominal') || n.includes('lumbar') || n.includes('back pain')) {
+    return 'Fitness y Salud';
+  }
+  if (n.includes('cepillo') || n.includes('peine') || n.includes('bigudies')) {
+    return 'Cepillos y Peines';
+  }
+  if (n.includes('plancha') || n.includes('secador') || n.includes('rizador')) {
+    return 'Planchas y Eléctricos';
+  }
+  if (n.includes('máquina') || n.includes('maquina') || n.includes('brocha') || n.includes('capa') || n.includes('atomizador') || n.includes('grip') || n.includes('navaja') || n.includes('cuchilla') || n.includes('tijera')) {
+    return 'Barbería y Equipos';
+  }
+  return 'Cuidado Capilar y Barba';
 }
 
-let allStores: any[] = [];
-let storeData: any = null;
-let productsData: any[] = [];
-let reviewsData: any[] = [];
+const allStores = await fetchActiveStores();
+let storeData: any = allStores.find((s: any) => s.id === id || s.slug === id) || null;
 
-try {
-  const listRes = await fetch(`${API_BASE}/stores`);
-  if (listRes.ok) {
-    const raw = await listRes.json();
-    if (Array.isArray(raw)) {
-      allStores = raw.filter((s: any) => s.slug !== 'burger-crave' && s.slug !== 'sushi-omakase');
-      storeData = allStores.find((s: any) => s.id === id || s.slug === id);
-    }
-  }
-} catch {}
-
-if (!storeData) {
+if (!storeData && id) {
   try {
     const storeRes = await fetch(`${API_BASE}/stores/${id}`);
     if (storeRes.ok) {
-      storeData = await storeRes.json();
+      storeData = enrichStore(await storeRes.json());
     }
   } catch {}
 }
@@ -87,42 +74,42 @@ if (!storeData && allStores.length > 0) {
   storeData = allStores[0];
 }
 
-const resolvedStoreId = storeData?.id || id || '46a0baf0-4100-465d-934a-f2d14f004ba5';
+const resolvedStoreId = storeData?.id || id || '';
 
-try {
-  const prodRes = await fetch(`${API_BASE}/stores/${resolvedStoreId}/products`);
-  if (prodRes.ok) {
-    const pData = await prodRes.json();
-    if (Array.isArray(pData)) productsData = pData;
-  }
-} catch {}
+let productsData: any[] = [];
+let reviewsData: any[] = [];
 
-try {
-  const revRes = await fetch(`${API_BASE}/reviews?store-id=${resolvedStoreId}`);
-  if (revRes.ok) {
-    const rList = await revRes.json();
-    if (Array.isArray(rList)) reviewsData = rList;
-  }
-} catch {}
+if (resolvedStoreId) {
+  try {
+    const prodRes = await fetch(`${API_BASE}/stores/${resolvedStoreId}/products`);
+    if (prodRes.ok) {
+      const pData = await prodRes.json();
+      if (Array.isArray(pData)) productsData = pData;
+    }
+  } catch {}
 
-const storeName = storeData?.name || 'WILY VIDEO';
-const isWily = storeName.toUpperCase().includes('WILY');
-const storeRubroBadge = isWily ? '🎮 Rubro: Tiendas y Tecnología' : '💈 Rubro: Barbería y Belleza';
-const storeCategory = isWily
-  ? 'Tecnología, Audio Bluetooth, Gaming y Accesorios Móviles'
-  : 'Insumos de Barbería Profesional, Cuidado Capilar y Estética';
-const storeCover = isWily ? '/stores/wily-cover.webp' : '/stores/barbero-cover.webp';
-const storeLogo = isWily ? '/stores/wily-logo.webp' : '/stores/barbero-logo.webp';
-const storePhone = isWily ? '+58 424-2143327' : '+58 422-1622984';
+  try {
+    const revRes = await fetch(`${API_BASE}/reviews?store-id=${resolvedStoreId}`);
+    if (revRes.ok) {
+      const rList = await revRes.json();
+      if (Array.isArray(rList)) reviewsData = rList;
+    }
+  } catch {}
+}
+
+const storeName = storeData?.name || 'Comercio Oficial';
+const storeRubroKey = storeData?.rubroKey || 'tecnologia';
+const storeRubroBadge = storeData?.rubroBadge || '🏬 Comercio Verificado';
+const storeCategory = storeData?.description || 'Comercio Oficial Verificado en Traigalo';
+const storeCover = storeData?.cover_url || '/brand-icon.webp';
+const storeLogo = storeData?.logo_url || '/brand-icon.webp';
 const avgRating = reviewsData.length > 0
   ? (reviewsData.reduce((acc, r) => acc + (Number(r.store_rating || r.rating) || 5), 0) / reviewsData.length).toFixed(1)
   : '4.9';
 const storeReviewsText = reviewsData.length > 0 ? `${reviewsData.length} reseñas verificadas` : 'Comercio Oficial Verificado';
 const storeTime = '15-25 min';
 const storeFee = '$1.50';
-const storeAddress = isWily
-  ? 'Av. Barlovento Casa Nro 12-42, Sector Higuerote, Miranda'
-  : (storeData?.address_line || 'FVMR+PJ2, Higuerote 1231, Miranda, Venezuela');
+const storeAddress = storeData?.address_line || 'Higuerote, Miranda';
 
 const products = productsData.map((p, idx) => {
   const cleanName = normalizeName(p.name);
@@ -140,7 +127,7 @@ const products = productsData.map((p, idx) => {
   }
 
   const price = Number(p.base_price) || 0;
-  const subcat = classifyStoreSubcategory(cleanName, isWily);
+  const subcat = classifyStoreSubcategory(cleanName, storeRubroKey);
   return {
     id: p.id,
     order: idx,
@@ -236,7 +223,7 @@ const menuCategories = ['Todos los Productos', ...distinctSubcats];
                 </div>
                 <h1 class="text-2xl sm:text-3xl font-black text-gray-950 tracking-tight leading-tight">{storeName}</h1>
                 <p class="text-xs font-bold text-gray-600 mt-0.5">{storeCategory}</p>
-                <p class="text-[11px] text-gray-500 mt-0.5">📍 {storeAddress} • 📞 {storePhone}</p>
+                <p class="text-[11px] text-gray-500 mt-0.5">📍 {storeAddress}</p>
               </div>
             </div>
 

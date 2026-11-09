@@ -4,10 +4,12 @@ import Footer from '../../components/Footer.astro';
 import BottomNav from '../../components/BottomNav.astro';
 import RoleSwitcher from '../../components/RoleSwitcher.astro';
 import { getOfficialExchangeRate, formatBs } from '../../adapters/rates';
+import { fetchStoresMap } from '../../adapters/stores';
 import '../../styles/global.css';
 
 const API_BASE = 'https://api.traigalo.org/v2';
 const bcvRate = await getOfficialExchangeRate();
+const storesMap = await fetchStoresMap();
 
 function cleanProductName(rawName: string): string {
   return String(rawName || '')
@@ -125,9 +127,9 @@ function formatPaymentMethod(pm: string): string {
             const totalBsFormatted = formatBs(totalUSD, bcvRate);
             const statusInfo = statusBadges[ord.status] || { label: ord.status, class: 'bg-gray-100 text-gray-700' };
             const isLive = ord.status === 'in_transit' || ord.status === 'driver_in_transit' || ord.status === 'driver_assigned' || ord.status === 'preparing' || ord.status === 'accepted_by_store';
-            const isBarbero = ord.store_id === '03577774-2f0b-4b68-bb11-5c91628dbd5f';
-            const storeName = isBarbero ? 'El Sitio del Barbero' : 'WILY VIDEO';
-            const storeLogo = isBarbero ? '/stores/barbero-logo.webp' : '/stores/wily-logo.webp';
+            const storeMeta = storesMap[ord.store_id] || null;
+            const storeName = storeMeta?.name || 'Comercio Oficial';
+            const storeLogo = storeMeta?.logo_url || '/brand-icon.webp';
             const orderItems = Array.isArray(ord.items) ? ord.items : [];
 
             return (

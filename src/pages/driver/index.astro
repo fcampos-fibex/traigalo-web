@@ -1,10 +1,12 @@
 ---
 import RoleSwitcher from '../../components/RoleSwitcher.astro';
 import { getOfficialExchangeRate, formatBs } from '../../adapters/rates';
+import { fetchStoresMap } from '../../adapters/stores';
 import '../../styles/global.css';
 
 const API_BASE = 'https://api.traigalo.org/v2';
 const bcvRate = await getOfficialExchangeRate();
+const storesMap = await fetchStoresMap();
 
 const driverId = '33333333-3333-3333-3333-333333333333';
 const driver = {
@@ -161,9 +163,9 @@ function formatDriverStatus(st: string): string {
               <div class="flex-1 min-w-0">
                 <span class="text-[10px] font-bold text-gray-400 uppercase">Recoger en Comercio Oficial</span>
                 <h4 class="text-xs font-black text-gray-900 truncate">
-                  {currentActiveOrder.store_id === '03577774-2f0b-4b68-bb11-5c91628dbd5f' ? '💈 El Sitio del Barbero' : '🎧 WILY VIDEO'}
+                  🏬 {storesMap[currentActiveOrder.store_id]?.name || 'Comercio Oficial'}
                 </h4>
-                <p class="text-[11px] text-gray-500 truncate">Higuerote, Estado Miranda</p>
+                <p class="text-[11px] text-gray-500 truncate">{storesMap[currentActiveOrder.store_id]?.address_line || 'Higuerote, Estado Miranda'}</p>
               </div>
             </div>
 
@@ -217,7 +219,7 @@ function formatDriverStatus(st: string): string {
         <div class="flex items-center justify-between">
           <div>
             <h3 class="text-sm font-extrabold text-gray-900">Pedidos Disponibles por Comercio</h3>
-            <p class="text-xs text-gray-400">Acepta un pedido de WILY VIDEO o El Sitio del Barbero</p>
+            <p class="text-xs text-gray-400">Acepta órdenes activas de comercios verificados en tu zona</p>
           </div>
           <span class="text-xs font-black text-[#FF7A00] bg-orange-50 px-2.5 py-1 rounded-full">
             {availableOrders.length} disponibles
@@ -235,14 +237,13 @@ function formatDriverStatus(st: string): string {
             {availableOrders.map((ord) => {
               const totalUSD = Number(ord.total) || 0;
               const totalBsFormatted = formatBs(totalUSD, bcvRate);
-              const isBarberoStore = ord.store_id === '03577774-2f0b-4b68-bb11-5c91628dbd5f';
-              const sName = isBarberoStore ? '💈 El Sitio del Barbero' : '🎧 WILY VIDEO';
+              const sName = storesMap[ord.store_id]?.name || 'Comercio Oficial';
               return (
                 <div class="p-4 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-between gap-3">
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 flex-wrap">
                       <span class="text-xs font-black text-gray-900 font-mono">#{ord.order_number || ord.id.slice(0, 8)}</span>
-                      <span class={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isBarberoStore ? 'bg-amber-50 text-amber-800' : 'bg-blue-50 text-blue-700'}`}>{sName}</span>
+                      <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-[#FF7A00]">🏬 {sName}</span>
                       <span class="text-[9px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">{formatDriverStatus(ord.status)}</span>
                     </div>
                     <p class="text-xs text-gray-600 font-medium truncate mt-1">📍 {ord.delivery_address || 'Higuerote, Miranda'}</p>
@@ -271,7 +272,7 @@ function formatDriverStatus(st: string): string {
         
         <div class="space-y-3">
           {assignedOrders.map(ord => {
-            const sName = ord.store_id === '03577774-2f0b-4b68-bb11-5c91628dbd5f' ? 'El Sitio del Barbero' : 'WILY VIDEO';
+            const sName = storesMap[ord.store_id]?.name || 'Comercio Oficial';
             return (
               <div class="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0 last:pb-0 text-xs">
                 <div class="flex items-center gap-2.5 min-w-0">
@@ -327,7 +328,7 @@ function formatDriverStatus(st: string): string {
           <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider">
             ¡Nueva Oferta de Pedido!
           </span>
-          <h3 id="offer-store-name" class="text-base font-black text-gray-900 mt-2">WILY VIDEO</h3>
+          <h3 id="offer-store-name" class="text-base font-black text-gray-900 mt-2">Comercio Oficial</h3>
           <p id="offer-store-dist" class="text-xs text-gray-500 font-semibold mt-0.5">Retiro a 0.8 km de tu ubicación</p>
         </div>
 
@@ -368,7 +369,7 @@ function formatDriverStatus(st: string): string {
       </div>
     </div>
 
-    <script is:inline define:vars={{ driverId, bcvRate }}>
+    <script is:inline define:vars={{ driverId, bcvRate, storesMap }}>
       (() => {
         const API_ORDERS = 'https://api.traigalo.org/v2/orders';
         const API_LOCATIONS = 'https://api.traigalo.org/v2/drivers/locations';
@@ -429,7 +430,7 @@ function formatDriverStatus(st: string): string {
           const earnUsdEl = document.getElementById('offer-earnings-usd');
           const earnBsEl = document.getElementById('offer-earnings-bs');
 
-          const resolvedStoreName = offer.store_name || (offer.store_id === '03577774-2f0b-4b68-bb11-5c91628dbd5f' ? 'El Sitio del Barbero' : 'WILY VIDEO');
+          const resolvedStoreName = offer.store_name || (storesMap && storesMap[offer.store_id] && storesMap[offer.store_id].name) || 'Comercio Oficial';
           if (storeNameEl) storeNameEl.textContent = resolvedStoreName;
           if (storeDistEl) storeDistEl.textContent = `Retiro a ${offer.pickup_distance || '0.8 km'} de tu ubicación`;
           if (addrEl) addrEl.textContent = offer.delivery_address || 'Av. Andrés Eloy Blanco, Higuerote';

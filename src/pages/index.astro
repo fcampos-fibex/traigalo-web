@@ -4,6 +4,7 @@ import Footer from '../components/Footer.astro';
 import BottomNav from '../components/BottomNav.astro';
 import RoleSwitcher from '../components/RoleSwitcher.astro';
 import { getOfficialExchangeRate, formatBs } from '../adapters/rates';
+import { fetchActiveStores } from '../adapters/stores';
 import '../styles/global.css';
 
 const API_BASE = 'https://api.traigalo.org/v2';
@@ -21,8 +22,6 @@ try {
   assetMap = assetModule.default || {};
 } catch {}
 
-const EXCLUDED_STORE_SLUGS = ['burger-crave', 'sushi-omakase'];
-
 const NAME_FIXES: Record<string, string> = {
   'Ariculares SZ-771': 'Auriculares SZ-771',
   '5-Sprinng CHEST PULL': '5-Spring Chest Pull',
@@ -38,16 +37,15 @@ function normalizeName(rawName: string): string {
   return NAME_FIXES[trimmed] || trimmed.replace(/\s{2,}/g, ' ');
 }
 
-function classifyProductCategory(name: string, storeName: string): string {
+function classifyProductCategory(name: string, rubroKey: string): string {
   const n = name.toLowerCase();
-  const s = storeName.toLowerCase();
   if (n.includes('funda') || n.includes('carcasa') || n.includes('tecno') || n.includes('ufone') || n.includes('phone') || n.includes('móvil') || n.includes('movil')) {
     return 'fundas';
   }
   if (n.includes('gaming') || n.includes('games') || n.includes('mario') || n.includes('batman') || n.includes('iron man') || n.includes('magic q8')) {
     return 'gaming';
   }
-  if (n.includes('auricular') || n.includes('audífono') || n.includes('audifono') || n.includes('headset') || n.includes('headphones') || n.includes('stn-28') || s.includes('wily')) {
+  if (n.includes('auricular') || n.includes('audífono') || n.includes('audifono') || n.includes('headset') || n.includes('headphones') || n.includes('stn-28') || rubroKey === 'tecnologia') {
     return 'audio';
   }
   if (n.includes('training') || n.includes('chest') || n.includes('abdominal') || n.includes('lumbar') || n.includes('back pain')) {
@@ -65,30 +63,18 @@ function classifyProductCategory(name: string, storeName: string): string {
   return 'cuidado';
 }
 
-try {
-  const storesRes = await fetch(`${API_BASE}/stores`);
-  if (storesRes.ok) {
-    const list = await storesRes.json();
-    stores = Array.isArray(list) 
-      ? list.filter((s: any) => s.is_open === true && !EXCLUDED_STORE_SLUGS.includes(s.slug)) 
-      : [];
-  }
-} catch {}
+stores = await fetchActiveStores();
 
-stores.sort((a, b) => (a.name.includes('WILY') ? -1 : 1));
+const rubroStoreCounts: Record<string, number> = {};
+const rubroProductCounts: Record<string, number> = {};
 
 for (const store of stores) {
-  const isWily = store.name.toUpperCase().includes('WILY');
-  store.bannerUrl = isWily ? '/stores/wily-cover.webp' : '/stores/barbero-cover.webp';
-  store.badgeUrl = isWily ? '/stores/wily-logo.webp' : '/stores/barbero-logo.webp';
-  store.rubroKey = isWily ? 'tecnologia' : 'barberia';
-  store.rubroBadge = isWily ? '🎮 Tecnología y Electrónica' : '💈 Barbería y Cuidado Personal';
-  store.verticalLabel = isWily ? 'Tecnología, Audio Bluetooth, Cases & Gaming' : 'Insumos de Barbería Profesional, Estética & Cuidado Capilar';
-  store.phoneDisplay = isWily ? '+58 424-2143327' : '+58 422-1622984';
-  store.addressDisplay = isWily
-    ? 'Av. Barlovento Casa Nro 12-42, Sector Higuerote, Miranda'
-    : (store.address_line || 'FVMR+PJ2, Higuerote 1231, Miranda, Venezuela');
+  store.bannerUrl = store.cover_url;
+  store.badgeUrl = store.logo_url;
+  store.verticalLabel = store.description;
+  store.addressDisplay = store.address_line;
   store.productCount = 0;
+  rubroStoreCounts[store.rubroKey] = (rubroStoreCounts[store.rubroKey] || 0) + 1;
 
   try {
     const prodRes = await fetch(`${API_BASE}/stores/${store.id}/products`);
@@ -96,6 +82,7 @@ for (const store of stores) {
       const items = await prodRes.json();
       if (Array.isArray(items)) {
         store.productCount = items.length;
+        rubroProductCounts[store.rubroKey] = (rubroProductCounts[store.rubroKey] || 0) + items.length;
         const mapped = items.map((it: any, idx: number) => {
           const cleanName = normalizeName(it.name);
           let img = '';
@@ -112,12 +99,12 @@ for (const store of stores) {
           }
 
           const price = Number(it.base_price) || 0;
-          const catSlug = classifyProductCategory(cleanName, store.name);
+          const catSlug = classifyProductCategory(cleanName, store.rubroKey);
           return {
             id: it.id,
             originalOrder: idx,
             storeId: store.id,
-            storeKey: isWily ? 'wily' : 'barbero',
+            storeKey: store.id,
             rubroKey: store.rubroKey,
             name: cleanName,
             desc: it.description || `Disponible en ${store.name} con entrega express garantizada.`,
@@ -137,6 +124,15 @@ for (const store of stores) {
   } catch {}
 }
 
+function buildRubroSubtitle(key: string, defaultSubtitle: string): string {
+  const sCount = rubroStoreCounts[key] || 0;
+  const pCount = rubroProductCounts[key] || 0;
+  if (sCount > 0) {
+    return `${sCount} tienda${sCount > 1 ? 's' : ''} activa${sCount > 1 ? 's' : ''} • ${pCount} artículos`;
+  }
+  return defaultSubtitle;
+}
+
 const storeVerticals = [
   {
     key: 'all',
@@ -151,60 +147,60 @@ const storeVerticals = [
   {
     key: 'restaurantes',
     title: 'Comida y Restaurantes',
-    subtitle: 'Hamburguesas, Pizzas y Bebidas',
+    subtitle: buildRubroSubtitle('restaurantes', 'Hamburguesas, Pizzas y Bebidas'),
     badge: 'Gastronomía',
     icon: '🍔',
-    activeCount: 0,
+    activeCount: rubroStoreCounts['restaurantes'] || 0,
     colorClass: 'from-rose-500/10 to-orange-500/5 border-gray-100',
     iconBg: 'bg-rose-50 text-rose-600'
   },
   {
     key: 'supermercados',
     title: 'Supermercados',
-    subtitle: 'Víveres, Despensa y Hogar',
+    subtitle: buildRubroSubtitle('supermercados', 'Víveres, Despensa y Hogar'),
     badge: 'Mercado',
     icon: '🛒',
-    activeCount: 0,
+    activeCount: rubroStoreCounts['supermercados'] || 0,
     colorClass: 'from-emerald-500/10 to-teal-500/5 border-gray-100',
     iconBg: 'bg-emerald-50 text-emerald-600'
   },
   {
     key: 'farmacias',
     title: 'Farmacias y Salud',
-    subtitle: 'Medicamentos y Primeros Auxilios',
+    subtitle: buildRubroSubtitle('farmacias', 'Medicamentos y Primeros Auxilios'),
     badge: 'Salud 24/7',
     icon: '💊',
-    activeCount: 0,
+    activeCount: rubroStoreCounts['farmacias'] || 0,
     colorClass: 'from-cyan-500/10 to-blue-500/5 border-gray-100',
     iconBg: 'bg-cyan-50 text-cyan-600'
   },
   {
     key: 'tecnologia',
     title: 'Tiendas y Tecnología',
-    subtitle: '1 tienda activa • 54 artículos',
-    badge: 'Abierto Ahora',
+    subtitle: buildRubroSubtitle('tecnologia', 'Audio, Celulares y Gaming'),
+    badge: 'Tecnología',
     icon: '🎮',
-    activeCount: 1,
+    activeCount: rubroStoreCounts['tecnologia'] || 0,
     colorClass: 'from-blue-500/10 to-indigo-500/5 border-gray-100',
     iconBg: 'bg-blue-50 text-blue-600'
   },
   {
     key: 'barberia',
     title: 'Barbería y Belleza',
-    subtitle: '1 tienda activa • 60 artículos',
-    badge: 'Abierto Ahora',
+    subtitle: buildRubroSubtitle('barberia', 'Cuidado Capilar y Estética'),
+    badge: 'Belleza',
     icon: '💈',
-    activeCount: 1,
+    activeCount: rubroStoreCounts['barberia'] || 0,
     colorClass: 'from-amber-500/10 to-yellow-500/5 border-gray-100',
     iconBg: 'bg-amber-50 text-amber-600'
   },
   {
     key: 'mascotas',
     title: 'Mascotas y Agro',
-    subtitle: 'Alimentos, Collares y Salud Animal',
+    subtitle: buildRubroSubtitle('mascotas', 'Alimentos, Collares y Salud Animal'),
     badge: 'Pet Shop',
     icon: '🐾',
-    activeCount: 0,
+    activeCount: rubroStoreCounts['mascotas'] || 0,
     colorClass: 'from-purple-500/10 to-fuchsia-500/5 border-gray-100',
     iconBg: 'bg-purple-50 text-purple-600'
   }
@@ -332,7 +328,7 @@ const curatedCategories = [
         </div>
       </section>
 
-      <section id="store-verticals" class="space-y-3.5">
+      <section id="store-verticals" class="space-y-3.5 scroll-mt-32">
         <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
           <div>
             <span class="text-[11px] font-black uppercase tracking-wider text-[#FF7A00] block">Nivel 1 • Módulos del Marketplace</span>
@@ -400,7 +396,7 @@ const curatedCategories = [
         </div>
       </section>
 
-      <section id="stores" class="space-y-4">
+      <section id="stores" class="space-y-4 scroll-mt-32">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div>
             <span class="text-[11px] font-black uppercase tracking-wider text-[#FF7A00] block">Comercios Afiliados</span>
@@ -419,7 +415,7 @@ const curatedCategories = [
               data-name={store.name.toLowerCase()}
               data-desc={(store.description || '').toLowerCase()}
               data-rubro={store.rubroKey}
-              data-store-key={store.name.toLowerCase().includes('wily') ? 'wily' : 'barbero'}
+              data-store-key={store.id}
             >
               <a href={`/stores/${store.id}`} class="block relative h-44 sm:h-52 w-full overflow-hidden bg-gray-900">
                 <img
@@ -469,13 +465,12 @@ const curatedCategories = [
                   <div class="flex items-center gap-2.5 text-xs font-bold text-gray-600">
                     <span class="inline-flex items-center gap-1 bg-gray-100 px-2.5 py-1 rounded-lg text-gray-700">⚡ 15-25 min</span>
                     <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg font-extrabold">🛵 Envío $1.50</span>
-                    <span class="hidden sm:inline-flex items-center gap-1 text-gray-400 text-[11px]">📞 {store.phoneDisplay}</span>
                   </div>
 
                   <div class="flex items-center gap-2 ml-auto">
                     <button
                       type="button"
-                      data-filter-store={store.name.toLowerCase().includes('wily') ? 'wily' : 'barbero'}
+                      data-filter-store={store.id}
                       data-filter-rubro={store.rubroKey}
                       class="btn-store-quickfilter px-3.5 py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-[#FF7A00] text-xs font-extrabold transition-colors cursor-pointer"
                     >
@@ -496,7 +491,7 @@ const curatedCategories = [
 
         <div id="empty-rubro-stores-card" class="hidden bg-white rounded-3xl p-6 sm:p-8 border-2 border-dashed border-orange-200 text-center space-y-3 shadow-xs">
           <div id="empty-rubro-icon" class="w-16 h-16 rounded-3xl bg-orange-50 text-[#FF7A00] flex items-center justify-center text-3xl mx-auto shadow-2xs">
-            💊
+            🏬
           </div>
           <div class="max-w-lg mx-auto space-y-1">
             <span class="px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-[10px] font-black uppercase tracking-wider border border-amber-200">
@@ -506,7 +501,7 @@ const curatedCategories = [
               Aún no hay comercios abiertos en este rubro en tu zona
             </h3>
             <p class="text-xs sm:text-sm text-gray-500 leading-relaxed">
-              Actualmente tenemos <strong>2 comercios verificados abiertos</strong> en Higuerote (<strong>WILY VIDEO</strong> en Tecnología y <strong>El Sitio del Barbero</strong> en Barbería y Belleza). Si tienes una Farmacia, Supermercado o Restaurante, puedes afiliarlo hoy mismo.
+              En este momento no hay comercios activos dentro de esta categoría en tu zona de entrega. Puedes explorar todos los comercios abiertos o afiliar tu negocio hoy mismo en Traigalo.
             </p>
           </div>
           <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
@@ -527,7 +522,7 @@ const curatedCategories = [
         </div>
       </section>
 
-      <section id="catalog-controls" class="space-y-3.5 pt-2">
+      <section id="catalog-controls" class="space-y-3.5 pt-2 scroll-mt-32">
         <div class="flex items-center justify-between">
           <div>
             <span class="text-[11px] font-black uppercase tracking-wider text-[#FF7A00] block">Nivel 2 • Subcategorías de Artículos</span>
@@ -576,7 +571,7 @@ const curatedCategories = [
         </div>
       </section>
 
-      <section id="products-section" class="space-y-4">
+      <section id="products-section" class="space-y-4 scroll-mt-32">
         <div class="bg-white rounded-3xl p-4 sm:p-5 border border-gray-100 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div class="space-y-1">
             <div class="flex flex-wrap items-center gap-2">
@@ -589,30 +584,28 @@ const curatedCategories = [
           </div>
 
           <div class="flex flex-wrap items-center gap-2.5">
-            <div class="flex items-center bg-gray-100 p-1 rounded-2xl">
+            <div class="flex flex-wrap items-center bg-gray-100 p-1 rounded-2xl gap-1">
               <button
                 type="button"
                 data-store-pill="all"
+                data-store-rubro="all"
+                data-store-label="Todas las Tiendas"
                 class="store-pill-btn px-3 py-1.5 rounded-xl text-xs font-black bg-[#FF7A00] text-white shadow-xs transition-all cursor-pointer"
               >
                 Todas ({allProducts.length})
               </button>
-              <button
-                type="button"
-                data-store-pill="wily"
-                class="store-pill-btn px-3 py-1.5 rounded-xl text-xs font-extrabold text-gray-700 hover:text-gray-950 transition-all cursor-pointer flex items-center gap-1.5"
-              >
-                <img src="/stores/wily-logo.webp" alt="" class="w-4 h-4 rounded-full object-cover" />
-                <span>WILY VIDEO (54)</span>
-              </button>
-              <button
-                type="button"
-                data-store-pill="barbero"
-                class="store-pill-btn px-3 py-1.5 rounded-xl text-xs font-extrabold text-gray-700 hover:text-gray-950 transition-all cursor-pointer flex items-center gap-1.5"
-              >
-                <img src="/stores/barbero-logo.webp" alt="" class="w-4 h-4 rounded-full object-cover" />
-                <span>El Sitio del Barbero (60)</span>
-              </button>
+              {stores.map((s) => (
+                <button
+                  type="button"
+                  data-store-pill={s.id}
+                  data-store-rubro={s.rubroKey}
+                  data-store-label={s.name}
+                  class="store-pill-btn px-3 py-1.5 rounded-xl text-xs font-extrabold text-gray-700 hover:text-gray-950 transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <img src={s.badgeUrl} alt="" class="w-4 h-4 rounded-full object-cover" />
+                  <span>{s.name} ({s.productCount})</span>
+                </button>
+              ))}
             </div>
 
             <select
@@ -1087,7 +1080,9 @@ const curatedCategories = [
             if (rCard) labels.push(`Rubro: ${rCard.getAttribute('data-rubro-title')}`);
           }
           if (currentFilterStore !== 'all') {
-            labels.push(currentFilterStore === 'wily' ? 'Tienda: WILY VIDEO' : 'Tienda: El Sitio del Barbero');
+            const sPill = document.querySelector(`.store-pill-btn[data-store-pill="${currentFilterStore}"]`);
+            const sLabel = sPill ? sPill.getAttribute('data-store-label') : currentFilterStore;
+            if (sLabel) labels.push(`Tienda: ${sLabel}`);
           }
           if (currentFilterCategory !== 'all') {
             labels.push(`Categoría: ${currentFilterCategory.toUpperCase()}`);
@@ -1130,9 +1125,7 @@ const curatedCategories = [
           const rKey = card.getAttribute('data-rubro-filter') || 'all';
           currentRubro = rKey;
           currentFilterCategory = 'all';
-          if (rKey === 'tecnologia') currentFilterStore = 'wily';
-          else if (rKey === 'barberia') currentFilterStore = 'barbero';
-          else currentFilterStore = 'all';
+          currentFilterStore = 'all';
 
           currentPage = 1;
           syncRubroUI();
@@ -1169,7 +1162,8 @@ const curatedCategories = [
           });
           btn.className = 'category-btn shrink-0 flex items-center gap-3 p-2 pr-4 rounded-2xl text-xs sm:text-sm font-extrabold bg-[#FF7A00] text-white border-2 border-[#FF7A00] shadow-md shadow-orange-500/20 transition-all cursor-pointer active:scale-95';
           currentFilterCategory = btn.getAttribute('data-category') || 'all';
-          if (currentRubro !== 'all' && currentRubro !== 'tecnologia' && currentRubro !== 'barberia') {
+          const catRubro = btn.getAttribute('data-cat-rubro') || 'all';
+          if (currentRubro !== 'all' && catRubro !== 'all' && currentRubro !== catRubro) {
             currentRubro = 'all';
             syncRubroUI();
           }
@@ -1181,9 +1175,7 @@ const curatedCategories = [
       document.querySelectorAll('.store-pill-btn').forEach((btn) => {
         btn.addEventListener('click', () => {
           currentFilterStore = btn.getAttribute('data-store-pill') || 'all';
-          if (currentFilterStore === 'wily') currentRubro = 'tecnologia';
-          else if (currentFilterStore === 'barbero') currentRubro = 'barberia';
-          else currentRubro = 'all';
+          currentRubro = btn.getAttribute('data-store-rubro') || 'all';
 
           currentPage = 1;
           syncRubroUI();

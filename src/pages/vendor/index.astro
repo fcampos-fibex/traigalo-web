@@ -2,6 +2,7 @@
 import "../../styles/global.css";
 import RoleSwitcher from "../../components/RoleSwitcher.astro";
 import { getOfficialExchangeRate, formatBs } from "../../adapters/rates";
+import { fetchActiveStores } from "../../adapters/stores";
 
 const API_BASE = "https://api.traigalo.org/v2";
 const bcvRate = await getOfficialExchangeRate();
@@ -18,24 +19,15 @@ function cleanProductName(rawName: string): string {
     .replace(/^Brocha de ljo/i, 'Brocha de Lujo');
 }
 
-let stores: any[] = [];
-try {
-  const sRes = await fetch(`${API_BASE}/stores`);
-  if (sRes.ok) {
-    const raw = await sRes.json();
-    if (Array.isArray(raw)) {
-      stores = raw.filter((s) => s.slug !== "burger-crave" && s.slug !== "sushi-omakase");
-    }
-  }
-} catch {}
+const stores = await fetchActiveStores();
 
 const currentStore = stores.find((s) => s.id === selectedStoreParam) || stores[0] || {
-  id: "46a0baf0-4100-465d-934a-f2d14f004ba5",
-  name: "WILY VIDEO"
+  id: "",
+  name: "Comercio Oficial",
+  logo_url: "/brand-icon.webp"
 };
 
-const isBarbero = currentStore.id === "03577774-2f0b-4b68-bb11-5c91628dbd5f" || String(currentStore.name).toLowerCase().includes("barbero");
-const storeLogo = isBarbero ? "/stores/barbero-logo.webp" : "/stores/wily-logo.webp";
+const storeLogo = currentStore.logo_url || "/brand-icon.webp";
 
 let storeOrders: any[] = [];
 try {
@@ -162,7 +154,7 @@ function formatPaymentMethod(pm: string): string {
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
-                <span>{st.name.includes("Barbero") ? "💈" : "🎧"}</span>
+                <img src={st.logo_url || "/brand-icon.webp"} alt="" class="w-4 h-4 rounded-full object-cover" />
                 <span>{st.name}</span>
               </a>
             ))}

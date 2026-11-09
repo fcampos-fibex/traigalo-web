@@ -6,9 +6,11 @@ import BottomNav from "../components/BottomNav.astro";
 import RoleSwitcher from "../components/RoleSwitcher.astro";
 import LocationModal from "../components/LocationModal.astro";
 import { getOfficialExchangeRate, formatBs } from "../adapters/rates";
+import { fetchStoresMap } from "../adapters/stores";
 
 const API_BASE = "https://api.traigalo.org/v2";
 const bcvRate = await getOfficialExchangeRate();
+const storesMap = await fetchStoresMap();
 
 let recentOrders: any[] = [];
 try {
@@ -137,7 +139,7 @@ const user = {
         </div>
         <div class="space-y-2.5">
           {recentOrders.map((ord) => {
-            const storeLabel = ord.store_id === '03577774-2f0b-4b68-bb11-5c91628dbd5f' ? 'El Sitio del Barbero' : 'WILY VIDEO';
+            const storeLabel = storesMap[ord.store_id]?.name || 'Comercio Oficial';
             const totalUsd = Number(ord.total) || 0;
             return (
               <div class="p-3 rounded-2xl bg-[#FAFAFC] border border-gray-100 space-y-2">

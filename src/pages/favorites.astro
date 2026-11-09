@@ -113,9 +113,8 @@ for (const store of favoriteStores) {
         <h2 class="text-sm font-black uppercase tracking-wider text-gray-400">Tiendas Oficiales Guardadas</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {favoriteStores.map((store) => {
-            const isBarbero = store.name.includes('Barbero');
-            const logoUrl = isBarbero ? '/stores/barbero-logo.webp' : '/stores/wily-logo.webp';
-            const coverUrl = isBarbero ? '/stores/barbero-cover.webp' : '/stores/wily-cover.webp';
+            const logoUrl = store.logo_url || '/brand-icon.webp';
+            const coverUrl = store.cover_url || '/brand-icon.webp';
             return (
               <a 
                 href={`/stores/${store.id}`}

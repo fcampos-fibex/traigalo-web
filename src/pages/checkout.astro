@@ -1,9 +1,11 @@
 ---
 import { getOfficialExchangeRate } from '../adapters/rates';
+import { fetchStoresMap } from '../adapters/stores';
 import LocationModal from '../components/LocationModal.astro';
 import '../styles/global.css';
 
 const bcvRate = await getOfficialExchangeRate();
+const storesLookup = await fetchStoresMap();
 ---
 
 <html lang="es">
@@ -348,19 +350,12 @@ const bcvRate = await getOfficialExchangeRate();
       </div>
     </div>
 
-    <script is:inline define:vars={{ bcvRate }}>
+    <script is:inline define:vars={{ bcvRate, storesLookup }}>
       (() => {
         const CART_STORAGE_KEY = 'traigalo_cart';
         const API_ORDERS_URL = 'https://api.traigalo.org/v2/orders';
         const API_PAYMENTS_URL = 'https://api.traigalo.org/v2/payments/receipts';
-        const STORE_NAMES = {
-          '46a0baf0-4100-465d-934a-f2d14f004ba5': 'WILY VIDEO',
-          '03577774-2f0b-4b68-bb11-5c91628dbd5f': 'El Sitio del Barbero'
-        };
-        const STORE_LOGOS = {
-          '46a0baf0-4100-465d-934a-f2d14f004ba5': '/stores/wily-logo.webp',
-          '03577774-2f0b-4b68-bb11-5c91628dbd5f': '/stores/barbero-logo.webp'
-        };
+        const STORE_MAP = storesLookup || {};
 
         let baseDeliveryFeePerStore = 1.50;
         const SERVICE_FEE = 0.50;
@@ -420,13 +415,14 @@ const bcvRate = await getOfficialExchangeRate();
         function groupCartByStore(cart) {
           const map = new Map();
           cart.forEach(item => {
-            const sid = item.storeId || '46a0baf0-4100-465d-934a-f2d14f004ba5';
-            const sname = item.storeName || STORE_NAMES[sid] || 'WILY VIDEO';
+            const sid = item.storeId || Object.keys(STORE_MAP)[0] || '';
+            const storeInfo = STORE_MAP[sid] || {};
+            const sname = item.storeName || storeInfo.name || 'Comercio Oficial';
             if (!map.has(sid)) {
               map.set(sid, {
                 storeId: sid,
                 storeName: sname,
-                logo: STORE_LOGOS[sid] || '/stores/wily-logo.webp',
+                logo: storeInfo.logo_url || '/brand-icon.webp',
                 items: []
               });
             }

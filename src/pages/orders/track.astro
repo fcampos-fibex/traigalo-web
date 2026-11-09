@@ -41,9 +41,9 @@ if (!orderData) {
   } catch {}
 }
 
-const orderId = orderData?.id || requestedOrderId || '46a0baf0-4100-465d-934a-f2d14f004ba5';
-let storeId = orderData?.store_id || '46a0baf0-4100-465d-934a-f2d14f004ba5';
-let storeName = storeId === '03577774-2f0b-4b68-bb11-5c91628dbd5f' ? 'El Sitio del Barbero' : 'WILY VIDEO';
+const orderId = orderData?.id || requestedOrderId || '';
+let storeId = orderData?.store_id || '';
+let storeName = 'Comercio Oficial';
 
 if (storeId) {
   try {

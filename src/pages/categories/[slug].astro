@@ -4,6 +4,7 @@ import Footer from '../../components/Footer.astro';
 import BottomNav from '../../components/BottomNav.astro';
 import RoleSwitcher from '../../components/RoleSwitcher.astro';
 import { getOfficialExchangeRate, formatBs } from '../../adapters/rates';
+import { fetchActiveStores } from '../../adapters/stores';
 import '../../styles/global.css';
 
 const { slug } = Astro.params;
@@ -34,27 +35,14 @@ const matchedCategory = categories.find(
   image_url: 'https://admin.traigalo.org/assets/5ce76a26-f596-4b8b-8ad5-e70d04a8aa7f'
 };
 
-let stores: any[] = [];
-try {
-  const sRes = await fetch(`${API_BASE}/stores`);
-  if (sRes.ok) {
-    stores = await sRes.json();
-  }
-} catch {}
+const stores = await fetchActiveStores();
 
 const catNameLower = matchedCategory.name.toLowerCase();
 let targetStore = stores.find((s) => {
-  const sName = s.name.toLowerCase();
-  if (catNameLower.includes('video') || catNameLower.includes('audio') || catNameLower.includes('celular') || catNameLower.includes('computac')) {
-    return sName.includes('wily');
-  }
   if (catNameLower.includes('barber') || catNameLower.includes('belleza') || catNameLower.includes('cuidado')) {
-    return sName.includes('barbero');
+    return s.rubroKey === 'barberia';
   }
-  if (catNameLower.includes('sushi') || catNameLower.includes('asiat')) {
-    return sName.includes('sushi');
-  }
-  return sName.includes('burger');
+  return s.rubroKey === 'tecnologia';
 }) || stores[0];
 
 let products: any[] = [];
