@@ -7,6 +7,17 @@ const API_BASE = "https://api.traigalo.org/v2";
 const bcvRate = await getOfficialExchangeRate();
 const selectedStoreParam = Astro.url.searchParams.get("store_id") || "";
 
+function cleanProductName(rawName: string): string {
+  return String(rawName || '')
+    .replace(/^Ariculares/i, 'Auriculares')
+    .replace(/^5-Sprinng/i, '5-Spring Chest Pull')
+    .replace(/^Abdominal musclw/i, 'Abdominal Muscle Trainer')
+    .replace(/^Aceite de resino/i, 'Aceite de Ricino')
+    .replace(/^After chave/i, 'After Shave Profesional')
+    .replace(/^Back pain need hellp/i, 'Soporte Lumbar Back Pain')
+    .replace(/^Brocha de ljo/i, 'Brocha de Lujo');
+}
+
 let stores: any[] = [];
 try {
   const sRes = await fetch(`${API_BASE}/stores`);
@@ -23,24 +34,19 @@ const currentStore = stores.find((s) => s.id === selectedStoreParam) || stores[0
   name: "WILY VIDEO"
 };
 
+const isBarbero = currentStore.id === "03577774-2f0b-4b68-bb11-5c91628dbd5f" || String(currentStore.name).toLowerCase().includes("barbero");
+const storeLogo = isBarbero ? "/store-barbero-logo.svg" : "/store-wily-logo.svg";
+
 let storeOrders: any[] = [];
 try {
   const oRes = await fetch(`${API_BASE}/orders?store-id=${currentStore.id}&size=50`);
   if (oRes.ok) {
     const oData = await oRes.json();
-    if (Array.isArray(oData)) storeOrders = oData;
+    if (Array.isArray(oData)) {
+      storeOrders = oData.filter((o) => !o.store_id || o.store_id === currentStore.id);
+    }
   }
 } catch {}
-
-if (storeOrders.length === 0) {
-  try {
-    const allRes = await fetch(`${API_BASE}/orders?size=50`);
-    if (allRes.ok) {
-      const allData = await allRes.json();
-      if (Array.isArray(allData)) storeOrders = allData;
-    }
-  } catch {}
-}
 
 let storeProducts: any[] = [];
 try {
@@ -51,15 +57,45 @@ try {
   }
 } catch {}
 
+const productNamesMap: Record<string, string> = {};
+for (const p of storeProducts) {
+  if (p.id && p.name) {
+    productNamesMap[p.id] = cleanProductName(p.name);
+  }
+}
+
+try {
+  const allPRes = await fetch(`${API_BASE}/products`);
+  if (allPRes.ok) {
+    const allPData = await allPRes.json();
+    if (Array.isArray(allPData)) {
+      for (const p of allPData) {
+        if (p.id && p.name && !productNamesMap[p.id]) {
+          productNamesMap[p.id] = cleanProductName(p.name);
+        }
+      }
+    }
+  }
+} catch {}
+
 const todayGmvUSD = storeOrders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
 const todayGmvBs = formatBs(todayGmvUSD, bcvRate);
 const totalOrdersCount = storeOrders.length;
+
+function formatPaymentMethod(pm: string): string {
+  const norm = String(pm || '').toLowerCase();
+  if (norm === 'mobile_pay' || norm === 'pago_movil') return 'Pago Móvil BCV';
+  if (norm === 'cash' || norm === 'efectivo') return 'Efectivo';
+  if (norm === 'card' || norm === 'tarjeta') return 'Tarjeta';
+  return pm || 'Pago Móvil BCV';
+}
 ---
 
 <!doctype html>
 <html lang="es">
   <head>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon.png?v=3" />
+    <link rel="apple-touch-icon" href="/icon-192.png?v=3" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#FF5A00" />
     <meta charset="UTF-8" />
@@ -72,25 +108,23 @@ const totalOrdersCount = storeOrders.length;
   <body class="bg-[#F8F9FA] text-[#121212] font-['Plus_Jakarta_Sans',sans-serif] antialiased selection:bg-[#FF7A00] selection:text-white pb-28">
     <RoleSwitcher currentRole="vendor" />
 
-    <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-gray-100 px-5 py-4">
-      <div class="max-w-md mx-auto space-y-3">
+    <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-100 px-5 py-4">
+      <div class="max-w-xl mx-auto space-y-3">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <a href="/" class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#FF7A00] to-[#FFA726] flex items-center justify-center text-white shadow-md shadow-orange-500/20">
-              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
+            <a href={`/stores/${currentStore.id}`} class="w-12 h-12 rounded-2xl overflow-hidden border border-gray-200 shadow-xs shrink-0">
+              <img src={storeLogo} alt={currentStore.name} class="w-full h-full object-cover" />
             </a>
             <div>
               <div class="flex items-center gap-1.5">
                 <h1 class="text-base font-extrabold text-gray-900 leading-tight">{currentStore.name}</h1>
                 <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               </div>
-              <p class="text-xs text-gray-500 font-medium">Comercio Oficial • <span class="font-mono text-gray-700">#{currentStore.id.slice(0, 8)}</span></p>
+              <p class="text-xs text-gray-500 font-medium">Comercio Verificado • <span class="font-mono text-gray-700">#{currentStore.id.slice(0, 8)}</span></p>
             </div>
           </div>
 
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-3">
             <div class="text-right hidden sm:block">
               <span class="text-[10px] text-gray-400 block font-semibold">Tasa BCV</span>
               <span class="text-xs font-black text-gray-800">{bcvRate.toFixed(2)} Bs/$</span>
@@ -107,13 +141,14 @@ const totalOrdersCount = storeOrders.length;
             {stores.map((st) => (
               <a
                 href={`/vendor?store_id=${st.id}`}
-                class={`flex-1 text-center py-1.5 px-3 rounded-xl text-xs font-extrabold transition-all ${
+                class={`flex-1 text-center py-2 px-3 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 ${
                   st.id === currentStore.id
-                    ? "bg-[#FF7A00] text-white shadow-xs"
+                    ? "bg-[#FF7A00] text-white shadow-sm"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
-                {st.name}
+                <span>{st.name.includes("Barbero") ? "💈" : "🎧"}</span>
+                <span>{st.name}</span>
               </a>
             ))}
           </div>
@@ -121,7 +156,7 @@ const totalOrdersCount = storeOrders.length;
       </div>
     </header>
 
-    <main class="max-w-md mx-auto px-5 pt-4 space-y-5">
+    <main class="max-w-xl mx-auto px-5 pt-4 space-y-5">
       <div id="incoming-order-alert" class="hidden p-4 rounded-3xl bg-[#FF7A00] text-white shadow-xl shadow-orange-600/30 animate-pulse flex items-center justify-between">
         <div class="flex items-center gap-3">
           <span class="text-2xl animate-bounce">🔔</span>
@@ -136,17 +171,17 @@ const totalOrdersCount = storeOrders.length;
       </div>
 
       <div class="grid grid-cols-3 gap-3">
-        <div class="bg-white rounded-2xl p-3 border border-gray-100 shadow-sm text-center">
-          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Hoy USD</p>
+        <div class="bg-white rounded-2xl p-3.5 border border-gray-100 shadow-sm text-center">
+          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Ventas USD</p>
           <p class="text-lg font-black text-gray-900 mt-0.5">${todayGmvUSD.toFixed(2)}</p>
           <span class="text-[9px] font-semibold text-gray-500 block truncate">{todayGmvBs}</span>
         </div>
-        <div class="bg-white rounded-2xl p-3 border border-gray-100 shadow-sm text-center">
+        <div class="bg-white rounded-2xl p-3.5 border border-gray-100 shadow-sm text-center">
           <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Órdenes</p>
           <p class="text-lg font-black text-gray-900 mt-0.5">{totalOrdersCount}</p>
-          <span class="text-[10px] font-semibold text-emerald-600">En sistema</span>
+          <span class="text-[10px] font-semibold text-emerald-600">De esta tienda</span>
         </div>
-        <div class="bg-white rounded-2xl p-3 border border-gray-100 shadow-sm text-center">
+        <div class="bg-white rounded-2xl p-3.5 border border-gray-100 shadow-sm text-center">
           <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Catálogo</p>
           <p class="text-lg font-black text-gray-900 mt-0.5">{storeProducts.length}</p>
           <span class="text-[10px] font-semibold text-gray-500">Artículos</span>
@@ -156,7 +191,7 @@ const totalOrdersCount = storeOrders.length;
       <div class="space-y-3">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
-            <h2 class="text-base font-extrabold text-gray-900">Órdenes del Comercio</h2>
+            <h2 class="text-base font-extrabold text-gray-900">Órdenes de {currentStore.name}</h2>
             <span id="order-count-badge" class="bg-[#FF7A00] text-white text-[11px] font-black px-2 py-0.5 rounded-full">{storeOrders.length}</span>
           </div>
           <button id="refresh-orders-btn" class="text-xs font-bold text-[#FF7A00] hover:underline flex items-center gap-1 cursor-pointer">
@@ -166,133 +201,197 @@ const totalOrdersCount = storeOrders.length;
         </div>
 
         <div id="orders-container" class="space-y-3">
-          {storeOrders.map((order) => {
-            const totalUSD = Number(order.total) || 0;
-            const totalBsFormatted = formatBs(totalUSD, bcvRate);
-            const statusLabel = 
-              order.status === 'placed' ? 'Nuevo Pedido' :
-              order.status === 'accepted_by_store' ? 'Aceptado' :
-              order.status === 'preparing' ? 'Preparando Pedido' :
-              order.status === 'ready_for_pickup' ? 'Listo p/ Despacho' :
-              order.status === 'driver_assigned' ? 'Repartidor Asignado' :
-              order.status === 'in_transit' ? 'En Camino' :
-              order.status === 'delivered' ? 'Entregado' : order.status;
+          {storeOrders.length === 0 ? (
+            <div class="bg-white rounded-3xl p-8 text-center border border-gray-100 shadow-sm space-y-2">
+              <span class="text-3xl block">📦</span>
+              <h3 class="text-sm font-black text-gray-900">Sin órdenes pendientes para {currentStore.name}</h3>
+              <p class="text-xs text-gray-400 max-w-xs mx-auto">
+                Las órdenes creadas por clientes para <strong>{currentStore.name}</strong> aparecerán aquí en tiempo real con su detalle de productos.
+              </p>
+              <div class="pt-2">
+                <a href={`/stores/${currentStore.id}`} class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-50 text-[#FF7A00] text-xs font-black hover:bg-orange-100 transition-colors">
+                  <span>Ver Vitrine de {currentStore.name}</span>
+                  <span>→</span>
+                </a>
+              </div>
+            </div>
+          ) : (
+            storeOrders.map((order) => {
+              const totalUSD = Number(order.total) || 0;
+              const totalBsFormatted = formatBs(totalUSD, bcvRate);
+              const statusLabel = 
+                order.status === 'placed' ? 'Nuevo Pedido' :
+                order.status === 'accepted_by_store' ? 'Aceptado' :
+                order.status === 'preparing' ? 'Preparando Pedido' :
+                order.status === 'ready_for_pickup' ? 'Listo p/ Despacho' :
+                order.status === 'driver_assigned' ? 'Repartidor Asignado' :
+                order.status === 'driver_in_transit' || order.status === 'in_transit' ? 'En Camino' :
+                order.status === 'delivered' ? 'Entregado' : order.status;
 
-            const isIncoming = order.status === 'placed';
-            const isAccepted = order.status === 'accepted_by_store';
-            const isPreparing = order.status === 'preparing';
-            const isReady = order.status === 'ready_for_pickup';
-            const isPaid = order.payment_status === 'paid';
+              const isIncoming = order.status === 'placed';
+              const isAccepted = order.status === 'accepted_by_store';
+              const isPreparing = order.status === 'preparing';
+              const isReady = order.status === 'ready_for_pickup';
+              const isPaid = order.payment_status === 'paid';
+              const orderItems = Array.isArray(order.items) ? order.items : [];
 
-            return (
-              <div class={`bg-white rounded-3xl p-4 border transition-all ${
-                isIncoming 
-                  ? 'border-orange-300 shadow-lg shadow-orange-500/10 ring-2 ring-orange-500/20' 
-                  : 'border-gray-100 shadow-sm'
-              }`} data-order-id={order.id}>
-                <div class="flex items-center justify-between pb-3 border-b border-gray-100">
-                  <div class="flex items-center gap-2">
-                    <span class="text-sm font-extrabold text-gray-900 font-mono">#{order.order_number || order.id.slice(0, 8)}</span>
-                    <span class="text-xs text-gray-400 font-medium">• {new Date(order.placed_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                  </div>
-                  <span class={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${
-                    isIncoming ? 'bg-amber-100 text-amber-800' :
-                    isAccepted || isPreparing ? 'bg-blue-100 text-blue-800' :
-                    isReady ? 'bg-emerald-100 text-emerald-800' :
-                    'bg-gray-100 text-gray-700'
-                  }`}>
-                    {statusLabel}
-                  </span>
-                </div>
-
-                <div class="py-3 space-y-2 border-b border-gray-100">
-                  <div class="flex items-center justify-between text-xs text-gray-500">
-                    <span>Destino: <strong class="text-gray-900 font-bold truncate max-w-[180px] inline-block align-bottom">{order.delivery_address || 'Higuerote, Miranda'}</strong></span>
-                    <span class={`font-black px-2 py-0.5 rounded-md text-[10px] uppercase ${isPaid ? 'bg-emerald-50 text-emerald-700' : 'bg-orange-50 text-[#FF7A00]'}`}>
-                      {isPaid ? '✓ Pagado' : (order.payment_method || 'Pago Móvil')}
+              return (
+                <div class={`bg-white rounded-3xl p-4 border transition-all ${
+                  isIncoming 
+                    ? 'border-orange-300 shadow-lg shadow-orange-500/10 ring-2 ring-orange-500/20' 
+                    : 'border-gray-100 shadow-sm'
+                }`} data-order-id={order.id}>
+                  <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm font-extrabold text-gray-900 font-mono">#{order.order_number || order.id.slice(0, 8)}</span>
+                      <span class="text-xs text-gray-400 font-medium">• {new Date(order.placed_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                    <span class={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                      isIncoming ? 'bg-amber-100 text-amber-800' :
+                      isAccepted || isPreparing ? 'bg-blue-100 text-blue-800' :
+                      isReady ? 'bg-emerald-100 text-emerald-800' :
+                      'bg-gray-100 text-gray-700'
+                    }`}>
+                      {statusLabel}
                     </span>
                   </div>
-                </div>
 
-                <div class="pt-3 flex items-center justify-between gap-2">
-                  <div class="flex flex-col">
-                    <span class="text-sm font-black text-gray-900">${totalUSD.toFixed(2)}</span>
-                    <span class="text-[10px] text-gray-400 font-semibold">{totalBsFormatted}</span>
-                  </div>
+                  <div class="py-3 space-y-2 border-b border-gray-100">
+                    <div class="bg-gray-50 rounded-2xl p-3 space-y-1.5 border border-gray-100">
+                      <span class="text-[10px] font-black uppercase tracking-wider text-gray-400 block">Artículos a Empacar ({orderItems.length || 1})</span>
+                      {orderItems.length > 0 ? (
+                        orderItems.map((it: any) => {
+                          const pName = productNamesMap[it.product_id] || cleanProductName(it.name || '') || `Artículo #${String(it.product_id || '').slice(0, 6)}`;
+                          const qty = Number(it.quantity) || 1;
+                          const unitPrice = Number(it.unit_price) || 0;
+                          return (
+                            <div class="flex items-center justify-between text-xs">
+                              <span class="font-bold text-gray-900">
+                                <strong class="text-[#FF5A00] font-black">{qty}x</strong> {pName}
+                              </span>
+                              <span class="font-bold text-gray-600">${(unitPrice * qty).toFixed(2)}</span>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div class="flex items-center justify-between text-xs">
+                          <span class="font-bold text-gray-900"><strong class="text-[#FF5A00] font-black">1x</strong> Pedido de Catálogo ({currentStore.name})</span>
+                          <span class="font-bold text-gray-600">${(Number(order.subtotal) || totalUSD).toFixed(2)}</span>
+                        </div>
+                      )}
+                      {(order.notes || order.instructions) && (
+                        <p class="text-[11px] text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg font-semibold mt-1">
+                          📝 {order.notes || order.instructions}
+                        </p>
+                      )}
+                    </div>
 
-                  <div class="flex items-center gap-2">
-                    {isIncoming && (
-                      <button 
-                        data-action="accept" 
-                        data-order-id={order.id}
-                        class="btn-order-action px-4 py-2 rounded-xl bg-[#FF7A00] hover:bg-[#E66E00] text-white text-xs font-extrabold shadow-sm active:scale-95 transition-all cursor-pointer"
-                      >
-                        Aceptar Pedido
-                      </button>
-                    )}
-
-                    {isAccepted && (
-                      <button 
-                        data-action="prepare" 
-                        data-order-id={order.id}
-                        class="btn-order-action px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold shadow-sm active:scale-95 transition-all cursor-pointer"
-                      >
-                        Comenzar Preparación
-                      </button>
-                    )}
-
-                    {isPreparing && (
-                      <button 
-                        data-action="ready" 
-                        data-order-id={order.id}
-                        class="btn-order-action px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-sm active:scale-95 transition-all cursor-pointer"
-                      >
-                        Marcar Listo p/ Despacho
-                      </button>
-                    )}
-
-                    {isReady && (
-                      <span class="text-xs font-bold text-emerald-600 flex items-center gap-1">
-                        <span>✓</span>
-                        <span>Listo p/ Retiro</span>
+                    <div class="flex items-center justify-between text-xs text-gray-500 pt-1">
+                      <span class="truncate max-w-[230px]">📍 Destino: <strong class="text-gray-900 font-bold">{order.delivery_address || 'Higuerote, Miranda'}</strong></span>
+                      <span class={`font-black px-2 py-0.5 rounded-md text-[10px] uppercase shrink-0 ${isPaid ? 'bg-emerald-50 text-emerald-700' : 'bg-orange-50 text-[#FF7A00]'}`}>
+                        {isPaid ? '✓ Pagado' : formatPaymentMethod(order.payment_method)}
                       </span>
-                    )}
+                    </div>
+                  </div>
+
+                  <div class="pt-3 flex items-center justify-between gap-2">
+                    <div class="flex flex-col">
+                      <span class="text-sm font-black text-gray-900">${totalUSD.toFixed(2)}</span>
+                      <span class="text-[10px] text-gray-400 font-semibold">{totalBsFormatted}</span>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                      {isIncoming && (
+                        <button 
+                          data-action="accept" 
+                          data-order-id={order.id}
+                          class="btn-order-action px-4 py-2 rounded-xl bg-[#FF7A00] hover:bg-[#E66E00] text-white text-xs font-extrabold shadow-sm active:scale-95 transition-all cursor-pointer"
+                        >
+                          Aceptar Pedido
+                        </button>
+                      )}
+
+                      {isAccepted && (
+                        <button 
+                          data-action="prepare" 
+                          data-order-id={order.id}
+                          class="btn-order-action px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold shadow-sm active:scale-95 transition-all cursor-pointer"
+                        >
+                          Comenzar Preparación
+                        </button>
+                      )}
+
+                      {isPreparing && (
+                        <button 
+                          data-action="ready" 
+                          data-order-id={order.id}
+                          class="btn-order-action px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-sm active:scale-95 transition-all cursor-pointer"
+                        >
+                          Marcar Listo p/ Despacho
+                        </button>
+                      )}
+
+                      {isReady && (
+                        <span class="text-xs font-bold text-emerald-600 flex items-center gap-1">
+                          <span>✓</span>
+                          <span>Listo p/ Retiro</span>
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </div>
 
       <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-4">
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between gap-2">
           <div>
-            <h3 class="text-sm font-extrabold text-gray-900">Control de Catálogo y Precios</h3>
-            <p class="text-xs text-gray-400">Precios duales sincronizados con BCV</p>
+            <h3 class="text-sm font-extrabold text-gray-900">Control de Catálogo y Disponibilidad</h3>
+            <p class="text-xs text-gray-400">{storeProducts.length} productos sincronizados a tasa BCV</p>
           </div>
-          <span class="text-xs font-bold text-[#FF7A00]">Catálogo Oficial</span>
+          <span class="text-xs font-bold text-[#FF7A00] bg-orange-50 px-2.5 py-1 rounded-full">{currentStore.name}</span>
         </div>
 
-        <div class="space-y-2.5">
+        <div class="relative">
+          <input
+            id="vendor-catalog-search"
+            type="search"
+            placeholder={`Buscar entre los ${storeProducts.length} productos de ${currentStore.name}...`}
+            class="w-full h-10 pl-9 pr-3 rounded-xl bg-gray-50 border border-gray-200 text-xs font-semibold text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-[#FF7A00]"
+          />
+          <svg class="w-4 h-4 text-gray-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+
+        <div class="space-y-2 max-h-[420px] overflow-y-auto pr-1" id="vendor-catalog-list">
           {storeProducts.map((item) => {
             const priceUSD = Number(item.base_price) || 0;
             const priceBs = formatBs(priceUSD, bcvRate);
+            const displayName = cleanProductName(item.name);
             return (
-              <div class="flex items-center justify-between p-2.5 rounded-2xl bg-gray-50 border border-gray-100">
+              <div class="vendor-product-row flex items-center justify-between p-2.5 rounded-2xl bg-gray-50 border border-gray-100" data-name={displayName.toLowerCase()}>
                 <div class="flex-1 min-w-0 pr-3">
-                  <p class="text-xs font-extrabold text-gray-900 truncate">{item.name}</p>
+                  <p class="text-xs font-extrabold text-gray-900 truncate">{displayName}</p>
                   <div class="flex items-center gap-2 mt-0.5">
-                    <span class="text-[11px] font-bold text-gray-900">${priceUSD.toFixed(2)}</span>
+                    <span class="text-[11px] font-bold text-[#FF5A00]">${priceUSD.toFixed(2)}</span>
                     <span class="text-[10px] font-semibold text-gray-400">{priceBs}</span>
                   </div>
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class={`text-[10px] font-bold ${item.is_available ? 'text-emerald-600' : 'text-gray-400'}`}>
-                    {item.is_available ? 'Disponible' : 'Pausado'}
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <span class={`avail-status-text text-[10px] font-bold ${item.is_available !== false ? 'text-emerald-600' : 'text-gray-400'}`}>
+                    {item.is_available !== false ? 'Disponible' : 'Pausado'}
                   </span>
-                  <input type="checkbox" checked={item.is_available} class="w-4 h-4 rounded text-[#FF7A00] focus:ring-[#FF7A00]" />
-                </div>
+                  <input
+                    type="checkbox"
+                    checked={item.is_available !== false}
+                    data-product-id={item.id}
+                    class="product-avail-checkbox w-4 h-4 rounded text-[#FF7A00] focus:ring-[#FF7A00] accent-[#FF7A00] cursor-pointer"
+                  />
+                </label>
               </div>
             );
           })}
@@ -301,111 +400,144 @@ const totalOrdersCount = storeOrders.length;
     </main>
 
     <script is:inline>
-      const API_ORDERS = "https://api.traigalo.org/v2/orders";
-      const API_DISPATCH = "https://api.traigalo.org/v2/dispatch/assign";
+      (() => {
+        const API_ORDERS = "https://api.traigalo.org/v2/orders";
+        const API_DISPATCH = "https://api.traigalo.org/v2/dispatch/assign";
+        const API_PRODUCTS = "https://api.traigalo.org/v2/products";
 
-      async function triggerOrderAction(orderId, actionName) {
-        try {
-          const res = await fetch(`${API_ORDERS}/${orderId}/actions`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: actionName })
-          });
-
-          if (!res.ok) {
-            throw new Error(`Error en servidor: ${res.status}`);
-          }
-
-          if (actionName === "ready") {
-            await fetch(API_DISPATCH, {
+        async function triggerOrderAction(orderId, actionName) {
+          try {
+            const res = await fetch(`${API_ORDERS}/${orderId}/actions`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ order_id: orderId })
-            }).catch(() => {});
+              body: JSON.stringify({ action: actionName })
+            });
+
+            if (!res.ok) {
+              throw new Error(`Error en servidor: ${res.status}`);
+            }
+
+            if (actionName === "ready") {
+              await fetch(API_DISPATCH, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ order_id: orderId })
+              }).catch(() => {});
+            }
+
+            window.location.reload();
+          } catch (err) {
+            alert(`No se pudo ejecutar la acción '${actionName}': ${err.message}`);
           }
-
-          window.location.reload();
-        } catch (err) {
-          alert(`No se pudo ejecutar la acción '${actionName}': ${err.message}`);
         }
-      }
 
-      function attachActionHandlers() {
-        document.querySelectorAll(".btn-order-action").forEach((btn) => {
-          btn.addEventListener("click", async () => {
-            const orderId = btn.getAttribute("data-order-id");
-            const action = btn.getAttribute("data-action");
-            if (orderId && action) {
-              btn.disabled = true;
-              btn.textContent = "Procesando...";
-              await triggerOrderAction(orderId, action);
+        function attachActionHandlers() {
+          document.querySelectorAll(".btn-order-action").forEach((btn) => {
+            btn.addEventListener("click", async () => {
+              const orderId = btn.getAttribute("data-order-id");
+              const action = btn.getAttribute("data-action");
+              if (orderId && action) {
+                btn.disabled = true;
+                btn.textContent = "Procesando...";
+                await triggerOrderAction(orderId, action);
+              }
+            });
+          });
+        }
+
+        const refreshBtn = document.getElementById("refresh-orders-btn");
+        if (refreshBtn) {
+          refreshBtn.addEventListener("click", () => window.location.reload());
+        }
+
+        const catalogSearch = document.getElementById("vendor-catalog-search");
+        if (catalogSearch) {
+          catalogSearch.addEventListener("input", () => {
+            const q = (catalogSearch.value || "").toLowerCase().trim();
+            document.querySelectorAll(".vendor-product-row").forEach((row) => {
+              const name = row.getAttribute("data-name") || "";
+              row.style.display = (!q || name.includes(q)) ? "flex" : "none";
+            });
+          });
+        }
+
+        document.querySelectorAll(".product-avail-checkbox").forEach((checkbox) => {
+          checkbox.addEventListener("change", async () => {
+            const pid = checkbox.getAttribute("data-product-id");
+            const isAvail = checkbox.checked;
+            const label = checkbox.closest("label")?.querySelector(".avail-status-text");
+            if (label) {
+              label.textContent = isAvail ? "Disponible" : "Pausado";
+              label.className = `avail-status-text text-[10px] font-bold ${isAvail ? "text-emerald-600" : "text-gray-400"}`;
+            }
+            if (pid) {
+              fetch(`${API_PRODUCTS}/${pid}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ is_available: isAvail })
+              }).catch(() => {});
             }
           });
         });
-      }
 
-      const refreshBtn = document.getElementById("refresh-orders-btn");
-      if (refreshBtn) {
-        refreshBtn.addEventListener("click", () => window.location.reload());
-      }
+        function playAlertChime() {
+          try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
 
-      function playAlertChime() {
-        try {
-          const AudioContext = window.AudioContext || window.webkitAudioContext;
-          if (!AudioContext) return;
-          const ctx = new AudioContext();
+            const now = ctx.currentTime;
+            const osc1 = ctx.createOscillator();
+            const osc2 = ctx.createOscillator();
+            const gain = ctx.createGain();
 
-          const now = ctx.currentTime;
-          const osc1 = ctx.createOscillator();
-          const osc2 = ctx.createOscillator();
-          const gain = ctx.createGain();
+            osc1.type = 'triangle';
+            osc1.frequency.setValueAtTime(587.33, now);
+            osc1.frequency.exponentialRampToValueAtTime(880.00, now + 0.15);
 
-          osc1.type = 'triangle';
-          osc1.frequency.setValueAtTime(587.33, now);
-          osc1.frequency.exponentialRampToValueAtTime(880.00, now + 0.15);
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(880.00, now + 0.15);
+            osc2.frequency.exponentialRampToValueAtTime(1174.66, now + 0.35);
 
-          osc2.type = 'sine';
-          osc2.frequency.setValueAtTime(880.00, now + 0.15);
-          osc2.frequency.exponentialRampToValueAtTime(1174.66, now + 0.35);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
 
-          gain.gain.setValueAtTime(0.3, now);
-          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+            osc1.connect(gain);
+            osc2.connect(gain);
+            gain.connect(ctx.destination);
 
-          osc1.connect(gain);
-          osc2.connect(gain);
-          gain.connect(ctx.destination);
-
-          osc1.start(now);
-          osc1.stop(now + 0.2);
-          osc2.start(now + 0.15);
-          osc2.stop(now + 0.5);
-        } catch {}
-      }
-
-      function checkIncomingOrders() {
-        const hasIncoming = document.querySelector('.btn-order-action[data-action="accept"]') !== null;
-        const alertBanner = document.getElementById('incoming-order-alert');
-        if (hasIncoming) {
-          if (alertBanner) alertBanner.classList.remove('hidden');
-          playAlertChime();
-        } else {
-          if (alertBanner) alertBanner.classList.add('hidden');
+            osc1.start(now);
+            osc1.stop(now + 0.2);
+            osc2.start(now + 0.15);
+            osc2.stop(now + 0.5);
+          } catch {}
         }
-      }
 
-      const silenceBtn = document.getElementById('btn-silence-alert');
-      if (silenceBtn) {
-        silenceBtn.addEventListener('click', () => {
+        function checkIncomingOrders() {
+          const hasIncoming = document.querySelector('.btn-order-action[data-action="accept"]') !== null;
           const alertBanner = document.getElementById('incoming-order-alert');
-          if (alertBanner) alertBanner.classList.add('hidden');
+          if (hasIncoming) {
+            if (alertBanner) alertBanner.classList.remove('hidden');
+            playAlertChime();
+          } else {
+            if (alertBanner) alertBanner.classList.add('hidden');
+          }
+        }
+
+        const silenceBtn = document.getElementById('btn-silence-alert');
+        if (silenceBtn) {
+          silenceBtn.addEventListener('click', () => {
+            const alertBanner = document.getElementById('incoming-order-alert');
+            if (alertBanner) alertBanner.classList.add('hidden');
+          });
+        }
+
+        window.addEventListener('load', () => {
+          checkIncomingOrders();
         });
-      }
 
-      window.addEventListener('load', () => {
-        checkIncomingOrders();
-      });
-
-      attachActionHandlers();
+        attachActionHandlers();
+      })();
     </script>
   </body>
 </html>

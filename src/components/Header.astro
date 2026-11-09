@@ -145,6 +145,7 @@ const bcvFormatted = bcvRate.toFixed(2);
 <LocationModal />
 
 <script is:inline>
+(() => {
   function setupUserMenu() {
     const unauthEl = document.getElementById('unauth-actions');
     const authEl = document.getElementById('auth-actions');
@@ -251,6 +252,17 @@ const bcvFormatted = bcvRate.toFixed(2);
     });
   }
 
+  const filterBtn = document.getElementById('global-filter-btn');
+  if (filterBtn) {
+    filterBtn.addEventListener('click', () => {
+      const catBar = document.getElementById('categories-bar') || document.getElementById('stores');
+      if (catBar) {
+        catBar.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+  }
+
   setupUserMenu();
   setupAddressGeo();
+})();
 </script>

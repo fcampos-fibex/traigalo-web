@@ -16,25 +16,72 @@ try {
   assetMap = assetModule.default || {};
 } catch {}
 
+const NAME_FIXES: Record<string, string> = {
+  'Ariculares SZ-771': 'Auriculares SZ-771',
+  '5-Sprinng CHEST PULL': '5-Spring Chest Pull',
+  'Abdominal musclw': 'Abdominal Muscle Trainer',
+  'Aceite de resino': 'Aceite de Ricino',
+  'After chave': 'After Shave Profesional',
+  'Back pain need hellp': 'Soporte Lumbar Back Pain',
+  'Brocha de ljo': 'Brocha de Lujo'
+};
+
+function normalizeName(rawName: string): string {
+  const trimmed = (rawName || '').trim();
+  return NAME_FIXES[trimmed] || trimmed.replace(/\s{2,}/g, ' ');
+}
+
+function classifyStoreSubcategory(name: string, isWily: boolean): string {
+  const n = name.toLowerCase();
+  if (isWily) {
+    if (n.includes('funda') || n.includes('carcasa') || n.includes('tecno') || n.includes('ufone') || n.includes('phone') || n.includes('móvil') || n.includes('movil')) {
+      return 'Fundas y Celulares';
+    }
+    if (n.includes('gaming') || n.includes('games') || n.includes('mario') || n.includes('batman') || n.includes('iron man') || n.includes('magic q8')) {
+      return 'Gaming y Consolas';
+    }
+    return 'Audífonos y Audio';
+  } else {
+    if (n.includes('training') || n.includes('chest') || n.includes('abdominal') || n.includes('lumbar') || n.includes('back pain')) {
+      return 'Fitness y Salud';
+    }
+    if (n.includes('cepillo') || n.includes('peine') || n.includes('bigudies')) {
+      return 'Cepillos y Peines';
+    }
+    if (n.includes('máquina') || n.includes('maquina') || n.includes('plancha') || n.includes('secador') || n.includes('brocha') || n.includes('capa') || n.includes('atomizador') || n.includes('grip')) {
+      return 'Barbería y Equipos';
+    }
+    return 'Cuidado Capilar y Barba';
+  }
+}
+
+let allStores: any[] = [];
 let storeData: any = null;
 let productsData: any[] = [];
 let reviewsData: any[] = [];
 
 try {
-  const storeRes = await fetch(`${API_BASE}/stores/${id}`);
-  if (storeRes.ok) {
-    storeData = await storeRes.json();
+  const listRes = await fetch(`${API_BASE}/stores`);
+  if (listRes.ok) {
+    const raw = await listRes.json();
+    if (Array.isArray(raw)) {
+      allStores = raw.filter((s: any) => s.slug !== 'burger-crave' && s.slug !== 'sushi-omakase');
+      storeData = allStores.find((s: any) => s.id === id || s.slug === id);
+    }
   }
 } catch {}
 
 if (!storeData) {
   try {
-    const listRes = await fetch(`${API_BASE}/stores`);
-    if (listRes.ok) {
-      const stores = await listRes.json();
-      storeData = stores.find((s: any) => s.id === id || s.slug === id) || stores[0];
+    const storeRes = await fetch(`${API_BASE}/stores/${id}`);
+    if (storeRes.ok) {
+      storeData = await storeRes.json();
     }
   } catch {}
+}
+
+if (!storeData && allStores.length > 0) {
+  storeData = allStores[0];
 }
 
 const resolvedStoreId = storeData?.id || id || '46a0baf0-4100-465d-934a-f2d14f004ba5';
@@ -56,9 +103,12 @@ try {
 } catch {}
 
 const storeName = storeData?.name || 'WILY VIDEO';
-const storeCategory = storeData?.description || 'Comercio Oficial Verificado en Traigalo';
-const storeCover = storeData?.cover_url || '';
-const storeLogo = storeData?.logo_url || '';
+const isWily = storeName.toUpperCase().includes('WILY');
+const storeCategory = isWily
+  ? 'Tecnología, Audio Bluetooth, Gaming y Accesorios Móviles'
+  : 'Insumos de Barbería Profesional, Cuidado Capilar y Estética';
+const storeCover = isWily ? '/store-wily-cover.svg' : '/store-barbero-cover.svg';
+const storeLogo = isWily ? '/store-wily-logo.svg' : '/store-barbero-logo.svg';
 const avgRating = reviewsData.length > 0
   ? (reviewsData.reduce((acc, r) => acc + (Number(r.store_rating || r.rating) || 5), 0) / reviewsData.length).toFixed(1)
   : '4.9';
@@ -68,6 +118,7 @@ const storeFee = '$1.50';
 const storeAddress = storeData?.address_line || 'Higuerote, Estado Miranda';
 
 const products = productsData.map((p) => {
+  const cleanName = normalizeName(p.name);
   let img = '';
   if (p.attributes?.image_url) {
     img = p.attributes.image_url;
@@ -75,23 +126,31 @@ const products = productsData.map((p) => {
     img = `${ASSET_BASE}/${p.attributes.asset_id}`;
   } else if (assetMap[p.name]) {
     img = `${ASSET_BASE}/${assetMap[p.name]}`;
+  } else if (assetMap[cleanName]) {
+    img = `${ASSET_BASE}/${assetMap[cleanName]}`;
   } else {
     img = FALLBACK_PRODUCT_IMAGE;
   }
 
   const price = Number(p.base_price) || 0;
+  const subcat = classifyStoreSubcategory(cleanName, isWily);
   return {
     id: p.id,
     storeId: resolvedStoreId,
-    name: p.name,
-    desc: p.description || 'Producto oficial disponible para entrega express en tu ubicación.',
+    storeName: storeName,
+    name: cleanName,
+    subcategory: subcat,
+    desc: (p.description && p.description.length > 10)
+      ? p.description
+      : `Artículo original disponible en ${storeName} con garantía y despacho express en tu zona.`,
     price,
     priceBs: formatBs(price, bcvRate),
     image: img
   };
 });
 
-const menuCategories = ['Todos los Productos', 'Más Populares', 'Entrega Inmediata'];
+const distinctSubcats = [...new Set(products.map(p => p.subcategory))];
+const menuCategories = ['Todos los Productos', ...distinctSubcats];
 ---
 
 <html lang="es">
@@ -108,96 +167,130 @@ const menuCategories = ['Todos los Productos', 'Más Populares', 'Entrega Inmedi
   </head>
   <body class="bg-[#FAFAFC] text-[#1A1D20] min-h-screen flex flex-col pb-28 antialiased selection:bg-[#FF7A00] selection:text-white">
     
-    <div class="relative h-64 sm:h-72 w-full bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 overflow-hidden flex items-end p-6">
-      {storeCover && (
-        <img src={storeCover} alt={storeName} class="absolute inset-0 w-full h-full object-cover opacity-55" />
-      )}
-      <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/30"></div>
+    <div class="relative h-64 sm:h-72 w-full bg-gray-950 overflow-hidden flex items-end p-6">
+      <img src={storeCover} alt={storeName} class="absolute inset-0 w-full h-full object-cover" />
+      <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/25"></div>
 
       <div class="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
-        <a href="/" class="w-10 h-10 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-gray-900 shadow-md hover:bg-white transition-all active:scale-95">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
-          </svg>
-        </a>
+        <div class="flex items-center gap-2">
+          <a href="/" class="h-10 px-3.5 rounded-full bg-white/95 backdrop-blur-md flex items-center gap-1.5 text-gray-900 text-xs font-extrabold shadow-md hover:bg-white transition-all active:scale-95">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
+            </svg>
+            <span>Marketplace</span>
+          </a>
+
+          {allStores.filter((s) => s.id !== resolvedStoreId).map((other) => (
+            <a 
+              href={`/stores/${other.id}`}
+              class="hidden sm:inline-flex h-10 px-3.5 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/20 text-white text-xs font-bold items-center gap-1.5 transition-all"
+            >
+              <span>Cambiar a {other.name}</span>
+              <span>→</span>
+            </a>
+          ))}
+        </div>
 
         <div class="flex items-center gap-2">
-          <div class="px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md text-[10px] font-black text-gray-800 shadow-sm border border-gray-100">
+          <div class="px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-md text-[10px] font-black text-gray-800 shadow-sm border border-gray-100">
             BCV: {bcvRate.toFixed(2)} Bs/$
           </div>
-          <a href="/favorites" class="w-10 h-10 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-gray-700 shadow-md hover:text-red-500 transition-colors">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-            </svg>
-          </a>
+          <button 
+            id="btn-favorite-store"
+            type="button"
+            aria-label="Guardar tienda en favoritos"
+            class="w-10 h-10 rounded-full bg-white/95 backdrop-blur-md flex items-center justify-center text-gray-700 shadow-md hover:text-rose-500 transition-all cursor-pointer active:scale-90"
+          >
+            <span id="fav-heart-icon" class="text-base">🤍</span>
+          </button>
         </div>
       </div>
 
-      <div class="relative z-10 text-white flex items-end gap-4">
-        {storeLogo && (
-          <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white p-1.5 shadow-xl shrink-0 overflow-hidden border-2 border-white/80">
-            <img src={storeLogo} alt={storeName} class="w-full h-full object-contain rounded-xl" />
-          </div>
-        )}
-        <div>
+      <div class="relative z-10 text-white flex items-end gap-4 w-full max-w-4xl mx-auto">
+        <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white p-1 shadow-xl shrink-0 overflow-hidden border-2 border-white/90">
+          <img src={storeLogo} alt={storeName} class="w-full h-full object-cover rounded-xl" />
+        </div>
+        <div class="min-w-0 flex-1">
           <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#FF7A00] text-[10px] font-black uppercase tracking-wider mb-1.5 shadow-xs">
-            ★ Tienda Oficial Verificada
+            ★ Tienda Oficial Verificada • {products.length} Artículos
           </div>
-          <h1 class="text-2xl sm:text-3xl font-black tracking-tight leading-tight">{storeName}</h1>
-          <p class="text-xs text-gray-200 mt-0.5">{storeCategory}</p>
-          <p class="text-[11px] text-gray-300 mt-0.5 truncate max-w-md">📍 {storeAddress}</p>
+          <h1 class="text-2xl sm:text-3xl font-black tracking-tight leading-tight truncate">{storeName}</h1>
+          <p class="text-xs text-gray-200 mt-0.5 truncate">{storeCategory}</p>
+          <p class="text-[11px] text-gray-300 mt-0.5 truncate">📍 {storeAddress}</p>
         </div>
       </div>
     </div>
 
-    <div class="bg-white border-b border-gray-100 px-4 py-3 shadow-2xs">
-      <div class="max-w-4xl mx-auto flex items-center justify-between text-xs font-bold text-gray-700">
-        <div class="flex items-center gap-1">
-          <span class="text-amber-500 text-sm">★</span>
-          <span>{avgRating}</span>
-          <span class="text-gray-400 font-normal">({storeReviewsText})</span>
+    <div class="bg-white border-b border-gray-100 px-4 py-3 shadow-2xs sticky top-0 z-30">
+      <div class="max-w-4xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-center justify-between sm:justify-start gap-4 text-xs font-bold text-gray-700">
+          <div class="flex items-center gap-1">
+            <span class="text-amber-500 text-sm">★</span>
+            <span>{avgRating}</span>
+            <span class="text-gray-400 font-normal">({storeReviewsText})</span>
+          </div>
+          <div class="w-1 h-1 rounded-full bg-gray-300"></div>
+          <div class="flex items-center gap-1">
+            <span>⚡</span>
+            <span>{storeTime}</span>
+          </div>
+          <div class="w-1 h-1 rounded-full bg-gray-300"></div>
+          <div class="flex items-center gap-1 text-[#FF7A00]">
+            <span>🛵</span>
+            <span>Envío desde {storeFee}</span>
+          </div>
         </div>
-        <div class="w-1 h-1 rounded-full bg-gray-300"></div>
-        <div class="flex items-center gap-1">
-          <span>⚡</span>
-          <span>{storeTime}</span>
-        </div>
-        <div class="w-1 h-1 rounded-full bg-gray-300"></div>
-        <div class="flex items-center gap-1 text-[#FF7A00]">
-          <span>🛵</span>
-          <span>Envío desde {storeFee}</span>
+
+        <div class="relative w-full sm:w-64">
+          <input 
+            id="store-search-input"
+            type="text"
+            placeholder={`Buscar en ${storeName}...`}
+            class="w-full h-9 pl-8 pr-3 rounded-xl bg-gray-50 border border-gray-200 text-xs font-semibold text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-[#FF7A00]"
+          />
+          <svg class="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
         </div>
       </div>
     </div>
 
     <main class="flex-1 max-w-4xl mx-auto px-4 sm:px-6 py-6 w-full space-y-8">
       <div>
-        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-4 mb-4">
+        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-3 mb-4" id="store-cat-tabs">
           {menuCategories.map((cat, idx) => (
-            <button class={`shrink-0 px-4 py-2 rounded-full text-xs font-bold transition-all ${
-              idx === 0 
-                ? 'bg-[#FF7A00] text-white shadow-md shadow-orange-600/20' 
-                : 'bg-white border border-gray-100 text-gray-600 hover:border-gray-200'
-            }`}>
+            <button 
+              type="button"
+              data-subcat={cat}
+              class={`store-tab-btn shrink-0 px-4 py-2 rounded-full text-xs font-extrabold transition-all cursor-pointer active:scale-95 ${
+                idx === 0 
+                  ? 'bg-[#FF7A00] text-white shadow-md shadow-orange-600/20' 
+                  : 'bg-white border border-gray-100 text-gray-600 hover:border-orange-200'
+              }`}
+            >
               {cat}
             </button>
           ))}
         </div>
 
-        <div class="space-y-4" id="products-list">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5" id="products-list">
           {products.map(item => (
             <div 
               class="product-card bg-white rounded-3xl p-3.5 border border-gray-100/90 shadow-xs hover:shadow-md transition-all flex gap-3.5 group cursor-pointer"
               data-id={item.id}
               data-store-id={item.storeId}
+              data-store-name={item.storeName}
               data-name={item.name}
+              data-search={item.name.toLowerCase()}
+              data-subcat={item.subcategory}
               data-price={item.price}
               data-image={item.image}
               data-desc={item.desc}
             >
-              <div class="flex-1 flex flex-col justify-between">
+              <div class="flex-1 flex flex-col justify-between min-w-0">
                 <div>
-                  <h3 class="text-sm font-extrabold text-gray-900 group-hover:text-[#FF7A00] transition-colors leading-snug">
+                  <span class="text-[9px] font-black uppercase tracking-wider text-[#FF7A00] block mb-0.5">{item.subcategory}</span>
+                  <h3 class="text-sm font-extrabold text-gray-900 group-hover:text-[#FF7A00] transition-colors leading-snug line-clamp-2">
                     {item.name}
                   </h3>
                   <p class="text-[11px] text-gray-400 mt-1 line-clamp-2 leading-relaxed">
@@ -226,29 +319,31 @@ const menuCategories = ['Todos los Productos', 'Más Populares', 'Entrega Inmedi
                 <button 
                   type="button"
                   aria-label={`Añadir ${item.name}`}
-                  class="btn-add-product absolute bottom-2 right-2 w-8 h-8 rounded-full bg-[#FF7A00] hover:bg-[#E66E00] active:scale-90 text-white flex items-center justify-center shadow-md shadow-orange-600/30 transition-all z-10"
+                  class="btn-add-product absolute bottom-2 right-2 w-8 h-8 rounded-full bg-[#FF7A00] hover:bg-[#E66E00] active:scale-90 text-white flex items-center justify-center shadow-md shadow-orange-600/30 transition-all z-10 cursor-pointer font-black"
                 >
-                  <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
-                  </svg>
+                  +
                 </button>
               </div>
             </div>
           ))}
+        </div>
+
+        <div id="store-no-results" class="hidden text-center py-10 bg-white rounded-3xl border border-gray-100 mt-4">
+          <p class="text-xs font-bold text-gray-500">No encontramos artículos con ese criterio en esta tienda</p>
         </div>
       </div>
 
       {reviewsData.length > 0 && (
         <section class="bg-white rounded-3xl p-5 border border-gray-100 shadow-xs space-y-3">
           <div class="flex items-center justify-between">
-            <h2 class="text-sm font-black uppercase tracking-wider text-gray-400">Opiniones de Clientes</h2>
+            <h2 class="text-sm font-black uppercase tracking-wider text-gray-400">Opiniones de Clientes Verificados</h2>
             <span class="text-xs font-black text-amber-500">★ {avgRating} ({reviewsData.length})</span>
           </div>
           <div class="space-y-2.5 divide-y divide-gray-50">
             {reviewsData.slice(0, 5).map((rev) => (
               <div class="pt-2.5 first:pt-0">
                 <div class="flex items-center justify-between">
-                  <span class="text-xs font-extrabold text-gray-900">Cliente Verificado</span>
+                  <span class="text-xs font-extrabold text-gray-900">Compra Verificada</span>
                   <span class="text-xs font-black text-amber-400">{'★'.repeat(Number(rev.store_rating || rev.rating || 5))}</span>
                 </div>
                 {rev.comment && (
@@ -261,11 +356,11 @@ const menuCategories = ['Todos los Productos', 'Más Populares', 'Entrega Inmedi
       )}
     </main>
 
-    <div id="product-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+    <div id="product-modal" class="fixed inset-0 z-[60] bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 opacity-0 pointer-events-none transition-opacity duration-200">
       <div id="modal-card" class="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl transform translate-y-full sm:translate-y-4 transition-transform duration-200 flex flex-col max-h-[90vh]">
         <div class="flex items-center justify-between pb-3 border-b border-gray-100">
-          <span class="text-xs font-black uppercase tracking-wider text-[#FF7A00]">Detalle de Producto</span>
-          <button id="close-modal-btn" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 font-black">
+          <span class="text-xs font-black uppercase tracking-wider text-[#FF7A00]">{storeName}</span>
+          <button id="close-modal-btn" type="button" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 font-black cursor-pointer">
             ✕
           </button>
         </div>
@@ -281,14 +376,14 @@ const menuCategories = ['Todos los Productos', 'Más Populares', 'Entrega Inmedi
           <div class="flex items-center justify-between p-3 rounded-2xl bg-gray-50 border border-gray-100">
             <div>
               <span class="text-xs font-bold text-gray-700 block">Cantidad</span>
-              <span class="text-[10px] text-gray-400">Selecciona cuántas unidades deseas</span>
+              <span class="text-[10px] text-gray-400">Unidades a solicitar</span>
             </div>
             <div class="flex items-center gap-3 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-xs">
-              <button id="modal-qty-minus" type="button" class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-[#FF7A00] font-black text-sm flex items-center justify-center transition-colors">
+              <button id="modal-qty-minus" type="button" class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-[#FF7A00] font-black text-sm flex items-center justify-center transition-colors cursor-pointer">
                 -
               </button>
               <span id="modal-qty-display" class="w-6 text-center text-sm font-black text-gray-950">1</span>
-              <button id="modal-qty-plus" type="button" class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-[#FF7A00] font-black text-sm flex items-center justify-center transition-colors">
+              <button id="modal-qty-plus" type="button" class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-[#FF7A00] font-black text-sm flex items-center justify-center transition-colors cursor-pointer">
                 +
               </button>
             </div>
@@ -296,13 +391,13 @@ const menuCategories = ['Todos los Productos', 'Más Populares', 'Entrega Inmedi
 
           <div>
             <label for="modal-notes" class="block text-xs font-bold text-gray-700 mb-1">
-              Notas para la tienda o especificaciones del producto (talla, modelo, color, empaque)...
+              Especificaciones opcionales
             </label>
             <textarea 
               id="modal-notes" 
               rows="2" 
               maxlength="200"
-              placeholder="Notas para la tienda o especificaciones del producto (talla, modelo, color, empaque)..." 
+              placeholder="Ej. Color preferido, modelo de teléfono o indicación para la tienda..." 
               class="w-full p-3 text-xs rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:border-[#FF7A00] focus:ring-2 focus:ring-[#FF7A00]/20 resize-none transition-all font-medium text-gray-800"
             ></textarea>
           </div>
@@ -316,14 +411,14 @@ const menuCategories = ['Todos los Productos', 'Más Populares', 'Entrega Inmedi
           </div>
         </div>
         <div class="pt-3 border-t border-gray-100 flex items-center gap-3">
-          <button id="modal-add-btn" class="flex-1 h-12 rounded-2xl bg-[#FF7A00] hover:bg-[#E66E00] text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-orange-600/30 active:scale-98 transition-all">
+          <button id="modal-add-btn" type="button" class="flex-1 h-12 rounded-2xl bg-[#FF7A00] hover:bg-[#E66E00] text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-orange-600/30 active:scale-98 transition-all cursor-pointer">
             <span id="modal-add-btn-text">Agregar al Carrito</span>
           </button>
         </div>
       </div>
     </div>
 
-    <div id="cart-bar" class="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-t from-white via-white/90 to-transparent pointer-events-none transition-all duration-300 opacity-0 translate-y-4">
+    <div id="cart-bar" class="fixed bottom-14 md:bottom-4 left-0 right-0 z-40 p-4 pointer-events-none transition-all duration-300 opacity-0 translate-y-4">
       <div class="max-w-4xl mx-auto pointer-events-auto">
         <a 
           href="/checkout" 
@@ -331,7 +426,10 @@ const menuCategories = ['Todos los Productos', 'Más Populares', 'Entrega Inmedi
         >
           <div class="flex items-center gap-2.5">
             <span id="cart-count" class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs">0</span>
-            <span>Ver Carrito</span>
+            <div>
+              <span class="block leading-tight">Ver Carrito</span>
+              <span id="cart-stores-label" class="block text-[10px] text-white/85 font-semibold"></span>
+            </div>
           </div>
           <div class="flex items-center gap-2 text-right">
             <div>
@@ -346,8 +444,10 @@ const menuCategories = ['Todos los Productos', 'Más Populares', 'Entrega Inmedi
 
     <BottomNav />
 
-    <script is:inline define:vars={{ bcvRate }}>
+    <script is:inline define:vars={{ bcvRate, resolvedStoreId, storeName }}>
+    (() => {
       const CART_STORAGE_KEY = 'traigalo_cart';
+      const FAV_STORES_KEY = 'traigalo_fav_stores';
 
       function getCart() {
         try {
@@ -379,10 +479,12 @@ const menuCategories = ['Todos los Productos', 'Más Populares', 'Entrega Inmedi
         const existing = cart.find(item => item.id === product.id && (item.notes || '') === notes);
         if (existing) {
           existing.qty = (existing.qty || 1) + quantity;
+          if (!existing.storeName) existing.storeName = product.storeName || storeName;
         } else {
           cart.push({
             id: product.id,
-            storeId: product.storeId,
+            storeId: product.storeId || resolvedStoreId,
+            storeName: product.storeName || storeName,
             name: product.name,
             price: Number(product.price),
             image: product.image,
@@ -397,12 +499,14 @@ const menuCategories = ['Todos los Productos', 'Más Populares', 'Entrega Inmedi
         const cart = getCart();
         const cartBar = document.getElementById('cart-bar');
         const cartCount = document.getElementById('cart-count');
+        const cartStoresLabel = document.getElementById('cart-stores-label');
         const cartTotal = document.getElementById('cart-total');
         const cartTotalBs = document.getElementById('cart-total-bs');
         if (!cartBar || !cartCount || !cartTotal) return;
 
         const totalQty = cart.reduce((acc, item) => acc + (item.qty || 1), 0);
         const totalPrice = cart.reduce((acc, item) => acc + (item.price * (item.qty || 1)), 0);
+        const distinctStores = [...new Set(cart.map(i => i.storeName).filter(Boolean))];
 
         if (totalQty > 0) {
           cartCount.textContent = String(totalQty);
@@ -410,12 +514,95 @@ const menuCategories = ['Todos los Productos', 'Más Populares', 'Entrega Inmedi
           if (cartTotalBs) {
             cartTotalBs.textContent = formatBsClient(totalPrice);
           }
+          if (cartStoresLabel) {
+            cartStoresLabel.textContent = distinctStores.length > 1
+              ? `Multi-Tienda (${distinctStores.length} comercios)`
+              : (distinctStores[0] || storeName);
+          }
           cartBar.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
           cartBar.classList.add('opacity-100', 'translate-y-0');
         } else {
           cartBar.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none');
           cartBar.classList.remove('opacity-100', 'translate-y-0');
         }
+      }
+
+      const favBtn = document.getElementById('btn-favorite-store');
+      const favIcon = document.getElementById('fav-heart-icon');
+      function isStoreFavorited() {
+        try {
+          const list = JSON.parse(localStorage.getItem(FAV_STORES_KEY) || '[]');
+          return list.includes(resolvedStoreId);
+        } catch {
+          return false;
+        }
+      }
+      function updateFavIcon() {
+        if (favIcon) {
+          favIcon.textContent = isStoreFavorited() ? '❤️' : '🤍';
+        }
+      }
+      if (favBtn) {
+        favBtn.addEventListener('click', () => {
+          try {
+            let list = JSON.parse(localStorage.getItem(FAV_STORES_KEY) || '[]');
+            if (list.includes(resolvedStoreId)) {
+              list = list.filter((id) => id !== resolvedStoreId);
+            } else {
+              list.push(resolvedStoreId);
+            }
+            localStorage.setItem(FAV_STORES_KEY, JSON.stringify(list));
+            updateFavIcon();
+          } catch {}
+        });
+      }
+      updateFavIcon();
+
+      let activeSubcat = 'Todos los Productos';
+      let storeSearchText = '';
+
+      function filterStoreProducts() {
+        const cards = document.querySelectorAll('.product-card');
+        const noRes = document.getElementById('store-no-results');
+        let visible = 0;
+
+        cards.forEach((card) => {
+          const subcat = card.getAttribute('data-subcat') || '';
+          const search = card.getAttribute('data-search') || '';
+          const matchTab = activeSubcat === 'Todos los Productos' || subcat === activeSubcat;
+          const matchSearch = !storeSearchText || search.includes(storeSearchText);
+
+          if (matchTab && matchSearch) {
+            card.classList.remove('hidden');
+            visible++;
+          } else {
+            card.classList.add('hidden');
+          }
+        });
+
+        if (noRes) {
+          if (visible === 0) noRes.classList.remove('hidden');
+          else noRes.classList.add('hidden');
+        }
+      }
+
+      document.querySelectorAll('.store-tab-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.store-tab-btn').forEach((b) => {
+            b.className = 'store-tab-btn shrink-0 px-4 py-2 rounded-full text-xs font-extrabold bg-white border border-gray-100 text-gray-600 hover:border-orange-200 transition-all cursor-pointer active:scale-95';
+          });
+          btn.className = 'store-tab-btn shrink-0 px-4 py-2 rounded-full text-xs font-extrabold bg-[#FF7A00] text-white shadow-md shadow-orange-600/20 transition-all cursor-pointer active:scale-95';
+          activeSubcat = btn.getAttribute('data-subcat') || 'Todos los Productos';
+          filterStoreProducts();
+        });
+      });
+
+      const storeSearchInput = document.getElementById('store-search-input');
+      if (storeSearchInput) {
+        storeSearchInput.addEventListener('input', (e) => {
+          storeSearchText = e.target.value.trim().toLowerCase();
+          filterStoreProducts();
+        });
       }
 
       const modal = document.getElementById('product-modal');
@@ -509,6 +696,7 @@ const menuCategories = ['Todos los Productos', 'Más Populares', 'Entrega Inmedi
         const prod = {
           id: card.getAttribute('data-id'),
           storeId: card.getAttribute('data-store-id'),
+          storeName: card.getAttribute('data-store-name'),
           name: card.getAttribute('data-name'),
           price: parseFloat(card.getAttribute('data-price') || '0'),
           image: card.getAttribute('data-image'),
@@ -520,6 +708,12 @@ const menuCategories = ['Todos los Productos', 'Más Populares', 'Entrega Inmedi
           addBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             addToCart(prod);
+            addBtn.textContent = '✓';
+            addBtn.classList.add('bg-emerald-600');
+            setTimeout(() => {
+              addBtn.textContent = '+';
+              addBtn.classList.remove('bg-emerald-600');
+            }, 900);
           });
         }
 
@@ -529,6 +723,7 @@ const menuCategories = ['Todos los Productos', 'Más Populares', 'Entrega Inmedi
       });
 
       updateCartBar();
+    })();
     </script>
   </body>
 </html>

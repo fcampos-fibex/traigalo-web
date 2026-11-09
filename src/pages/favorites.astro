@@ -11,6 +11,17 @@ const ASSET_BASE = 'https://admin.traigalo.org/assets';
 const FALLBACK_PRODUCT_IMAGE = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' width='200' height='200'><rect width='200' height='200' rx='28' fill='%23F5F6F8'/><circle cx='100' cy='100' r='52' fill='%23FFF3E0'/><path d='M108 55L76 108h36l-8 42 40-58h-36z' fill='%23FF7A00'/></svg>";
 const bcvRate = await getOfficialExchangeRate();
 
+function cleanProductName(rawName: string): string {
+  return String(rawName || '')
+    .replace(/^Ariculares/i, 'Auriculares')
+    .replace(/^5-Sprinng/i, '5-Spring Chest Pull')
+    .replace(/^Abdominal musclw/i, 'Abdominal Muscle Trainer')
+    .replace(/^Aceite de resino/i, 'Aceite de Ricino')
+    .replace(/^After chave/i, 'After Shave Profesional')
+    .replace(/^Back pain need hellp/i, 'Soporte Lumbar Back Pain')
+    .replace(/^Brocha de ljo/i, 'Brocha de Lujo');
+}
+
 let assetMap: Record<string, string> = {};
 try {
   const assetModule = await import('../data/product_assets.json');
@@ -35,21 +46,25 @@ for (const store of favoriteStores) {
     if (pRes.ok) {
       const items = await pRes.json();
       if (Array.isArray(items)) {
-        const mapped = items.slice(0, 3).map((it: any) => {
+        const mapped = items.slice(0, 4).map((it: any) => {
+          const rawName = String(it.name || '');
+          const displayName = cleanProductName(rawName);
           let img = '';
           if (it.attributes?.image_url) {
             img = it.attributes.image_url;
           } else if (it.attributes?.asset_id) {
             img = `${ASSET_BASE}/${it.attributes.asset_id}`;
-          } else if (assetMap[it.name]) {
-            img = `${ASSET_BASE}/${assetMap[it.name]}`;
+          } else if (assetMap[rawName]) {
+            img = `${ASSET_BASE}/${assetMap[rawName]}`;
+          } else if (assetMap[displayName]) {
+            img = `${ASSET_BASE}/${assetMap[displayName]}`;
           } else {
             img = FALLBACK_PRODUCT_IMAGE;
           }
           const price = Number(it.base_price) || 0;
           return {
             id: it.id,
-            name: it.name,
+            name: displayName,
             storeName: store.name,
             storeId: store.id,
             price,
@@ -67,7 +82,8 @@ for (const store of favoriteStores) {
 <!doctype html>
 <html lang="es">
   <head>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon.png?v=3" />
+    <link rel="apple-touch-icon" href="/icon-192.png?v=3" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#FF5A00" />
     <meta charset="utf-8" />
@@ -86,7 +102,7 @@ for (const store of favoriteStores) {
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">Tus Favoritos</h1>
-          <p class="text-xs text-gray-400 mt-0.5">Comercios verificados y artículos destacados</p>
+          <p class="text-xs text-gray-400 mt-0.5">Comercios verificados y artículos destacados para compra rápida</p>
         </div>
         <div class="w-10 h-10 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center text-lg font-black shadow-xs">
           ❤️
@@ -96,28 +112,38 @@ for (const store of favoriteStores) {
       <section class="space-y-3">
         <h2 class="text-sm font-black uppercase tracking-wider text-gray-400">Tiendas Oficiales Guardadas</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {favoriteStores.map((store) => (
-            <a 
-              href={`/stores/${store.id}`}
-              class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs hover:shadow-md transition-all flex items-center gap-3.5"
-            >
-              <div class="w-16 h-16 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center text-2xl shrink-0 overflow-hidden">
-                {store.logo_url ? (
-                  <img src={store.logo_url} alt={store.name} class="w-full h-full object-cover" />
-                ) : store.name.includes('Barbero') ? '💈' : '🎧'}
-              </div>
-              <div class="flex-1 min-w-0">
-                <h3 class="text-sm font-black text-gray-900 truncate">{store.name}</h3>
-                <p class="text-xs text-gray-400 truncate mt-0.5">{store.address_line}</p>
-                <span class="text-[10px] font-bold text-[#FF7A00] mt-1 block">★ 4.9 • 15-25 min</span>
-              </div>
-            </a>
-          ))}
+          {favoriteStores.map((store) => {
+            const isBarbero = store.name.includes('Barbero');
+            const logoUrl = isBarbero ? '/store-barbero-logo.svg' : '/store-wily-logo.svg';
+            const coverUrl = isBarbero ? '/store-barbero-cover.svg' : '/store-wily-cover.svg';
+            return (
+              <a 
+                href={`/stores/${store.id}`}
+                class="group bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-xs hover:shadow-md transition-all flex flex-col"
+              >
+                <div class="h-24 w-full relative overflow-hidden">
+                  <img src={coverUrl} alt={store.name} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                  <span class="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-black">
+                    ● Abierto
+                  </span>
+                </div>
+                <div class="p-4 flex items-center gap-3.5">
+                  <img src={logoUrl} alt={store.name} class="w-12 h-12 rounded-2xl object-cover border border-gray-100 shadow-xs shrink-0" />
+                  <div class="flex-1 min-w-0">
+                    <h3 class="text-sm font-black text-gray-900 truncate group-hover:text-[#FF5A00] transition-colors">{store.name}</h3>
+                    <p class="text-xs text-gray-400 truncate mt-0.5">{store.address_line}</p>
+                    <span class="text-[10px] font-bold text-[#FF7A00] mt-1 block">★ 4.9 • Entrega Express 15-25 min</span>
+                  </div>
+                </div>
+              </a>
+            );
+          })}
         </div>
       </section>
 
       <section class="space-y-3 pt-2">
-        <h2 class="text-sm font-black uppercase tracking-wider text-gray-400">Artículos y Productos Guardados</h2>
+        <h2 class="text-sm font-black uppercase tracking-wider text-gray-400">Artículos Guardados ({favoriteProducts.length})</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {favoriteProducts.map((p) => (
             <div class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs hover:shadow-md transition-all flex items-center justify-between gap-3">
@@ -131,7 +157,7 @@ for (const store of favoriteStores) {
                   />
                 </div>
                 <div class="min-w-0">
-                  <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block truncate">{p.storeName}</span>
+                  <span class="text-[10px] font-bold text-[#FF5A00] uppercase tracking-wider block truncate">{p.storeName}</span>
                   <h4 class="text-xs font-black text-gray-900 leading-tight truncate">{p.name}</h4>
                   <div class="mt-1">
                     <span class="text-xs font-black text-gray-950">${p.price.toFixed(2)}</span>
@@ -140,12 +166,19 @@ for (const store of favoriteStores) {
                 </div>
               </div>
 
-              <a 
-                href={`/stores/${p.storeId}`}
-                class="w-9 h-9 rounded-full bg-[#FF7A00] hover:bg-[#E66E00] text-white flex items-center justify-center font-black text-base shadow-sm active:scale-95 transition-all shrink-0"
+              <button 
+                type="button"
+                data-id={p.id}
+                data-name={p.name}
+                data-price={p.price}
+                data-image={p.image}
+                data-store-id={p.storeId}
+                data-store-name={p.storeName}
+                class="btn-fav-add-cart w-10 h-10 rounded-full bg-[#FF7A00] hover:bg-[#E66E00] text-white flex items-center justify-center font-black text-lg shadow-sm active:scale-95 transition-all shrink-0 cursor-pointer"
+                title="Agregar al Carrito"
               >
                 +
-              </a>
+              </button>
             </div>
           ))}
         </div>
@@ -153,7 +186,94 @@ for (const store of favoriteStores) {
 
     </main>
 
+    <div id="fav-cart-bar" class="fixed bottom-16 sm:bottom-6 left-4 right-4 z-40 max-w-xl mx-auto hidden">
+      <a 
+        href="/checkout"
+        class="w-full bg-gray-950 hover:bg-gray-900 text-white p-3.5 rounded-2xl shadow-2xl shadow-black/30 flex items-center justify-between border border-white/10 transition-all active:scale-98"
+      >
+        <div class="flex items-center gap-3">
+          <div id="fav-cart-count" class="w-8 h-8 rounded-xl bg-[#FF7A00] text-white font-black text-xs flex items-center justify-center">
+            0
+          </div>
+          <div class="text-left">
+            <span class="text-xs font-bold block leading-none">Ver Carrito Multi-Tienda</span>
+            <span class="text-[10px] text-gray-400 font-medium">Ir a pagar pedido</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="fav-cart-total" class="text-sm font-black text-[#FF7A00]">$0.00</span>
+          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+      </a>
+    </div>
+
     <Footer />
     <BottomNav />
+
+    <script is:inline>
+      (() => {
+        const CART_KEY = 'traigalo_cart';
+
+        function getCart() {
+          try {
+            return JSON.parse(localStorage.getItem(CART_KEY) || '[]');
+          } catch {
+            return [];
+          }
+        }
+
+        function updateBar() {
+          const cart = getCart();
+          const bar = document.getElementById('fav-cart-bar');
+          const countEl = document.getElementById('fav-cart-count');
+          const totalEl = document.getElementById('fav-cart-total');
+          if (!bar) return;
+
+          const totalQty = cart.reduce((acc, it) => acc + (it.qty || 1), 0);
+          const totalUsd = cart.reduce((acc, it) => acc + (Number(it.price) * (it.qty || 1)), 0);
+
+          if (totalQty > 0) {
+            bar.classList.remove('hidden');
+            if (countEl) countEl.textContent = String(totalQty);
+            if (totalEl) totalEl.textContent = `$${totalUsd.toFixed(2)}`;
+          } else {
+            bar.classList.add('hidden');
+          }
+        }
+
+        document.querySelectorAll('.btn-fav-add-cart').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-id');
+            const name = btn.getAttribute('data-name');
+            const price = parseFloat(btn.getAttribute('data-price') || '0');
+            const image = btn.getAttribute('data-image') || '';
+            const storeId = btn.getAttribute('data-store-id') || '';
+            const storeName = btn.getAttribute('data-store-name') || '';
+
+            const cart = getCart();
+            const existing = cart.find((i) => i.id === id);
+            if (existing) {
+              existing.qty = (existing.qty || 1) + 1;
+            } else {
+              cart.push({ id, name, price, image, qty: 1, storeId, storeName });
+            }
+            localStorage.setItem(CART_KEY, JSON.stringify(cart));
+            updateBar();
+
+            const orig = btn.textContent;
+            btn.textContent = '✓';
+            btn.classList.add('bg-emerald-600');
+            setTimeout(() => {
+              btn.textContent = orig;
+              btn.classList.remove('bg-emerald-600');
+            }, 650);
+          });
+        });
+
+        updateBar();
+      })();
+    </script>
   </body>
 </html>

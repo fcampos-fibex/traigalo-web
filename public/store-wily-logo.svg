@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="wbg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0B1536"/>
+      <stop offset="100%" stop-color="#1E3A8A"/>
+    </linearGradient>
+    <linearGradient id="wacc" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00E5FF"/>
+      <stop offset="100%" stop-color="#3B82F6"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" rx="44" fill="url(#wbg)"/>
+  <circle cx="100" cy="100" r="76" fill="none" stroke="url(#wacc)" stroke-width="5" opacity="0.85"/>
+  <path d="M56 108 C56 68, 144 68, 144 108" fill="none" stroke="#00E5FF" stroke-width="11" stroke-linecap="round"/>
+  <rect x="44" y="100" width="24" height="44" rx="12" fill="#FF7A00"/>
+  <rect x="132" y="100" width="24" height="44" rx="12" fill="#FF7A00"/>
+  <text x="100" y="128" font-family="system-ui, sans-serif" font-weight="900" font-size="32" fill="#FFFFFF" text-anchor="middle" letter-spacing="1">WV</text>
+</svg>

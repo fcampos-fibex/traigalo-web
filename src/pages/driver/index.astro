@@ -45,18 +45,30 @@ try {
 
 if (assignedOrders.length === 0) {
   assignedOrders = allOrders.filter(
-    (o) => o && (o.status === 'driver_assigned' || o.status === 'in_transit' || o.status === 'delivered')
+    (o) => o && (o.status === 'driver_assigned' || o.status === 'driver_in_transit' || o.status === 'in_transit' || o.status === 'delivered')
   );
 }
 
 const currentActiveOrder = assignedOrders.find(
   (o) => o && (o.status === 'driver_assigned' || o.status === 'driver_in_transit' || o.status === 'in_transit')
 ) || null;
+
+function formatDriverStatus(st: string): string {
+  if (st === 'driver_assigned') return 'Asignado p/ Retiro';
+  if (st === 'driver_in_transit' || st === 'in_transit') return 'En Camino';
+  if (st === 'delivered') return 'Entregado';
+  if (st === 'ready_for_pickup') return 'Listo en Tienda';
+  if (st === 'preparing') return 'Preparando';
+  if (st === 'accepted_by_store') return 'Aceptado en Tienda';
+  if (st === 'placed') return 'Nuevo Pedido';
+  return st;
+}
 ---
 
 <html lang="es">
   <head>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon.png?v=3" />
+    <link rel="apple-touch-icon" href="/icon-192.png?v=3" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#FF5A00" />
     <meta charset="utf-8" />
@@ -67,7 +79,7 @@ const currentActiveOrder = assignedOrders.find(
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   </head>
   <body class="bg-[#FAFAFC] text-[#1A1D20] min-h-screen flex flex-col pb-16 antialiased selection:bg-[#FF7A00] selection:text-white">
-    <RoleSwitcher />
+    <RoleSwitcher currentRole="driver" />
 
     <header class="bg-white/95 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40 px-4 py-3.5">
       <div class="max-w-2xl mx-auto flex items-center justify-between">
@@ -77,7 +89,7 @@ const currentActiveOrder = assignedOrders.find(
           </a>
           <div>
             <h1 class="text-sm font-extrabold text-gray-900 leading-tight">{driver.name}</h1>
-            <span class="text-[10px] font-bold text-amber-500">{driver.rating} • Nivel Diamante</span>
+            <span class="text-[10px] font-bold text-amber-500">{driver.rating} • {driver.vehicle}</span>
           </div>
         </div>
 
@@ -123,9 +135,14 @@ const currentActiveOrder = assignedOrders.find(
       {currentActiveOrder && (
         <section class="bg-white rounded-3xl p-5 border-2 border-orange-600/40 shadow-md relative overflow-hidden">
           <div class="flex items-center justify-between mb-3">
-            <span class="px-2.5 py-0.5 rounded-full bg-orange-100 text-[#FF7A00] font-extrabold text-[10px] uppercase tracking-wider">
-              ● Pedido Activo #{currentActiveOrder.order_number || currentActiveOrder.id.slice(0, 8)}
-            </span>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full bg-orange-100 text-[#FF7A00] font-extrabold text-[10px] uppercase tracking-wider">
+                ● Pedido Activo #{currentActiveOrder.order_number || currentActiveOrder.id.slice(0, 8)}
+              </span>
+              <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-black text-[10px]">
+                {formatDriverStatus(currentActiveOrder.status)}
+              </span>
+            </div>
             <div class="text-right">
               <span class="text-sm font-black text-[#FF7A00]">
                 ${Number(currentActiveOrder.total).toFixed(2)}
@@ -143,8 +160,8 @@ const currentActiveOrder = assignedOrders.find(
               </div>
               <div class="flex-1 min-w-0">
                 <span class="text-[10px] font-bold text-gray-400 uppercase">Recoger en Comercio Oficial</span>
-                <h4 class="text-xs font-bold text-gray-900 truncate">
-                  {currentActiveOrder.store_id === '03577774-2f0b-4b68-bb11-5c91628dbd5f' ? 'El Sitio del Barbero' : 'WILY VIDEO'}
+                <h4 class="text-xs font-black text-gray-900 truncate">
+                  {currentActiveOrder.store_id === '03577774-2f0b-4b68-bb11-5c91628dbd5f' ? '💈 El Sitio del Barbero' : '🎧 WILY VIDEO'}
                 </h4>
                 <p class="text-[11px] text-gray-500 truncate">Higuerote, Estado Miranda</p>
               </div>
@@ -182,7 +199,7 @@ const currentActiveOrder = assignedOrders.find(
               </button>
             )}
 
-            {currentActiveOrder.status === 'in_transit' && (
+            {(currentActiveOrder.status === 'in_transit' || currentActiveOrder.status === 'driver_in_transit') && (
               <button 
                 data-action="deliver"
                 data-order-id={currentActiveOrder.id}
@@ -199,8 +216,8 @@ const currentActiveOrder = assignedOrders.find(
       <section class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-3">
         <div class="flex items-center justify-between">
           <div>
-            <h3 class="text-sm font-extrabold text-gray-900">Pedidos Disponibles para Aceptar</h3>
-            <p class="text-xs text-gray-400">Toma una orden para comenzar el despacho</p>
+            <h3 class="text-sm font-extrabold text-gray-900">Pedidos Disponibles por Comercio</h3>
+            <p class="text-xs text-gray-400">Acepta un pedido de WILY VIDEO o El Sitio del Barbero</p>
           </div>
           <span class="text-xs font-black text-[#FF7A00] bg-orange-50 px-2.5 py-1 rounded-full">
             {availableOrders.length} disponibles
@@ -218,13 +235,15 @@ const currentActiveOrder = assignedOrders.find(
             {availableOrders.map((ord) => {
               const totalUSD = Number(ord.total) || 0;
               const totalBsFormatted = formatBs(totalUSD, bcvRate);
-              const sName = ord.store_id === '03577774-2f0b-4b68-bb11-5c91628dbd5f' ? 'El Sitio del Barbero' : 'WILY VIDEO';
+              const isBarberoStore = ord.store_id === '03577774-2f0b-4b68-bb11-5c91628dbd5f';
+              const sName = isBarberoStore ? '💈 El Sitio del Barbero' : '🎧 WILY VIDEO';
               return (
                 <div class="p-4 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-between gap-3">
                   <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 flex-wrap">
                       <span class="text-xs font-black text-gray-900 font-mono">#{ord.order_number || ord.id.slice(0, 8)}</span>
-                      <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">{sName}</span>
+                      <span class={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isBarberoStore ? 'bg-amber-50 text-amber-800' : 'bg-blue-50 text-blue-700'}`}>{sName}</span>
+                      <span class="text-[9px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">{formatDriverStatus(ord.status)}</span>
                     </div>
                     <p class="text-xs text-gray-600 font-medium truncate mt-1">📍 {ord.delivery_address || 'Higuerote, Miranda'}</p>
                     <div class="flex items-center gap-2 mt-1">
@@ -251,25 +270,29 @@ const currentActiveOrder = assignedOrders.find(
         <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-400 mb-3">Historial de Despachos</h3>
         
         <div class="space-y-3">
-          {assignedOrders.map(ord => (
-            <div class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0 last:pb-0 text-xs">
-              <div class="flex items-center gap-2.5">
-                <span class={`w-7 h-7 rounded-full font-bold text-[10px] flex items-center justify-center ${
-                  ord.status === 'delivered' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-[#FF7A00]'
-                }`}>
-                  {ord.status === 'delivered' ? '✓' : '🛵'}
-                </span>
-                <div>
-                  <h4 class="font-bold text-gray-900 leading-tight">#{ord.order_number || ord.id.slice(0, 8)} • {ord.delivery_address || 'Higuerote, Miranda'}</h4>
-                  <span class="text-[10px] text-gray-400">{new Date(ord.placed_at || Date.now()).toLocaleTimeString()} • Estado: {ord.status}</span>
+          {assignedOrders.map(ord => {
+            const sName = ord.store_id === '03577774-2f0b-4b68-bb11-5c91628dbd5f' ? 'El Sitio del Barbero' : 'WILY VIDEO';
+            return (
+              <div class="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0 last:pb-0 text-xs">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <span class={`w-8 h-8 rounded-full font-bold text-xs flex items-center justify-center shrink-0 ${
+                    ord.status === 'delivered' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-[#FF7A00]'
+                  }`}>
+                    {ord.status === 'delivered' ? '✓' : '🛵'}
+                  </span>
+                  <div class="min-w-0">
+                    <h4 class="font-bold text-gray-900 leading-tight truncate">#{ord.order_number || ord.id.slice(0, 8)} • {sName}</h4>
+                    <p class="text-[11px] text-gray-500 truncate">{ord.delivery_address || 'Higuerote, Miranda'}</p>
+                    <span class="text-[10px] text-gray-400 font-semibold">{new Date(ord.placed_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • <strong class="text-gray-600">{formatDriverStatus(ord.status)}</strong></span>
+                  </div>
+                </div>
+                <div class="text-right shrink-0 ml-2">
+                  <span class="font-black text-gray-900">${Number(ord.total).toFixed(2)}</span>
+                  <span class="block text-[9px] text-gray-400 font-semibold">{formatBs(Number(ord.total), bcvRate)}</span>
                 </div>
               </div>
-              <div class="text-right">
-                <span class="font-black text-gray-900">${Number(ord.total).toFixed(2)}</span>
-                <span class="block text-[9px] text-gray-400 font-semibold">{formatBs(Number(ord.total), bcvRate)}</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -346,293 +369,296 @@ const currentActiveOrder = assignedOrders.find(
     </div>
 
     <script is:inline define:vars={{ driverId, bcvRate }}>
-      const API_ORDERS = 'https://api.traigalo.org/v2/orders';
-      const API_LOCATIONS = 'https://api.traigalo.org/v2/drivers/locations';
-      const API_DISPATCH = 'https://api.traigalo.org/v2/dispatch';
+      (() => {
+        const API_ORDERS = 'https://api.traigalo.org/v2/orders';
+        const API_LOCATIONS = 'https://api.traigalo.org/v2/drivers/locations';
+        const API_DISPATCH = 'https://api.traigalo.org/v2/dispatch';
 
-      let dispatchCountdownTimer = null;
-      let alertSoundInterval = null;
-      let currentOffer = null;
+        let dispatchCountdownTimer = null;
+        let alertSoundInterval = null;
+        let currentOffer = null;
 
-      function playUrgentArpeggio() {
-        try {
-          const AudioContext = window.AudioContext || window.webkitAudioContext;
-          if (!AudioContext) return;
-          const ctx = new AudioContext();
-          const now = ctx.currentTime;
+        function playUrgentArpeggio() {
+          try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
+            const now = ctx.currentTime;
 
-          const notes = [440, 554.37, 659.25, 880];
-          notes.forEach((freq, idx) => {
+            const notes = [440, 554.37, 659.25, 880];
+            notes.forEach((freq, idx) => {
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.type = 'triangle';
+              osc.frequency.setValueAtTime(freq, now + (idx * 0.08));
+
+              gain.gain.setValueAtTime(0.3, now + (idx * 0.08));
+              gain.gain.exponentialRampToValueAtTime(0.01, now + (idx * 0.08) + 0.15);
+
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+
+              osc.start(now + (idx * 0.08));
+              osc.stop(now + (idx * 0.08) + 0.15);
+            });
+          } catch {}
+        }
+
+        function startUrgentAlertAudio() {
+          playUrgentArpeggio();
+          if (!alertSoundInterval) {
+            alertSoundInterval = setInterval(playUrgentArpeggio, 1200);
+          }
+        }
+
+        function stopUrgentAlertAudio() {
+          if (alertSoundInterval) {
+            clearInterval(alertSoundInterval);
+            alertSoundInterval = null;
+          }
+        }
+
+        function showDispatchOfferModal(offer) {
+          currentOffer = offer;
+          const modal = document.getElementById('urgent-dispatch-modal');
+          const countdownEl = document.getElementById('dispatch-countdown');
+          const circle = document.getElementById('countdown-circle');
+          const storeNameEl = document.getElementById('offer-store-name');
+          const storeDistEl = document.getElementById('offer-store-dist');
+          const addrEl = document.getElementById('offer-delivery-addr');
+          const earnUsdEl = document.getElementById('offer-earnings-usd');
+          const earnBsEl = document.getElementById('offer-earnings-bs');
+
+          const resolvedStoreName = offer.store_name || (offer.store_id === '03577774-2f0b-4b68-bb11-5c91628dbd5f' ? 'El Sitio del Barbero' : 'WILY VIDEO');
+          if (storeNameEl) storeNameEl.textContent = resolvedStoreName;
+          if (storeDistEl) storeDistEl.textContent = `Retiro a ${offer.pickup_distance || '0.8 km'} de tu ubicación`;
+          if (addrEl) addrEl.textContent = offer.delivery_address || 'Av. Andrés Eloy Blanco, Higuerote';
+
+          const earningsUSD = Number(offer.earnings_usd || 3.50);
+          const earningsBS = earningsUSD * (bcvRate || 896.12);
+          if (earnUsdEl) earnUsdEl.textContent = `$${earningsUSD.toFixed(2)}`;
+          if (earnBsEl) {
+            earnBsEl.textContent = `~ Bs. ${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2 }).format(earningsBS)} @ BCV`;
+          }
+
+          if (modal) modal.classList.remove('hidden');
+          startUrgentAlertAudio();
+
+          let timeLeft = 45;
+          if (countdownEl) countdownEl.textContent = String(timeLeft);
+          if (circle) circle.setAttribute('stroke-dasharray', '100, 100');
+
+          if (dispatchCountdownTimer) clearInterval(dispatchCountdownTimer);
+          dispatchCountdownTimer = setInterval(() => {
+            timeLeft--;
+            if (countdownEl) countdownEl.textContent = String(timeLeft);
+            if (circle) {
+              const pct = (timeLeft / 45) * 100;
+              circle.setAttribute('stroke-dasharray', `${pct}, 100`);
+            }
+
+            if (timeLeft <= 0) {
+              closeDispatchOfferModal();
+            }
+          }, 1000);
+        }
+
+        function closeDispatchOfferModal() {
+          const modal = document.getElementById('urgent-dispatch-modal');
+          if (modal) modal.classList.add('hidden');
+          stopUrgentAlertAudio();
+          if (dispatchCountdownTimer) {
+            clearInterval(dispatchCountdownTimer);
+            dispatchCountdownTimer = null;
+          }
+          currentOffer = null;
+        }
+
+        const acceptOfferBtn = document.getElementById('btn-accept-offer');
+        if (acceptOfferBtn) {
+          acceptOfferBtn.addEventListener('click', async () => {
+            if (!currentOffer) return;
+            acceptOfferBtn.disabled = true;
+            acceptOfferBtn.textContent = 'Aceptando...';
+
+            try {
+              const offerId = currentOffer.id || currentOffer.offer_id || currentOffer.order_id;
+              const res = await fetch(`${API_DISPATCH}/offers/${offerId}/actions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'accept', driver_id: driverId })
+              });
+
+              if (!res.ok) {
+                await fetch(`${API_ORDERS}/${offerId}/actions`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ action: 'assign_driver', driver_id: driverId })
+                });
+              }
+
+              closeDispatchOfferModal();
+              window.location.reload();
+            } catch (err) {
+              closeDispatchOfferModal();
+              window.location.reload();
+            }
+          });
+        }
+
+        const rejectOfferBtn = document.getElementById('btn-reject-offer');
+        if (rejectOfferBtn) {
+          rejectOfferBtn.addEventListener('click', async () => {
+            if (currentOffer) {
+              const offerId = currentOffer.id || currentOffer.offer_id || currentOffer.order_id;
+              await fetch(`${API_DISPATCH}/offers/${offerId}/actions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'reject', driver_id: driverId })
+              }).catch(() => {});
+            }
+            closeDispatchOfferModal();
+          });
+        }
+
+        function initDriverWebSocket() {
+          let ws = null;
+          try {
+            ws = new WebSocket(`wss://ws.traigalo.org/ws?driver_id=${encodeURIComponent(driverId)}`);
+          } catch {}
+
+          if (ws) {
+            ws.onmessage = (event) => {
+              try {
+                const data = JSON.parse(event.data);
+                if (data.event === 'dispatch_offer' || data.type === 'dispatch_offer' || data.type === 'driver_offer') {
+                  showDispatchOfferModal(data.payload || data);
+                }
+              } catch {}
+            };
+          }
+        }
+
+        initDriverWebSocket();
+
+        async function triggerDriverAction(orderId, actionName) {
+          try {
+            const res = await fetch(`${API_ORDERS}/${orderId}/actions`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                action: actionName,
+                driver_id: driverId 
+              })
+            });
+
+            if (!res.ok) {
+              throw new Error(`Error en servidor: ${res.status}`);
+            }
+
+            window.location.reload();
+          } catch (err) {
+            alert(`No se pudo ejecutar la acción: ${err.message}`);
+          }
+        }
+
+        document.querySelectorAll('.btn-driver-action').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const orderId = btn.getAttribute('data-order-id');
+            const action = btn.getAttribute('data-action');
+            if (orderId && action) {
+              btn.disabled = true;
+              btn.textContent = 'Procesando...';
+              await triggerDriverAction(orderId, action);
+            }
+          });
+        });
+
+        function sendLocationUpdate(lat, lng, heading = 0, speed = 0) {
+          fetch(API_LOCATIONS, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              driver_id: driverId,
+              latitude: lat,
+              longitude: lng,
+              heading: heading || 0,
+              speed: speed || 0
+            })
+          }).catch(() => {});
+        }
+
+        function startGpsTracking() {
+          const gpsPulse = document.getElementById('gps-pulse');
+          const gpsText = document.getElementById('gps-text');
+
+          if ('geolocation' in navigator) {
+            navigator.geolocation.watchPosition(
+              (pos) => {
+                const { latitude, longitude, heading, speed } = pos.coords;
+                sendLocationUpdate(latitude, longitude, heading || 0, speed || 0);
+                if (gpsText) gpsText.textContent = 'GPS Transmitiendo';
+                if (gpsPulse) gpsPulse.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-ping';
+              },
+              () => {
+                simulateGpsMovement();
+              },
+              { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+            );
+          } else {
+            simulateGpsMovement();
+          }
+        }
+
+        let simStep = 0;
+        function simulateGpsMovement() {
+          const baseLat = 10.4852;
+          const baseLng = -66.0975;
+          sendLocationUpdate(baseLat, baseLng, 90.0, 25.0);
+          setInterval(() => {
+            simStep = (simStep + 1) % 100;
+            const lat = baseLat + (Math.sin(simStep * 0.1) * 0.002);
+            const lng = baseLng + (Math.cos(simStep * 0.1) * 0.002);
+            sendLocationUpdate(lat, lng, 90.0, 25.0);
+          }, 5000);
+        }
+
+        function playDriverAlertTone() {
+          try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
+            const now = ctx.currentTime;
+
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(freq, now + (idx * 0.08));
 
-            gain.gain.setValueAtTime(0.3, now + (idx * 0.08));
-            gain.gain.exponentialRampToValueAtTime(0.01, now + (idx * 0.08) + 0.15);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(523.25, now);
+            osc.frequency.setValueAtTime(659.25, now + 0.1);
+            osc.frequency.setValueAtTime(783.99, now + 0.2);
+            osc.frequency.setValueAtTime(1046.50, now + 0.3);
+
+            gain.gain.setValueAtTime(0.25, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
 
             osc.connect(gain);
             gain.connect(ctx.destination);
 
-            osc.start(now + (idx * 0.08));
-            osc.stop(now + (idx * 0.08) + 0.15);
-          });
-        } catch {}
-      }
-
-      function startUrgentAlertAudio() {
-        playUrgentArpeggio();
-        if (!alertSoundInterval) {
-          alertSoundInterval = setInterval(playUrgentArpeggio, 1200);
-        }
-      }
-
-      function stopUrgentAlertAudio() {
-        if (alertSoundInterval) {
-          clearInterval(alertSoundInterval);
-          alertSoundInterval = null;
-        }
-      }
-
-      function showDispatchOfferModal(offer) {
-        currentOffer = offer;
-        const modal = document.getElementById('urgent-dispatch-modal');
-        const countdownEl = document.getElementById('dispatch-countdown');
-        const circle = document.getElementById('countdown-circle');
-        const storeNameEl = document.getElementById('offer-store-name');
-        const storeDistEl = document.getElementById('offer-store-dist');
-        const addrEl = document.getElementById('offer-delivery-addr');
-        const earnUsdEl = document.getElementById('offer-earnings-usd');
-        const earnBsEl = document.getElementById('offer-earnings-bs');
-
-        if (storeNameEl) storeNameEl.textContent = offer.store_name || 'WILY VIDEO';
-        if (storeDistEl) storeDistEl.textContent = `Retiro a ${offer.pickup_distance || '0.8 km'} de tu ubicación`;
-        if (addrEl) addrEl.textContent = offer.delivery_address || 'Av. Andrés Eloy Blanco, Higuerote';
-
-        const earningsUSD = Number(offer.earnings_usd || 3.50);
-        const earningsBS = earningsUSD * (bcvRate || 896.12);
-        if (earnUsdEl) earnUsdEl.textContent = `$${earningsUSD.toFixed(2)}`;
-        if (earnBsEl) {
-          earnBsEl.textContent = `~ Bs. ${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2 }).format(earningsBS)} @ BCV`;
+            osc.start(now);
+            osc.stop(now + 0.5);
+          } catch {}
         }
 
-        if (modal) modal.classList.remove('hidden');
-        startUrgentAlertAudio();
-
-        let timeLeft = 45;
-        if (countdownEl) countdownEl.textContent = String(timeLeft);
-        if (circle) circle.setAttribute('stroke-dasharray', '100, 100');
-
-        if (dispatchCountdownTimer) clearInterval(dispatchCountdownTimer);
-        dispatchCountdownTimer = setInterval(() => {
-          timeLeft--;
-          if (countdownEl) countdownEl.textContent = String(timeLeft);
-          if (circle) {
-            const pct = (timeLeft / 45) * 100;
-            circle.setAttribute('stroke-dasharray', `${pct}, 100`);
-          }
-
-          if (timeLeft <= 0) {
-            closeDispatchOfferModal();
-          }
-        }, 1000);
-      }
-
-      function closeDispatchOfferModal() {
-        const modal = document.getElementById('urgent-dispatch-modal');
-        if (modal) modal.classList.add('hidden');
-        stopUrgentAlertAudio();
-        if (dispatchCountdownTimer) {
-          clearInterval(dispatchCountdownTimer);
-          dispatchCountdownTimer = null;
-        }
-        currentOffer = null;
-      }
-
-      const acceptOfferBtn = document.getElementById('btn-accept-offer');
-      if (acceptOfferBtn) {
-        acceptOfferBtn.addEventListener('click', async () => {
-          if (!currentOffer) return;
-          acceptOfferBtn.disabled = true;
-          acceptOfferBtn.textContent = 'Aceptando...';
-
-          try {
-            const offerId = currentOffer.id || currentOffer.offer_id || currentOffer.order_id;
-            const res = await fetch(`${API_DISPATCH}/offers/${offerId}/actions`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ action: 'accept', driver_id: driverId })
-            });
-
-            if (!res.ok) {
-              await fetch(`${API_ORDERS}/${offerId}/actions`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'assign_driver', driver_id: driverId })
-              });
-            }
-
-            closeDispatchOfferModal();
-            window.location.reload();
-          } catch (err) {
-            closeDispatchOfferModal();
-            window.location.reload();
+        window.addEventListener('load', () => {
+          const hasOrders = document.querySelector('.btn-driver-action') !== null;
+          if (hasOrders) {
+            playDriverAlertTone();
           }
         });
-      }
 
-      const rejectOfferBtn = document.getElementById('btn-reject-offer');
-      if (rejectOfferBtn) {
-        rejectOfferBtn.addEventListener('click', async () => {
-          if (currentOffer) {
-            const offerId = currentOffer.id || currentOffer.offer_id || currentOffer.order_id;
-            await fetch(`${API_DISPATCH}/offers/${offerId}/actions`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ action: 'reject', driver_id: driverId })
-            }).catch(() => {});
-          }
-          closeDispatchOfferModal();
-        });
-      }
-
-      function initDriverWebSocket() {
-        let ws = null;
-        try {
-          ws = new WebSocket(`wss://ws.traigalo.org/ws?driver_id=${encodeURIComponent(driverId)}`);
-        } catch {}
-
-        if (ws) {
-          ws.onmessage = (event) => {
-            try {
-              const data = JSON.parse(event.data);
-              if (data.event === 'dispatch_offer' || data.type === 'dispatch_offer' || data.type === 'driver_offer') {
-                showDispatchOfferModal(data.payload || data);
-              }
-            } catch {}
-          };
-        }
-      }
-
-      initDriverWebSocket();
-
-      async function triggerDriverAction(orderId, actionName) {
-        try {
-          const res = await fetch(`${API_ORDERS}/${orderId}/actions`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              action: actionName,
-              driver_id: driverId 
-            })
-          });
-
-          if (!res.ok) {
-            throw new Error(`Error en servidor: ${res.status}`);
-          }
-
-          window.location.reload();
-        } catch (err) {
-          alert(`No se pudo ejecutar la acción: ${err.message}`);
-        }
-      }
-
-      document.querySelectorAll('.btn-driver-action').forEach((btn) => {
-        btn.addEventListener('click', async () => {
-          const orderId = btn.getAttribute('data-order-id');
-          const action = btn.getAttribute('data-action');
-          if (orderId && action) {
-            btn.disabled = true;
-            btn.textContent = 'Procesando...';
-            await triggerDriverAction(orderId, action);
-          }
-        });
-      });
-
-      function sendLocationUpdate(lat, lng, heading = 0, speed = 0) {
-        fetch(API_LOCATIONS, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            driver_id: driverId,
-            latitude: lat,
-            longitude: lng,
-            heading: heading || 0,
-            speed: speed || 0
-          })
-        }).catch(() => {});
-      }
-
-      function startGpsTracking() {
-        const gpsPulse = document.getElementById('gps-pulse');
-        const gpsText = document.getElementById('gps-text');
-
-        if ('geolocation' in navigator) {
-          navigator.geolocation.watchPosition(
-            (pos) => {
-              const { latitude, longitude, heading, speed } = pos.coords;
-              sendLocationUpdate(latitude, longitude, heading || 0, speed || 0);
-              if (gpsText) gpsText.textContent = 'GPS Transmitiendo';
-              if (gpsPulse) gpsPulse.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-ping';
-            },
-            () => {
-              simulateGpsMovement();
-            },
-            { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
-          );
-        } else {
-          simulateGpsMovement();
-        }
-      }
-
-      let simStep = 0;
-      function simulateGpsMovement() {
-        const baseLat = 10.4842;
-        const baseLng = -66.0990;
-        sendLocationUpdate(baseLat, baseLng, 90.0, 25.0);
-        setInterval(() => {
-          simStep = (simStep + 1) % 100;
-          const lat = baseLat + (Math.sin(simStep * 0.1) * 0.005);
-          const lng = baseLng + (Math.cos(simStep * 0.1) * 0.005);
-          sendLocationUpdate(lat, lng, 90.0, 25.0);
-        }, 5000);
-      }
-
-      function playDriverAlertTone() {
-        try {
-          const AudioContext = window.AudioContext || window.webkitAudioContext;
-          if (!AudioContext) return;
-          const ctx = new AudioContext();
-          const now = ctx.currentTime;
-
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(523.25, now);
-          osc.frequency.setValueAtTime(659.25, now + 0.1);
-          osc.frequency.setValueAtTime(783.99, now + 0.2);
-          osc.frequency.setValueAtTime(1046.50, now + 0.3);
-
-          gain.gain.setValueAtTime(0.25, now);
-          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-
-          osc.start(now);
-          osc.stop(now + 0.5);
-        } catch {}
-      }
-
-      window.addEventListener('load', () => {
-        const hasOrders = document.querySelector('.btn-driver-action') !== null;
-        if (hasOrders) {
-          playDriverAlertTone();
-        }
-      });
-
-      startGpsTracking();
+        startGpsTracking();
+      })();
     </script>
   </body>
 </html>

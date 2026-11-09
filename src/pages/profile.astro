@@ -4,6 +4,7 @@ import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import BottomNav from "../components/BottomNav.astro";
 import RoleSwitcher from "../components/RoleSwitcher.astro";
+import LocationModal from "../components/LocationModal.astro";
 import { getOfficialExchangeRate, formatBs } from "../adapters/rates";
 
 const API_BASE = "https://api.traigalo.org/v2";
@@ -18,6 +19,18 @@ try {
   }
 } catch {}
 
+function formatStatusLabel(st: string): string {
+  if (st === "placed") return "Confirmado";
+  if (st === "accepted_by_store") return "Aceptado en Tienda";
+  if (st === "preparing") return "Preparando";
+  if (st === "ready_for_pickup") return "Listo p/ Despacho";
+  if (st === "driver_assigned") return "Repartidor Asignado";
+  if (st === "driver_in_transit" || st === "in_transit") return "En Camino";
+  if (st === "delivered") return "Entregado";
+  if (st === "cancelled") return "Cancelado";
+  return st || "Confirmado";
+}
+
 const user = {
   name: "Freddy Campos",
   email: "freddy@traigalo.com",
@@ -26,7 +39,7 @@ const user = {
     { title: "Ubicación Principal", address: "Av. Andrés Eloy Blanco, Higuerote, Miranda", isDefault: true }
   ],
   paymentMethods: [
-    { brand: "Pago Móvil BCV", last4: "Banesco (0134)", isDefault: true },
+    { brand: "Pago Móvil BCV", last4: "Banesco (0134) • Verificado", isDefault: true },
     { brand: "Tarjeta Débito / Crédito", last4: "Internacional / Nacional", isDefault: false },
     { brand: "Efectivo USD / Bs", last4: "Contra entrega", isDefault: false }
   ]
@@ -36,7 +49,8 @@ const user = {
 <!doctype html>
 <html lang="es">
   <head>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon.png?v=3" />
+    <link rel="apple-touch-icon" href="/icon-192.png?v=3" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#FF5A00" />
     <meta charset="UTF-8" />
@@ -57,7 +71,7 @@ const user = {
         </div>
         <div class="flex-1 min-w-0">
           <h2 id="profile-name" class="text-base font-extrabold text-gray-900 leading-snug">{user.name}</h2>
-          <p id="profile-email" class="text-xs text-gray-500 truncate">{user.email}</p>
+          <p id="profile-email" class="text-xs text-gray-500 truncate">{user.email} • {user.phone}</p>
           <div class="mt-1 flex items-center gap-1.5">
             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-black border border-amber-200/60">
               ⭐ Cuenta Verificada Traigalo
@@ -130,7 +144,7 @@ const user = {
                 <div class="flex items-center justify-between">
                   <div>
                     <p class="text-xs font-extrabold text-gray-900">{storeLabel}</p>
-                    <p class="text-[11px] text-gray-400">Orden #{ord.order_number || ord.id.slice(0, 8)} • {ord.status}</p>
+                    <p class="text-[11px] text-gray-500">Orden #{ord.order_number || ord.id.slice(0, 8)} • <strong class="text-[#FF7A00]">{formatStatusLabel(ord.status)}</strong></p>
                   </div>
                   <div class="text-right">
                     <span class="text-xs font-black text-gray-900">${totalUsd.toFixed(2)}</span>
@@ -150,37 +164,47 @@ const user = {
 
     <Footer />
     <BottomNav />
+    <LocationModal />
 
     <script is:inline>
-      try {
-        const rawUser = localStorage.getItem("traigalo_user");
-        if (rawUser) {
-          const u = JSON.parse(rawUser);
-          const nameEl = document.getElementById("profile-name");
-          const emailEl = document.getElementById("profile-email");
-          const avatarEl = document.getElementById("profile-avatar");
-          if (u.name && nameEl) nameEl.textContent = u.name;
-          if (u.email && emailEl) emailEl.textContent = u.email;
-          if (u.name && avatarEl) {
-            avatarEl.textContent = u.name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+      (() => {
+        try {
+          const rawUser = localStorage.getItem("traigalo_user");
+          if (rawUser) {
+            const u = JSON.parse(rawUser);
+            const nameEl = document.getElementById("profile-name");
+            const emailEl = document.getElementById("profile-email");
+            const avatarEl = document.getElementById("profile-avatar");
+            if (u.name && nameEl) nameEl.textContent = u.name;
+            if (u.email && emailEl) emailEl.textContent = u.email;
+            if (u.name && avatarEl) {
+              avatarEl.textContent = u.name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+            }
           }
-        }
-        const rawLoc = localStorage.getItem("traigalo_location");
-        if (rawLoc) {
-          const loc = JSON.parse(rawLoc);
-          const addrEl = document.getElementById("profile-saved-address");
-          if (loc.address && addrEl) addrEl.textContent = loc.address;
-        }
-      } catch {}
+          const rawLoc = localStorage.getItem("traigalo_location");
+          if (rawLoc) {
+            const loc = JSON.parse(rawLoc);
+            const addrEl = document.getElementById("profile-saved-address");
+            if (loc.address && addrEl) addrEl.textContent = loc.address;
+          }
+        } catch {}
 
-      const changeAddrBtn = document.getElementById("btn-profile-change-address");
-      if (changeAddrBtn) {
-        changeAddrBtn.addEventListener("click", () => {
-          if (typeof window.openLocationModal === "function") {
-            window.openLocationModal();
+        const changeAddrBtn = document.getElementById("btn-profile-change-address");
+        if (changeAddrBtn) {
+          changeAddrBtn.addEventListener("click", () => {
+            if (typeof window.openLocationModal === "function") {
+              window.openLocationModal();
+            }
+          });
+        }
+
+        window.addEventListener("traigalo:location-changed", (e) => {
+          if (e.detail && e.detail.address) {
+            const addrEl = document.getElementById("profile-saved-address");
+            if (addrEl) addrEl.textContent = e.detail.address;
           }
         });
-      }
+      })();
     </script>
   </body>
 </html>

@@ -8,6 +8,17 @@ const requestedOrderId = Astro.url.searchParams.get('id') || '';
 const API_BASE = 'https://api.traigalo.org/v2';
 const bcvRate = await getOfficialExchangeRate();
 
+function cleanProductName(rawName: string): string {
+  return String(rawName || '')
+    .replace(/^Ariculares/i, 'Auriculares')
+    .replace(/^5-Sprinng/i, '5-Spring Chest Pull')
+    .replace(/^Abdominal musclw/i, 'Abdominal Muscle Trainer')
+    .replace(/^Aceite de resino/i, 'Aceite de Ricino')
+    .replace(/^After chave/i, 'After Shave Profesional')
+    .replace(/^Back pain need hellp/i, 'Soporte Lumbar Back Pain')
+    .replace(/^Brocha de ljo/i, 'Brocha de Lujo');
+}
+
 let orderData: any = null;
 if (requestedOrderId) {
   try {
@@ -31,8 +42,8 @@ if (!orderData) {
 }
 
 const orderId = orderData?.id || requestedOrderId || '46a0baf0-4100-465d-934a-f2d14f004ba5';
-let storeName = 'WILY VIDEO';
 let storeId = orderData?.store_id || '46a0baf0-4100-465d-934a-f2d14f004ba5';
+let storeName = storeId === '03577774-2f0b-4b68-bb11-5c91628dbd5f' ? 'El Sitio del Barbero' : 'WILY VIDEO';
 
 if (storeId) {
   try {
@@ -51,7 +62,7 @@ try {
     const pList = await pRes.json();
     if (Array.isArray(pList)) {
       for (const p of pList) {
-        if (p.id && p.name) productNamesMap[p.id] = p.name;
+        if (p.id && p.name) productNamesMap[p.id] = cleanProductName(p.name);
       }
     }
   }
@@ -59,7 +70,7 @@ try {
 
 const resolvedItems = Array.isArray(orderData?.items) && orderData.items.length > 0
   ? orderData.items.map((it: any) => ({
-      name: productNamesMap[it.product_id] || it.name || 'Producto Oficial Verificado',
+      name: productNamesMap[it.product_id] || cleanProductName(it.name || '') || 'Producto Oficial Verificado',
       qty: Number(it.quantity) || 1,
       price: Number(it.unit_price) || 10.0,
       priceBs: formatBs(Number(it.unit_price) || 10.0, bcvRate)
@@ -79,7 +90,7 @@ const activeOrder = {
   driverVehicle: 'Yamaha FZ • Placa: AB1-23C',
   driverRating: '4.9 ★',
   status: currentStatus,
-  eta: '15-20 min',
+  eta: currentStatus === 'delivered' ? 'Entregado' : '15-20 min',
   address: orderData?.delivery_address || 'Av. Andrés Eloy Blanco, Higuerote',
   items: resolvedItems,
   subtotal: Number(orderData?.subtotal) || 15.00,
@@ -91,7 +102,7 @@ const activeOrder = {
 const totalBs = formatBs(activeOrder.total, bcvRate);
 
 const isPreparing = currentStatus === 'accepted_by_store' || currentStatus === 'preparing' || currentStatus === 'ready_for_pickup';
-const isInTransit = currentStatus === 'driver_assigned' || currentStatus === 'in_transit';
+const isInTransit = currentStatus === 'driver_assigned' || currentStatus === 'in_transit' || currentStatus === 'driver_in_transit';
 const isDelivered = currentStatus === 'delivered';
 
 const steps = [
@@ -105,7 +116,8 @@ const steps = [
 <!doctype html>
 <html lang="es">
   <head>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon.png?v=3" />
+    <link rel="apple-touch-icon" href="/icon-192.png?v=3" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#FF5A00" />
     <meta charset="utf-8" />
@@ -201,7 +213,9 @@ const steps = [
           <div>
             <h4 class="text-xs font-bold text-gray-900">{activeOrder.driverName}</h4>
             <p class="text-[10px] text-gray-400">{activeOrder.driverVehicle}</p>
-            <span class="text-[10px] font-bold text-amber-500">{activeOrder.driverRating} • Repartidor Verificado</span>
+            <span class="text-[10px] font-bold text-amber-500">
+              {currentStatus === 'placed' ? 'Asignado para retiro en tienda' : `${activeOrder.driverRating} • Repartidor en ruta`}
+            </span>
           </div>
         </div>
 
@@ -221,16 +235,19 @@ const steps = [
           <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-400">Detalles de la Orden</h3>
           <span class="text-[11px] font-bold text-gray-500 truncate max-w-[200px]">📍 {activeOrder.address}</span>
         </div>
-        <p class="text-xs font-black text-gray-900">{activeOrder.storeName}</p>
+        <div class="flex items-center justify-between">
+          <p class="text-xs font-black text-gray-900">{activeOrder.storeName}</p>
+          <a href={`/stores/${activeOrder.storeId}`} class="text-[11px] font-extrabold text-[#FF5A00] hover:underline">Ver Tienda →</a>
+        </div>
 
         <div class="space-y-1.5 pt-2 border-t border-gray-50 text-xs">
           {activeOrder.items.map(it => (
             <div class="flex justify-between items-start text-gray-700">
               <div>
-                <span class="font-semibold">{it.qty}x {it.name}</span>
+                <span class="font-semibold"><strong class="text-[#FF7A00] font-black">{it.qty}x</strong> {it.name}</span>
                 <span class="block text-[10px] text-gray-400 font-semibold">{it.priceBs}</span>
               </div>
-              <span class="font-bold text-gray-900">${it.price.toFixed(2)}</span>
+              <span class="font-bold text-gray-900">${(it.price * it.qty).toFixed(2)}</span>
             </div>
           ))}
         </div>
@@ -265,7 +282,7 @@ const steps = [
         <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3 bg-[#FAFAFC] text-xs">
           <div class="flex items-start gap-2">
             <div class="bg-white border border-gray-100 rounded-2xl rounded-tl-xs px-3.5 py-2.5 shadow-2xs max-w-[80%]">
-              <p class="font-semibold text-gray-800">¡Hola! Ya tengo tu pedido de {activeOrder.storeName}. Voy en camino hacia tu ubicación 🛵</p>
+              <p class="font-semibold text-gray-800">¡Hola! Estoy coordinando tu pedido de {activeOrder.storeName}. Te avisaré apenas esté llegando a tu ubicación 🛵</p>
               <span class="text-[9px] text-gray-400 mt-1 block">Hace 1 min</span>
             </div>
           </div>
@@ -339,345 +356,328 @@ const steps = [
     <BottomNav />
 
     <script is:inline define:vars={{ orderId: activeOrder.id, storeId: activeOrder.storeId, orderStatus: activeOrder.status }}>
-      let map = null;
-      let driverMarker = null;
-      let routePolyline = null;
-      let currentDriverPos = { lat: 10.4842, lng: -66.0990 };
-      let targetDriverPos = { lat: 10.4842, lng: -66.0990 };
-      let currentBearing = 0;
-      let targetBearing = 0;
-      let clientLocation = { lat: 10.4815, lng: -66.0950 };
-      let storeLocation = { lat: 10.4865, lng: -66.1020 };
-      let activeWs = null;
+      (() => {
+        let map = null;
+        let driverMarker = null;
+        let routePolyline = null;
+        let storeLocation = { lat: 10.4865, lng: -66.0998 };
+        let clientLocation = { lat: 10.4852, lng: -66.0965 };
+        let currentDriverPos = { lat: 10.4859, lng: -66.0982 };
+        let targetDriverPos = { lat: 10.4859, lng: -66.0982 };
+        let currentBearing = 0;
+        let targetBearing = 0;
+        let activeWs = null;
 
-      function calculateBearing(startLat, startLng, destLat, destLng) {
-        const startLatRad = (startLat * Math.PI) / 180;
-        const startLngRad = (startLng * Math.PI) / 180;
-        const destLatRad = (destLat * Math.PI) / 180;
-        const destLngRad = (destLng * Math.PI) / 180;
+        function calculateBearing(startLat, startLng, destLat, destLng) {
+          const startLatRad = (startLat * Math.PI) / 180;
+          const startLngRad = (startLng * Math.PI) / 180;
+          const destLatRad = (destLat * Math.PI) / 180;
+          const destLngRad = (destLng * Math.PI) / 180;
 
-        const y = Math.sin(destLngRad - startLngRad) * Math.cos(destLatRad);
-        const x =
-          Math.cos(startLatRad) * Math.sin(destLatRad) -
-          Math.sin(startLatRad) * Math.cos(destLatRad) * Math.cos(destLngRad - startLngRad);
-        const brng = (Math.atan2(y, x) * 180) / Math.PI;
-        return (brng + 360) % 360;
-      }
-
-      function updateMarkerRotation(bearing) {
-        const el = document.getElementById('driver-moto-svg-container');
-        if (el) {
-          el.style.transform = `rotate(${bearing}deg)`;
+          const y = Math.sin(destLngRad - startLngRad) * Math.cos(destLatRad);
+          const x =
+            Math.cos(startLatRad) * Math.sin(destLatRad) -
+            Math.sin(startLatRad) * Math.cos(destLatRad) * Math.cos(destLngRad - startLngRad);
+          const brng = (Math.atan2(y, x) * 180) / Math.PI;
+          return (brng + 360) % 360;
         }
-      }
 
-      function checkDeliveredModal() {
-        const ratingModal = document.getElementById('rating-modal');
-        if (orderStatus === 'delivered' && ratingModal) {
-          ratingModal.classList.remove('hidden');
+        function updateMarkerRotation(bearing) {
+          const el = document.getElementById('driver-moto-svg-container');
+          if (el) {
+            el.style.transform = `rotate(${bearing}deg)`;
+          }
         }
-      }
 
-      const openRatingBtn = document.getElementById('btn-open-rating');
-      if (openRatingBtn) {
-        openRatingBtn.addEventListener('click', () => {
+        function checkDeliveredModal() {
           const ratingModal = document.getElementById('rating-modal');
-          if (ratingModal) ratingModal.classList.remove('hidden');
-        });
-      }
+          if (orderStatus === 'delivered' && ratingModal) {
+            ratingModal.classList.remove('hidden');
+          }
+        }
 
-      let selectedStars = 5;
-      document.querySelectorAll('.star-btn').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          selectedStars = parseInt(btn.getAttribute('data-val') || '5', 10);
-          document.querySelectorAll('.star-btn').forEach((b) => {
-            const val = parseInt(b.getAttribute('data-val') || '0', 10);
-            b.className = val <= selectedStars 
-              ? 'star-btn text-3xl text-amber-400 hover:scale-110 transition-transform cursor-pointer' 
-              : 'star-btn text-3xl text-gray-200 hover:scale-110 transition-transform cursor-pointer';
+        const openRatingBtn = document.getElementById('btn-open-rating');
+        if (openRatingBtn) {
+          openRatingBtn.addEventListener('click', () => {
+            const ratingModal = document.getElementById('rating-modal');
+            if (ratingModal) ratingModal.classList.remove('hidden');
+          });
+        }
+
+        let selectedStars = 5;
+        document.querySelectorAll('.star-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            selectedStars = parseInt(btn.getAttribute('data-val') || '5', 10);
+            document.querySelectorAll('.star-btn').forEach((b) => {
+              const val = parseInt(b.getAttribute('data-val') || '0', 10);
+              b.className = val <= selectedStars 
+                ? 'star-btn text-3xl text-amber-400 hover:scale-110 transition-transform cursor-pointer' 
+                : 'star-btn text-3xl text-gray-200 hover:scale-110 transition-transform cursor-pointer';
+            });
           });
         });
-      });
 
-      const skipBtn = document.getElementById('btn-skip-rating');
-      if (skipBtn) {
-        skipBtn.addEventListener('click', () => {
-          const ratingModal = document.getElementById('rating-modal');
-          if (ratingModal) ratingModal.classList.add('hidden');
-        });
-      }
-
-      const submitRatingBtn = document.getElementById('btn-submit-rating');
-      if (submitRatingBtn) {
-        submitRatingBtn.addEventListener('click', async () => {
-          submitRatingBtn.textContent = 'Enviando...';
-          submitRatingBtn.disabled = true;
-
-          const comment = document.getElementById('rating-comment') ? document.getElementById('rating-comment').value : '';
-          let customerId = '44444444-4444-4444-4444-444444444444';
-          try {
-            const u = JSON.parse(localStorage.getItem('traigalo_user') || '{}');
-            if (u.id) customerId = u.id;
-          } catch {}
-
-          try {
-            await fetch('https://api.traigalo.org/v2/reviews', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                order_id: orderId,
-                store_id: storeId,
-                customer_id: customerId,
-                store_rating: selectedStars,
-                driver_rating: selectedStars,
-                comment: comment
-              })
-            });
-          } catch {}
-
-          const ratingModal = document.getElementById('rating-modal');
-          if (ratingModal) ratingModal.classList.add('hidden');
-          submitRatingBtn.textContent = 'Enviar Reseña';
-          submitRatingBtn.disabled = false;
-          alert('¡Gracias! Tu calificación ha sido registrada exitosamente.');
-        });
-      }
-
-      const chatModal = document.getElementById('chat-modal');
-      const openChatBtn = document.getElementById('btn-open-chat');
-      const closeChatBtn = document.getElementById('btn-close-chat');
-      const chatForm = document.getElementById('chat-form');
-      const chatInput = document.getElementById('chat-input');
-      const chatMessages = document.getElementById('chat-messages');
-
-      function appendChatMessage(text, isCustomer = true) {
-        if (!chatMessages || !text) return;
-        const wrapper = document.createElement('div');
-        wrapper.className = isCustomer ? 'flex items-start justify-end gap-2' : 'flex items-start gap-2';
-        wrapper.innerHTML = isCustomer
-          ? `<div class="bg-[#FF7A00] text-white rounded-2xl rounded-tr-xs px-3.5 py-2.5 shadow-xs max-w-[80%]">
-               <p class="font-semibold">${text}</p>
-               <span class="text-[9px] text-orange-100 mt-1 block text-right">Ahora</span>
-             </div>`
-          : `<div class="bg-white border border-gray-100 rounded-2xl rounded-tl-xs px-3.5 py-2.5 shadow-2xs max-w-[80%]">
-               <p class="font-semibold text-gray-800">${text}</p>
-               <span class="text-[9px] text-gray-400 mt-1 block">Ahora</span>
-             </div>`;
-        chatMessages.appendChild(wrapper);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-      }
-
-      function sendChatMessage(text) {
-        if (!text.trim()) return;
-        appendChatMessage(text, true);
-        if (activeWs && activeWs.readyState === WebSocket.OPEN) {
-          try {
-            activeWs.send(JSON.stringify({ type: 'chat_message', order_id: orderId, sender: 'customer', message: text }));
-          } catch {}
+        const skipBtn = document.getElementById('btn-skip-rating');
+        if (skipBtn) {
+          skipBtn.addEventListener('click', () => {
+            const ratingModal = document.getElementById('rating-modal');
+            if (ratingModal) ratingModal.classList.add('hidden');
+          });
         }
-        setTimeout(() => {
-          appendChatMessage('Recibido 👍 Estoy a pocos minutos de tu punto de entrega.', false);
-        }, 1200);
-      }
 
-      if (openChatBtn && chatModal) {
-        openChatBtn.addEventListener('click', () => chatModal.classList.remove('hidden'));
-      }
-      if (closeChatBtn && chatModal) {
-        closeChatBtn.addEventListener('click', () => chatModal.classList.add('hidden'));
-      }
-      if (chatForm && chatInput) {
-        chatForm.addEventListener('submit', (e) => {
-          e.preventDefault();
-          const msg = chatInput.value;
-          chatInput.value = '';
-          sendChatMessage(msg);
-        });
-      }
-      document.querySelectorAll('.quick-chat-btn').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          sendChatMessage(btn.textContent || '');
-        });
-      });
+        const submitRatingBtn = document.getElementById('btn-submit-rating');
+        if (submitRatingBtn) {
+          submitRatingBtn.addEventListener('click', async () => {
+            submitRatingBtn.textContent = 'Enviando...';
+            submitRatingBtn.disabled = true;
 
-      function smoothAnimateMarker() {
-        if (driverMarker) {
-          const latDiff = (targetDriverPos.lat - currentDriverPos.lat) * 0.08;
-          const lngDiff = (targetDriverPos.lng - currentDriverPos.lng) * 0.08;
+            const comment = document.getElementById('rating-comment') ? document.getElementById('rating-comment').value : '';
+            let customerId = '44444444-4444-4444-4444-444444444444';
+            try {
+              const u = JSON.parse(localStorage.getItem('traigalo_user') || '{}');
+              if (u.id) customerId = u.id;
+            } catch {}
 
-          currentDriverPos.lat += latDiff;
-          currentDriverPos.lng += lngDiff;
+            try {
+              await fetch('https://api.traigalo.org/v2/reviews', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  order_id: orderId,
+                  store_id: storeId,
+                  customer_id: customerId,
+                  store_rating: selectedStars,
+                  driver_rating: selectedStars,
+                  comment: comment
+                })
+              });
+            } catch {}
 
-          driverMarker.setLatLng([currentDriverPos.lat, currentDriverPos.lng]);
+            const ratingModal = document.getElementById('rating-modal');
+            if (ratingModal) ratingModal.classList.add('hidden');
+            submitRatingBtn.textContent = 'Enviar Reseña';
+            submitRatingBtn.disabled = false;
+            alert('¡Gracias! Tu calificación ha sido registrada exitosamente.');
+          });
+        }
 
-          let diffBearing = (targetBearing - currentBearing + 540) % 360 - 180;
-          currentBearing = (currentBearing + diffBearing * 0.1 + 360) % 360;
-          updateMarkerRotation(currentBearing);
+        const chatModal = document.getElementById('chat-modal');
+        const openChatBtn = document.getElementById('btn-open-chat');
+        const closeChatBtn = document.getElementById('btn-close-chat');
+        const chatForm = document.getElementById('chat-form');
+        const chatInput = document.getElementById('chat-input');
+        const chatMessages = document.getElementById('chat-messages');
 
-          if (routePolyline) {
-            routePolyline.setLatLngs([
-              [storeLocation.lat, storeLocation.lng],
-              [currentDriverPos.lat, currentDriverPos.lng],
-              [clientLocation.lat, clientLocation.lng]
-            ]);
+        function appendChatMessage(text, isCustomer = true) {
+          if (!chatMessages || !text) return;
+          const wrapper = document.createElement('div');
+          wrapper.className = isCustomer ? 'flex items-start justify-end gap-2' : 'flex items-start gap-2';
+          wrapper.innerHTML = isCustomer
+            ? `<div class="bg-[#FF7A00] text-white rounded-2xl rounded-tr-xs px-3.5 py-2.5 shadow-xs max-w-[80%]">
+                 <p class="font-semibold">${text}</p>
+                 <span class="text-[9px] text-orange-100 mt-1 block text-right">Ahora</span>
+               </div>`
+            : `<div class="bg-white border border-gray-100 rounded-2xl rounded-tl-xs px-3.5 py-2.5 shadow-2xs max-w-[80%]">
+                 <p class="font-semibold text-gray-800">${text}</p>
+                 <span class="text-[9px] text-gray-400 mt-1 block">Ahora</span>
+               </div>`;
+          chatMessages.appendChild(wrapper);
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function sendChatMessage(text) {
+          if (!text.trim()) return;
+          appendChatMessage(text, true);
+          if (activeWs && activeWs.readyState === WebSocket.OPEN) {
+            try {
+              activeWs.send(JSON.stringify({ type: 'chat_message', order_id: orderId, sender: 'customer', message: text }));
+            } catch {}
           }
-        }
-        requestAnimationFrame(smoothAnimateMarker);
-      }
-
-      function initTelemetryWebSocket() {
-        const wsStatusText = document.getElementById('ws-status-text');
-        const wsIndicator = document.getElementById('ws-indicator');
-
-        try {
-          activeWs = new WebSocket(`wss://ws.traigalo.org/ws?order_id=${encodeURIComponent(orderId)}`);
-        } catch {
-          startFallbackTelemetry();
-          return;
+          setTimeout(() => {
+            appendChatMessage('Recibido 👍 Estoy a pocos minutos de tu punto de entrega.', false);
+          }, 1200);
         }
 
-        activeWs.onopen = () => {
-          if (wsStatusText) wsStatusText.textContent = 'GPS Redis GEO (En Vivo)';
+        if (openChatBtn && chatModal) {
+          openChatBtn.addEventListener('click', () => chatModal.classList.remove('hidden'));
+        }
+        if (closeChatBtn && chatModal) {
+          closeChatBtn.addEventListener('click', () => chatModal.classList.add('hidden'));
+        }
+        if (chatForm && chatInput) {
+          chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const msg = chatInput.value;
+            chatInput.value = '';
+            sendChatMessage(msg);
+          });
+        }
+        document.querySelectorAll('.quick-chat-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            sendChatMessage(btn.textContent || '');
+          });
+        });
+
+        function smoothAnimateMarker() {
+          if (driverMarker) {
+            const latDiff = (targetDriverPos.lat - currentDriverPos.lat) * 0.08;
+            const lngDiff = (targetDriverPos.lng - currentDriverPos.lng) * 0.08;
+
+            currentDriverPos.lat += latDiff;
+            currentDriverPos.lng += lngDiff;
+
+            driverMarker.setLatLng([currentDriverPos.lat, currentDriverPos.lng]);
+
+            let diffBearing = (targetBearing - currentBearing + 540) % 360 - 180;
+            currentBearing = (currentBearing + diffBearing * 0.1 + 360) % 360;
+            updateMarkerRotation(currentBearing);
+
+            if (routePolyline) {
+              routePolyline.setLatLngs([
+                [storeLocation.lat, storeLocation.lng],
+                [currentDriverPos.lat, currentDriverPos.lng],
+                [clientLocation.lat, clientLocation.lng]
+              ]);
+            }
+          }
+          requestAnimationFrame(smoothAnimateMarker);
+        }
+
+        function initTelemetryWebSocket() {
+          const wsStatusText = document.getElementById('ws-status-text');
+          const wsIndicator = document.getElementById('ws-indicator');
+
+          try {
+            activeWs = new WebSocket(`wss://ws.traigalo.org/ws?order_id=${encodeURIComponent(orderId)}`);
+          } catch {
+            startFallbackTelemetry();
+            return;
+          }
+
+          activeWs.onopen = () => {
+            if (wsStatusText) wsStatusText.textContent = 'GPS Redis GEO (En Vivo)';
+            if (wsIndicator) {
+              wsIndicator.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-ping';
+            }
+          };
+
+          activeWs.onmessage = (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              if (data.type === 'chat_message' && data.sender === 'driver' && data.message) {
+                appendChatMessage(data.message, false);
+                return;
+              }
+              const lat = Number(data.lat || data.latitude);
+              const lng = Number(data.lng || data.longitude);
+              if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+                targetBearing = calculateBearing(currentDriverPos.lat, currentDriverPos.lng, lat, lng);
+                targetDriverPos = { lat, lng };
+              }
+            } catch {}
+          };
+
+          activeWs.onerror = () => {
+            startFallbackTelemetry();
+          };
+
+          activeWs.onclose = () => {
+            startFallbackTelemetry();
+          };
+        }
+
+        let fallbackStarted = false;
+        function startFallbackTelemetry() {
+          if (fallbackStarted) return;
+          fallbackStarted = true;
+
+          const wsStatusText = document.getElementById('ws-status-text');
+          const wsIndicator = document.getElementById('ws-indicator');
+          if (wsStatusText) wsStatusText.textContent = 'GPS Satelital Activo';
           if (wsIndicator) {
-            wsIndicator.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-ping';
+            wsIndicator.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
           }
-        };
 
-        activeWs.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'chat_message' && data.sender === 'driver' && data.message) {
-              appendChatMessage(data.message, false);
-              return;
-            }
-            const lat = Number(data.lat || data.latitude);
-            const lng = Number(data.lng || data.longitude);
-            if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
-              targetBearing = calculateBearing(currentDriverPos.lat, currentDriverPos.lng, lat, lng);
-              targetDriverPos = { lat, lng };
-            }
-          } catch {}
-        };
-
-        activeWs.onerror = () => {
-          startFallbackTelemetry();
-        };
-
-        activeWs.onclose = () => {
-          startFallbackTelemetry();
-        };
-      }
-
-      let fallbackStarted = false;
-      function startFallbackTelemetry() {
-        if (fallbackStarted) return;
-        fallbackStarted = true;
-
-        const wsStatusText = document.getElementById('ws-status-text');
-        const wsIndicator = document.getElementById('ws-indicator');
-        if (wsStatusText) wsStatusText.textContent = 'GPS Satelital Activo';
-        if (wsIndicator) {
-          wsIndicator.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+          let step = 0;
+          setInterval(() => {
+            step = (step + 1) % 100;
+            const factor = step / 100;
+            const nextLat = storeLocation.lat + (clientLocation.lat - storeLocation.lat) * factor;
+            const nextLng = storeLocation.lng + (clientLocation.lng - storeLocation.lng) * factor;
+            targetBearing = calculateBearing(currentDriverPos.lat, currentDriverPos.lng, nextLat, nextLng);
+            targetDriverPos = { lat: nextLat, lng: nextLng };
+          }, 1500);
         }
 
-        let step = 0;
-        setInterval(() => {
-          step = (step + 1) % 100;
-          const factor = step / 100;
-          const nextLat = storeLocation.lat + (clientLocation.lat - storeLocation.lat) * factor;
-          const nextLng = storeLocation.lng + (clientLocation.lng - storeLocation.lng) * factor;
-          targetBearing = calculateBearing(currentDriverPos.lat, currentDriverPos.lng, nextLat, nextLng);
-          targetDriverPos = { lat: nextLat, lng: nextLng };
-        }, 1500);
-      }
+        function initLeafletMap() {
+          const container = document.getElementById('map-container');
+          if (!container || typeof L === 'undefined') return;
 
-      async function fetchOrderRoute() {
-        try {
-          const res = await fetch(`https://api.traigalo.org/v2/orders/${orderId}/route`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data?.store?.lat && data?.store?.lng) {
-              storeLocation = { lat: Number(data.store.lat), lng: Number(data.store.lng) };
-            }
-            if (data?.customer?.lat && data?.customer?.lng) {
-              clientLocation = { lat: Number(data.customer.lat), lng: Number(data.customer.lng) };
-            }
-            if (Array.isArray(data?.coordinates) && data.coordinates.length > 1 && routePolyline) {
-              routePolyline.setLatLngs(data.coordinates.map(c => [c.lat || c[0], c.lng || c[1]]));
-            }
-          }
-        } catch {}
-      }
+          map = L.map(container, {
+            zoomControl: false,
+            attributionControl: false
+          }).setView([currentDriverPos.lat, currentDriverPos.lng], 16);
 
-      function initLeafletMap() {
-        const container = document.getElementById('map-container');
-        if (!container || typeof L === 'undefined') return;
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19
+          }).addTo(map);
 
-        map = L.map(container, {
-          zoomControl: false,
-          attributionControl: false
-        }).setView([currentDriverPos.lat, currentDriverPos.lng], 15);
+          const storeIcon = L.divIcon({
+            className: '',
+            html: '<div class="w-9 h-9 rounded-2xl bg-[#FF7A00] text-white flex items-center justify-center text-lg shadow-lg border-2 border-white">🏬</div>',
+            iconSize: [36, 36],
+            iconAnchor: [18, 18]
+          });
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19
-        }).addTo(map);
+          const clientIcon = L.divIcon({
+            className: '',
+            html: '<div class="w-9 h-9 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-lg shadow-lg border-2 border-white">🏠</div>',
+            iconSize: [36, 36],
+            iconAnchor: [18, 18]
+          });
 
-        const storeIcon = L.divIcon({
-          className: '',
-          html: '<div class="w-9 h-9 rounded-2xl bg-[#FF7A00] text-white flex items-center justify-center text-lg shadow-lg border-2 border-white">🏬</div>',
-          iconSize: [36, 36],
-          iconAnchor: [18, 18]
-        });
-
-        const clientIcon = L.divIcon({
-          className: '',
-          html: '<div class="w-9 h-9 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-lg shadow-lg border-2 border-white">🏠</div>',
-          iconSize: [36, 36],
-          iconAnchor: [18, 18]
-        });
-
-        const motoIcon = L.divIcon({
-          className: 'driver-moto-marker',
-          html: `
-            <div id="driver-moto-svg-container" class="relative w-12 h-12 flex items-center justify-center transition-transform duration-75">
-              <div class="absolute inset-0 rounded-full bg-[#FF7A00]/25 animate-ping"></div>
-              <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-[#FF7A00] to-amber-500 shadow-xl border-2 border-white flex items-center justify-center text-white">
-                <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24">
-                  <path d="M19 7c0-1.1-.9-2-2-2h-3v2h3v2.65L13.52 14H10V9H6c-2.21 0-4 1.79-4 4v3h2c0 1.66 1.34 3 3 3s3-1.34 3-3h4.18c.41 1.16 1.51 2 2.82 2 1.66 0 3-1.34 3-3h2v-5l-4-3zm-12 9c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm11 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/>
-                </svg>
+          const motoIcon = L.divIcon({
+            className: 'driver-moto-marker',
+            html: `
+              <div id="driver-moto-svg-container" class="relative w-12 h-12 flex items-center justify-center transition-transform duration-75">
+                <div class="absolute inset-0 rounded-full bg-[#FF7A00]/25 animate-ping"></div>
+                <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-[#FF7A00] to-amber-500 shadow-xl border-2 border-white flex items-center justify-center text-white">
+                  <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                    <path d="M19 7c0-1.1-.9-2-2-2h-3v2h3v2.65L13.52 14H10V9H6c-2.21 0-4 1.79-4 4v3h2c0 1.66 1.34 3 3 3s3-1.34 3-3h4.18c.41 1.16 1.51 2 2.82 2 1.66 0 3-1.34 3-3h2v-5l-4-3zm-12 9c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm11 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/>
+                  </svg>
+                </div>
               </div>
-            </div>
-          `,
-          iconSize: [48, 48],
-          iconAnchor: [24, 24]
-        });
+            `,
+            iconSize: [48, 48],
+            iconAnchor: [24, 24]
+          });
 
-        L.marker([storeLocation.lat, storeLocation.lng], { icon: storeIcon }).addTo(map).bindPopup('Comercio Oficial');
-        L.marker([clientLocation.lat, clientLocation.lng], { icon: clientIcon }).addTo(map).bindPopup('Punto de Entrega');
-        driverMarker = L.marker([currentDriverPos.lat, currentDriverPos.lng], { icon: motoIcon }).addTo(map);
+          L.marker([storeLocation.lat, storeLocation.lng], { icon: storeIcon }).addTo(map).bindPopup('Comercio Oficial');
+          L.marker([clientLocation.lat, clientLocation.lng], { icon: clientIcon }).addTo(map).bindPopup('Punto de Entrega');
+          driverMarker = L.marker([currentDriverPos.lat, currentDriverPos.lng], { icon: motoIcon }).addTo(map);
 
-        routePolyline = L.polyline([
-          [storeLocation.lat, storeLocation.lng],
-          [currentDriverPos.lat, currentDriverPos.lng],
-          [clientLocation.lat, clientLocation.lng]
-        ], {
-          color: '#FF7A00',
-          weight: 4,
-          opacity: 0.85,
-          dashArray: '8, 8'
-        }).addTo(map);
+          routePolyline = L.polyline([
+            [storeLocation.lat, storeLocation.lng],
+            [currentDriverPos.lat, currentDriverPos.lng],
+            [clientLocation.lat, clientLocation.lng]
+          ], {
+            color: '#FF7A00',
+            weight: 4,
+            opacity: 0.85,
+            dashArray: '8, 8'
+          }).addTo(map);
 
-        fetchOrderRoute();
-        requestAnimationFrame(smoothAnimateMarker);
-        initTelemetryWebSocket();
-        checkDeliveredModal();
-      }
+          requestAnimationFrame(smoothAnimateMarker);
+          initTelemetryWebSocket();
+          checkDeliveredModal();
+        }
 
-      if (document.readyState === 'complete') {
-        initLeafletMap();
-      } else {
-        window.addEventListener('load', initLeafletMap);
-      }
+        if (document.readyState === 'complete') {
+          initLeafletMap();
+        } else {
+          window.addEventListener('load', initLeafletMap);
+        }
+      })();
     </script>
   </body>
 </html>
