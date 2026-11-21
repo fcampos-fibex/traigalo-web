@@ -146,3 +146,7 @@
   .vehicle-card, .rd-icon-btn, .rd-v-icon, .rd-field input, .rd-driver { transition: none; }
   .vehicle-card:active, .rd-icon-btn:active { transform: none; }
 }
+.rd-map-pin { display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--radius-pill); border: 2px solid var(--color-paper); color: var(--color-on-accent); font-weight: 800; font-size: var(--text-sm); box-shadow: var(--shadow-card); }
+.rd-map-pin--a { background: var(--color-success); }
+.rd-map-pin--b { background: var(--color-accent-ink); }
+.rd-map-pin--car { background: var(--color-night); }
