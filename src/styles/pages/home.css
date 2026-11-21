@@ -22,7 +22,6 @@
 .tg-switcher .tg-rubro-sub { font-size: var(--text-xs); }
 
 .tg-home-cats { min-width: 0; }
-:root[data-rubro="all"] .tg-home-cats { display: none; }
 
 #popular-stores { min-width: 0; }
 #popular-stores.hidden { display: none; }
@@ -66,3 +65,16 @@
   .tg-pop-store:hover, .tg-switcher .rubro-card:hover, .tg-switcher .tg-ride-door:hover { transform: none; }
   .tg-pop-row, .tg-switcher .tg-rubros { scroll-behavior: auto; }
 }
+.tg-home-cats .tg-cats { gap: var(--space-md); padding-block: var(--space-xs); }
+.tg-home-cats .category-btn { flex-direction: column; align-items: center; gap: var(--space-xs); width: 112px; padding: var(--space-xs); border: 0; border-radius: var(--radius-card); background: transparent; text-align: center; }
+.tg-home-cats .category-btn:hover { border-color: transparent; background: var(--color-paper-2); }
+.tg-home-cats .category-btn img { width: 88px; height: 88px; padding: var(--space-xs); border: 2px solid transparent; background: var(--color-paper-2); object-fit: contain; transition: border-color var(--dur-micro) var(--ease-out), transform var(--dur-short) var(--ease-out); }
+.tg-home-cats .category-btn:hover img { transform: translateY(-2px); }
+.tg-home-cats .category-btn[aria-pressed="true"] { background: transparent; color: var(--color-ink); }
+.tg-home-cats .category-btn[aria-pressed="true"] img { border-color: var(--module, var(--color-accent)); }
+.tg-home-cats .category-btn[aria-pressed="true"] .tg-cat-name { color: var(--module, var(--color-accent-ink)); }
+.tg-home-cats .category-btn[aria-pressed="true"] .cat-count-label { color: var(--color-muted); }
+.tg-home-cats .category-btn > span { display: grid; gap: var(--space-3xs); min-width: 0; }
+.tg-home-cats .tg-cat-name { font-size: var(--text-sm); font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
+@media (max-width: 40rem) { .tg-home-cats .category-btn { width: 92px; } .tg-home-cats .category-btn img { width: 72px; height: 72px; } }
+@media (prefers-reduced-motion: reduce) { .tg-home-cats .category-btn img { transition: none; } .tg-home-cats .category-btn:hover img { transform: none; } }
