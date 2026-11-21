@@ -2,45 +2,8 @@
 import "../../styles/global.css";
 import "../../styles/pages/admin.css";
 import RoleSwitcher from "../../components/RoleSwitcher.astro";
-import { getOfficialExchangeRate, formatBs } from "../../adapters/rates";
 
 const API_BASE = "https://api.traigalo.org/v2";
-const DIRECTUS_URL = "https://admin.traigalo.org";
-const bcvRate = await getOfficialExchangeRate();
-
-let stores: any[] = [];
-try {
-  const sRes = await fetch(`${API_BASE}/stores`);
-  if (sRes.ok) {
-    stores = await sRes.json();
-  }
-} catch {}
-
-let orders: any[] = [];
-try {
-  const oRes = await fetch(`${API_BASE}/orders?size=100`);
-  if (oRes.ok) {
-    orders = await oRes.json();
-  }
-} catch {}
-
-const totalGMV_USD = orders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
-const totalGMV_BS = formatBs(totalGMV_USD, bcvRate);
-
-const activeOrders = orders.filter(
-  (o) => o.status !== "delivered" && o.status !== "cancelled"
-).length;
-
-const deliveredOrders = orders.filter((o) => o.status === "delivered").length;
-const totalStoresCount = stores.length;
-const liveDriversCount = orders.filter((o) => o.driver_id).length || 1;
-
-const liveIncidents = [
-  { id: "INC-102", type: "Retraso Tráfico", orderId: "TRG-7809", driver: "Manuel Díaz", time: "Hace 5m", severity: "medium" },
-  { id: "INC-101", type: "Rechazo de Repartidor", orderId: "TRG-7811", driver: "Auto-reasignando", time: "Hace 8m", severity: "high" }
-];
-const usd = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const sortedIncidents = [...liveIncidents].sort((a, b) => (a.severity === "high" ? -1 : 0) - (b.severity === "high" ? -1 : 0));
 ---
 
 <!doctype html>
@@ -51,108 +14,296 @@ const sortedIncidents = [...liveIncidents].sort((a, b) => (a.severity === "high"
     <meta name="theme-color" content="#FF5A00" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
     <title>Traigalo Ops | Centro de Comando</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   </head>
-  <body class="adm-body">
-    <RoleSwitcher currentRole="admin" />
+  <body class="adm-body" data-api={API_BASE}>
+    <div id="adm-gate" class="adm-gate" role="status" aria-live="polite">
+      <p id="adm-gate-msg" class="adm-sub">Verificando acceso…</p>
+      <a id="adm-gate-login" href="/login" class="tg-btn tg-btn--primary tg-btn--sm" hidden>Iniciar sesión</a>
+    </div>
 
-    <header class="adm-bar tg-glass">
-      <div class="adm-bar-inner">
-        <div class="adm-brand">
-          <span class="adm-brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-          </span>
-          <div>
-            <h1 class="adm-title">Traigalo control center <span class="adm-live" aria-label="En línea"></span></h1>
-            <p class="adm-meta">Cluster: us-east-1 · Swarm v2</p>
+    <div id="adm-app" hidden>
+      <RoleSwitcher currentRole="admin" />
+
+      <header class="adm-bar tg-glass">
+        <div class="adm-bar-inner">
+          <div class="adm-brand">
+            <span class="adm-brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+            </span>
+            <div>
+              <h1 class="adm-title">Centro de control Traigalo</h1>
+              <p class="adm-meta" id="adm-updated">Cargando datos…</p>
+            </div>
+          </div>
+          <div class="adm-actions">
+            <button type="button" id="adm-refresh" class="tg-btn tg-btn--quiet tg-btn--sm">Actualizar</button>
+            <a id="adm-directus" target="_blank" rel="noopener noreferrer" class="tg-btn tg-btn--quiet tg-btn--sm adm-ext" hidden>
+              <span>Directus CMS</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+            </a>
           </div>
         </div>
-        <a href={DIRECTUS_URL} target="_blank" rel="noopener noreferrer" class="tg-btn tg-btn--quiet tg-btn--sm adm-ext">
-          <span>Directus CMS</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-        </a>
-      </div>
-    </header>
+      </header>
 
-    <main class="adm-main">
-      <section class="adm-panel adm-alerts" aria-labelledby="adm-alerts-title">
-        <div class="adm-panel-head">
-          <h2 id="adm-alerts-title" class="adm-panel-title"><span class="adm-dot adm-dot--error" aria-hidden="true"></span>Alertas de telemetría y SLA</h2>
-          <span class="adm-badge adm-badge--error">{liveIncidents.length} activas</span>
-        </div>
-        <ul class="adm-incidents">
-          {sortedIncidents.map((inc) => (
-            <li class={`adm-incident adm-incident--${inc.severity}`}>
-              <div class="adm-incident-body">
-                <div class="adm-incident-top">
-                  <span class="adm-mono adm-strong">{inc.orderId}</span>
-                  <span class={`adm-badge ${inc.severity === 'high' ? 'adm-badge--error' : 'adm-badge--warn'}`}>{inc.type}</span>
-                </div>
-                <p class="adm-sub">{inc.driver} · <span class="adm-faint">{inc.time}</span></p>
-              </div>
-              <button type="button" class="tg-btn tg-btn--primary tg-btn--sm">Intervenir</button>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <main class="adm-main">
+        <p id="adm-error" class="adm-notice adm-alerts" role="alert" hidden></p>
 
-      <section class="adm-panel adm-gmv" aria-labelledby="adm-gmv-title">
-        <div class="adm-panel-head">
-          <h2 id="adm-gmv-title" class="adm-label">Volumen bruto (GMV hoy)</h2>
-          <span class="adm-badge adm-badge--success adm-num">Tasa: {bcvRate.toFixed(2)} Bs/$</span>
-        </div>
-        <p class="adm-gmv-usd adm-num">${usd(totalGMV_USD)}</p>
-        <p class="adm-gmv-bs adm-num">{totalGMV_BS}</p>
-        <dl class="adm-gmv-foot">
-          <div><dt>Órdenes registradas</dt><dd class="adm-num">{orders.length}</dd></div>
-          <div><dt>Entregadas</dt><dd class="adm-num">{deliveredOrders}</dd></div>
-        </dl>
-      </section>
+        <section class="adm-panel adm-alerts" aria-labelledby="adm-alerts-title">
+          <div class="adm-panel-head">
+            <h2 id="adm-alerts-title" class="adm-panel-title">Incidencias</h2>
+          </div>
+          <p class="adm-empty">Sin incidencias registradas.</p>
+        </section>
 
-      <section class="adm-kpis" aria-label="Indicadores">
-        <div class="adm-kpi">
-          <span class="adm-label">En despacho</span>
-          <p class="adm-kpi-value adm-num">{activeOrders}</p>
-          <span class="adm-kpi-note adm-kpi-note--accent">En tiempo real</span>
-        </div>
-        <div class="adm-kpi">
-          <span class="adm-label">Repartidores</span>
-          <p class="adm-kpi-value adm-kpi-value--success adm-num">{liveDriversCount}</p>
-          <span class="adm-kpi-note">Redis GEO</span>
-        </div>
-        <div class="adm-kpi">
-          <span class="adm-label">Comercios</span>
-          <p class="adm-kpi-value adm-num">{totalStoresCount}</p>
-          <span class="adm-kpi-note adm-kpi-note--success">100% online</span>
-        </div>
-      </section>
+        <section class="adm-panel adm-gmv" aria-labelledby="adm-gmv-title">
+          <div class="adm-panel-head">
+            <h2 id="adm-gmv-title" class="adm-label">Volumen bruto de hoy (sin canceladas)</h2>
+            <span class="adm-badge adm-num" id="adm-rate">Tasa: —</span>
+          </div>
+          <p class="adm-gmv-usd adm-num" id="adm-gmv-usd">—</p>
+          <p class="adm-gmv-bs adm-num" id="adm-gmv-bs">—</p>
+          <dl class="adm-gmv-foot">
+            <div><dt>Órdenes de hoy</dt><dd class="adm-num" id="adm-today-count">—</dd></div>
+            <div><dt>Entregadas hoy</dt><dd class="adm-num" id="adm-today-delivered">—</dd></div>
+          </dl>
+          <p class="adm-kpi-note" id="adm-gmv-note" hidden></p>
+        </section>
 
-      <section class="adm-panel" aria-labelledby="adm-stores-title">
-        <div class="adm-panel-head">
-          <h2 id="adm-stores-title" class="adm-panel-title">Comercios aliados en vivo</h2>
-          <span class="adm-badge adm-num">{totalStoresCount}</span>
-        </div>
-        <div class="adm-table-wrap">
-          <table class="adm-table">
-            <thead>
-              <tr><th scope="col">#</th><th scope="col">Comercio</th><th scope="col">Dirección</th><th scope="col">Estado</th></tr>
-            </thead>
-            <tbody>
-              {stores.map((store, idx) => (
-                <tr>
-                  <td class="adm-mono adm-num adm-faint">0{idx + 1}</td>
-                  <td class="adm-strong">{store.name}</td>
-                  <td class="adm-sub adm-addr">{store.address_line || 'Caracas, Venezuela'}</td>
-                  <td><span class="adm-status"><span class="adm-dot adm-dot--success" aria-hidden="true"></span>Activo</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </main>
+        <section class="adm-kpis" aria-label="Indicadores">
+          <div class="adm-kpi">
+            <span class="adm-label">En despacho</span>
+            <p class="adm-kpi-value adm-num" id="adm-active">—</p>
+            <span class="adm-kpi-note" id="adm-active-note">Órdenes abiertas</span>
+          </div>
+          <div class="adm-kpi">
+            <span class="adm-label">Repartidores cerca</span>
+            <p class="adm-kpi-value adm-num" id="adm-drivers">—</p>
+            <span class="adm-kpi-note">Higuerote · radio 15 km</span>
+          </div>
+          <div class="adm-kpi">
+            <span class="adm-label">Comercios abiertos</span>
+            <p class="adm-kpi-value adm-num" id="adm-stores-open">—</p>
+            <span class="adm-kpi-note" id="adm-stores-total">de — registrados</span>
+          </div>
+        </section>
+
+        <section class="adm-panel" aria-labelledby="adm-stores-title">
+          <div class="adm-panel-head">
+            <h2 id="adm-stores-title" class="adm-panel-title">Comercios aliados</h2>
+            <span class="adm-badge adm-num" id="adm-stores-badge">—</span>
+          </div>
+          <div class="adm-table-wrap">
+            <table class="adm-table">
+              <thead>
+                <tr><th scope="col">#</th><th scope="col">Comercio</th><th scope="col">Dirección</th><th scope="col">Estado</th></tr>
+              </thead>
+              <tbody id="adm-stores-body"></tbody>
+            </table>
+          </div>
+          <p class="adm-empty" id="adm-stores-empty" hidden>No hay comercios registrados.</p>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const TOKEN_KEY = "traigalo_token";
+      const ADMIN_ROLES = ["admin", "super_admin", "superadmin"];
+      const HIGUEROTE = { latitude: 10.4842, longitude: -66.099, radiusKm: 15 };
+      const ORDERS_PAGE_SIZE = 100;
+      const ORDERS_MAX_PAGES = 10;
+      const CLOSED_STATUSES = ["delivered", "cancelled"];
+
+      const body = document.body;
+      const apiBase = body.dataset.api ?? "";
+      const directusUrl = "https://admin.traigalo.org";
+      const byId = (id: string) => document.getElementById(id) as HTMLElement;
+
+      type Store = { name?: string; address_line?: string; is_open?: boolean };
+      type Order = { status?: string; total?: number; placed_at?: string };
+      type Result<T> = { ok: true; data: T } | { ok: false };
+
+      const decodePayload = (token: string): Record<string, unknown> | null => {
+        try {
+          const part = token.split(".")[1] ?? "";
+          const padded = part.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(part.length / 4) * 4, "=");
+          return JSON.parse(decodeURIComponent(escape(atob(padded))));
+        } catch {
+          return null;
+        }
+      };
+
+      const extractRoles = (claims: Record<string, unknown>): string[] => {
+        const realm = (claims.realm_access as { roles?: unknown } | undefined)?.roles;
+        const direct = claims.roles;
+        const resource = Object.values((claims.resource_access as Record<string, { roles?: unknown }>) ?? {})
+          .flatMap((entry) => (Array.isArray(entry?.roles) ? entry.roles : []));
+        return [realm, direct, resource].flatMap((value) => (Array.isArray(value) ? value : [])).map(String);
+      };
+
+      const isExpired = (claims: Record<string, unknown>) =>
+        typeof claims.exp === "number" && claims.exp * 1000 < Date.now();
+
+      const showGate = (message: string, withLogin: boolean) => {
+        byId("adm-gate-msg").textContent = message;
+        byId("adm-gate-login").hidden = !withLogin;
+      };
+
+      const authorize = (): string | null => {
+        const token = localStorage.getItem(TOKEN_KEY);
+        if (!token) {
+          window.location.replace("/login");
+          return null;
+        }
+        const claims = decodePayload(token);
+        if (!claims || isExpired(claims)) {
+          showGate("Tu sesión expiró. Inicia sesión de nuevo.", true);
+          return null;
+        }
+        if (!extractRoles(claims).some((role) => ADMIN_ROLES.includes(role))) {
+          showGate("No tienes acceso a este panel.", false);
+          return null;
+        }
+        return token;
+      };
+
+      const getJson = async <T,>(path: string, token: string): Promise<Result<T>> => {
+        try {
+          const res = await fetch(`${apiBase}${path}`, { headers: { Authorization: `Bearer ${token}` } });
+          if (!res.ok) return { ok: false };
+          return { ok: true, data: (await res.json()) as T };
+        } catch {
+          return { ok: false };
+        }
+      };
+
+      const startOfToday = () => {
+        const now = new Date();
+        return new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      };
+
+      const fetchTodayOrders = async (token: string): Promise<Result<{ orders: Order[]; truncated: boolean }>> => {
+        const since = startOfToday();
+        const collected: Order[] = [];
+        for (let page = 1; page <= ORDERS_MAX_PAGES; page += 1) {
+          const res = await getJson<Order[]>(`/orders?page=${page}&size=${ORDERS_PAGE_SIZE}`, token);
+          if (!res.ok) return { ok: false };
+          const batch = Array.isArray(res.data) ? res.data : [];
+          const today = batch.filter((o) => Date.parse(o.placed_at ?? "") >= since);
+          collected.push(...today);
+          if (batch.length < ORDERS_PAGE_SIZE || today.length < batch.length) {
+            return { ok: true, data: { orders: collected, truncated: false } };
+          }
+        }
+        return { ok: true, data: { orders: collected, truncated: true } };
+      };
+
+      const usd = (n: number) => `$${n.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const bs = (n: number) => `Bs. ${n.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const setText = (id: string, value: string) => { byId(id).textContent = value; };
+
+      const renderOrders = (res: Result<{ orders: Order[]; truncated: boolean }>, rate: number | null) => {
+        if (!res.ok) {
+          ["adm-gmv-usd", "adm-gmv-bs", "adm-today-count", "adm-today-delivered", "adm-active"].forEach((id) => setText(id, "—"));
+          return false;
+        }
+        const { orders, truncated } = res.data;
+        const valid = orders.filter((o) => o.status !== "cancelled");
+        const gmv = valid.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
+        setText("adm-gmv-usd", usd(gmv));
+        setText("adm-gmv-bs", rate ? bs(gmv * rate) : "—");
+        setText("adm-today-count", String(orders.length));
+        setText("adm-today-delivered", String(orders.filter((o) => o.status === "delivered").length));
+        setText("adm-active", String(orders.filter((o) => !CLOSED_STATUSES.includes(o.status ?? "")).length));
+        setText("adm-active-note", "Abiertas, creadas hoy");
+        const note = byId("adm-gmv-note");
+        note.hidden = !truncated;
+        note.textContent = truncated ? `Parcial: se leyeron las últimas ${ORDERS_PAGE_SIZE * ORDERS_MAX_PAGES} órdenes.` : "";
+        return true;
+      };
+
+      const storeRow = (store: Store, index: number) => {
+        const row = document.createElement("tr");
+        const cells: Array<[string, string]> = [
+          ["adm-mono adm-num adm-faint", String(index + 1).padStart(2, "0")],
+          ["adm-strong", store.name ?? "Sin nombre"],
+          ["adm-sub adm-addr", store.address_line || "Sin dirección"],
+        ];
+        cells.forEach(([cls, text]) => {
+          const td = document.createElement("td");
+          td.className = cls;
+          td.textContent = text;
+          row.appendChild(td);
+        });
+        const statusCell = document.createElement("td");
+        const badge = document.createElement("span");
+        badge.className = store.is_open ? "adm-badge adm-badge--warn" : "adm-badge";
+        badge.textContent = store.is_open ? "Abierto" : "Cerrado";
+        statusCell.appendChild(badge);
+        row.appendChild(statusCell);
+        return row;
+      };
+
+      const renderStores = (res: Result<Store[]>) => {
+        const tbody = byId("adm-stores-body");
+        tbody.replaceChildren();
+        if (!res.ok) {
+          ["adm-stores-open", "adm-stores-badge"].forEach((id) => setText(id, "—"));
+          setText("adm-stores-total", "de — registrados");
+          byId("adm-stores-empty").hidden = true;
+          return false;
+        }
+        const stores = Array.isArray(res.data) ? res.data : [];
+        tbody.replaceChildren(...stores.map(storeRow));
+        setText("adm-stores-open", String(stores.filter((s) => s.is_open).length));
+        setText("adm-stores-total", `de ${stores.length} registrados`);
+        setText("adm-stores-badge", String(stores.length));
+        byId("adm-stores-empty").hidden = stores.length > 0;
+        return true;
+      };
+
+      const renderDrivers = (res: Result<unknown[]>) => {
+        setText("adm-drivers", res.ok && Array.isArray(res.data) ? String(res.data.length) : "—");
+        return res.ok;
+      };
+
+      const load = async (token: string) => {
+        setText("adm-updated", "Actualizando…");
+        const { latitude, longitude, radiusKm } = HIGUEROTE;
+        const [rateRes, storesRes, driversRes, ordersRes] = await Promise.all([
+          getJson<{ rate?: number; source?: string }>("/rates", token),
+          getJson<Store[]>("/stores", token),
+          getJson<unknown[]>(`/drivers/locations/nearby?latitude=${latitude}&longitude=${longitude}&radius-km=${radiusKm}`, token),
+          fetchTodayOrders(token),
+        ]);
+        const rate = rateRes.ok && Number(rateRes.data.rate) > 0 ? Number(rateRes.data.rate) : null;
+        setText("adm-rate", rate ? `Tasa ${rateRes.ok ? rateRes.data.source ?? "" : ""}: ${rate.toFixed(2)} Bs/$` : "Tasa: no disponible");
+        const failures = [
+          renderOrders(ordersRes, rate) ? null : "órdenes",
+          renderStores(storesRes) ? null : "comercios",
+          renderDrivers(driversRes) ? null : "repartidores",
+          rate ? null : "tasa de cambio",
+        ].filter(Boolean);
+        const error = byId("adm-error");
+        error.hidden = failures.length === 0;
+        error.textContent = failures.length ? `No se pudieron cargar: ${failures.join(", ")}. Los valores mostrados como “—” no están disponibles.` : "";
+        setText("adm-updated", `Actualizado ${new Date().toLocaleTimeString("es-VE", { hour: "2-digit", minute: "2-digit" })}`);
+      };
+
+      const token = authorize();
+      if (token) {
+        byId("adm-gate").hidden = true;
+        byId("adm-app").hidden = false;
+        const directus = byId("adm-directus") as HTMLAnchorElement;
+        directus.href = directusUrl;
+        directus.hidden = false;
+        byId("adm-refresh").addEventListener("click", () => load(token));
+        load(token);
+      }
+    </script>
   </body>
 </html>

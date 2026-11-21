@@ -15,7 +15,7 @@
   --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --color-error: oklch(52% 0.19 27);
-  --color-success: oklch(50% 0.12 150);
+  --color-success: oklch(48% 0.13 245);
   --color-night: oklch(20% 0.035 265);
   --color-night-2: oklch(28% 0.04 265);
   --color-on-night: oklch(97% 0.005 80);
@@ -26,7 +26,7 @@
   --color-veil-soft: oklch(100% 0 0 / 0.22);
   --color-veil-edge: oklch(100% 0 0 / 0.38);
   --color-mod-food: oklch(52% 0.18 32);
-  --color-mod-market: oklch(46% 0.12 152);
+  --color-mod-market: oklch(45% 0.14 320);
   --color-mod-pharmacy: oklch(46% 0.1 225);
   --color-mod-shop: oklch(45% 0.14 275);
   --color-mod-beauty: oklch(46% 0.12 355);

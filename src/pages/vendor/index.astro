@@ -3,99 +3,104 @@ import "../../styles/global.css";
 import "../../styles/pages/vendor.css";
 import RoleSwitcher from "../../components/RoleSwitcher.astro";
 import { getOfficialExchangeRate, formatBs } from "../../adapters/rates";
-import { fetchActiveStores } from "../../adapters/stores";
-
 const API_BASE = "https://api.traigalo.org/v2";
 const bcvRate = await getOfficialExchangeRate();
 const selectedStoreParam = Astro.url.searchParams.get("store_id") || "";
 
-function cleanProductName(rawName: string): string {
-  return String(rawName || '')
-    .replace(/^Ariculares/i, 'Auriculares')
-    .replace(/^5-Sprinng\s*(CHEST\s*PULL)?/i, '5-Spring Chest Pull')
-    .replace(/^Abdominal musclw/i, 'Abdominal Muscle Trainer')
-    .replace(/^Aceite de resino/i, 'Aceite de Ricino')
-    .replace(/^After chave/i, 'After Shave Profesional')
-    .replace(/^Back pain need hellp/i, 'Soporte Lumbar Back Pain')
-    .replace(/^Brocha de ljo/i, 'Brocha de Lujo');
+interface VendorStore {
+  id: string;
+  owner_id: string;
+  name: string;
+  logo_url: string;
+  is_open: boolean;
 }
 
-const stores = await fetchActiveStores();
+async function fetchJson(url: string): Promise<{ ok: boolean; data: any }> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return { ok: false, data: null };
+    return { ok: true, data: await res.json() };
+  } catch {
+    return { ok: false, data: null };
+  }
+}
 
-const currentStore = stores.find((s) => s.id === selectedStoreParam) || stores[0] || {
-  id: "",
-  name: "Comercio Oficial",
-  logo_url: "/brand-icon.webp"
-};
+function toVendorStore(raw: any): VendorStore {
+  return {
+    id: String(raw?.id || ""),
+    owner_id: String(raw?.owner_id || ""),
+    name: String(raw?.name || ""),
+    logo_url: String(raw?.logo_url || ""),
+    is_open: raw?.is_open === true
+  };
+}
 
-const storeLogo = currentStore.logo_url || "/brand-icon.webp";
+const storesResult = await fetchJson(`${API_BASE}/stores?size=100`);
+const stores: VendorStore[] = Array.isArray(storesResult.data)
+  ? storesResult.data.map(toVendorStore).filter((s: VendorStore) => s.id)
+  : [];
+
+const currentStore: VendorStore | null = stores.find((s) => s.id === selectedStoreParam) || (selectedStoreParam ? null : stores[0] || null);
+const storeId = currentStore?.id || "";
+const storeName = currentStore?.name || "Comercio";
+const storeLogo = currentStore?.logo_url || "/brand-icon.webp";
 
 let storeOrders: any[] = [];
-try {
-  const oRes = await fetch(`${API_BASE}/orders?store-id=${currentStore.id}&size=50`);
-  if (oRes.ok) {
-    const oData = await oRes.json();
-    if (Array.isArray(oData)) {
-      const filtered = oData.filter((o) => !o.store_id || o.store_id === currentStore.id);
-      storeOrders = await Promise.all(
-        filtered.map(async (ord) => {
-          if (Array.isArray(ord.items) && ord.items.length > 0) return ord;
-          try {
-            const dRes = await fetch(`${API_BASE}/orders/${ord.id}`);
-            if (dRes.ok) {
-              const detail = await dRes.json();
-              if (detail && Array.isArray(detail.items)) {
-                return { ...ord, items: detail.items };
-              }
-            }
-          } catch {}
-          return ord;
-        })
-      );
-    }
-  }
-} catch {}
-
-let storeProducts: any[] = [];
-try {
-  const pRes = await fetch(`${API_BASE}/stores/${currentStore.id}/products`);
-  if (pRes.ok) {
-    const pData = await pRes.json();
-    if (Array.isArray(pData)) storeProducts = pData;
-  }
-} catch {}
-
-const productNamesMap: Record<string, string> = {};
-for (const p of storeProducts) {
-  if (p.id && p.name) {
-    productNamesMap[p.id] = cleanProductName(p.name);
-  }
+let ordersFailed = false;
+if (storeId) {
+  const oResult = await fetchJson(`${API_BASE}/orders?store-id=${encodeURIComponent(storeId)}&size=50`);
+  ordersFailed = !oResult.ok;
+  const own = Array.isArray(oResult.data) ? oResult.data.filter((o: any) => o && o.store_id === storeId) : [];
+  storeOrders = await Promise.all(
+    own.map(async (ord: any) => {
+      if (Array.isArray(ord.items) && ord.items.length > 0) return ord;
+      const detail = await fetchJson(`${API_BASE}/orders/${ord.id}`);
+      return detail.ok && Array.isArray(detail.data?.items) ? { ...ord, items: detail.data.items } : ord;
+    })
+  );
 }
 
-try {
-  const allPRes = await fetch(`${API_BASE}/products`);
-  if (allPRes.ok) {
-    const allPData = await allPRes.json();
-    if (Array.isArray(allPData)) {
-      for (const p of allPData) {
-        if (p.id && p.name && !productNamesMap[p.id]) {
-          productNamesMap[p.id] = cleanProductName(p.name);
-        }
-      }
-    }
-  }
-} catch {}
+let storeProducts: any[] = [];
+let productsFailed = false;
+if (storeId) {
+  const pResult = await fetchJson(`${API_BASE}/stores/${storeId}/products`);
+  productsFailed = !pResult.ok;
+  if (Array.isArray(pResult.data)) storeProducts = pResult.data;
+}
 
-const todayGmvUSD = storeOrders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
-const todayGmvBs = formatBs(todayGmvUSD, bcvRate);
-const totalOrdersCount = storeOrders.length;
+const productNamesMap: Record<string, string> = Object.fromEntries(
+  storeProducts.filter((p) => p.id && p.name).map((p) => [p.id, String(p.name)])
+);
+
+const activeOrders = storeOrders.filter((o) => o.status !== "cancelled");
+const deliveredOrders = activeOrders.filter((o) => o.status === "delivered");
+const deliveredUSD = deliveredOrders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
+const deliveredBs = formatBs(deliveredUSD, bcvRate);
+const totalOrdersCount = activeOrders.length;
+
+const STATUS_LABELS: Record<string, string> = {
+  placed: "Nuevo pedido",
+  accepted_by_store: "Aceptado",
+  in_kitchen: "Preparando pedido",
+  ready_for_pickup: "Listo p/ despacho",
+  driver_assigned: "Repartidor asignado",
+  driver_in_transit: "En camino",
+  delivered: "Entregado",
+  cancelled: "Cancelado"
+};
 
 function formatPaymentMethod(pm: string): string {
-  const norm = String(pm || '').toLowerCase();
-  if (norm === 'mobile_pay' || norm === 'pago_movil') return 'Pago Móvil BCV';
-  if (norm === 'cash' || norm === 'efectivo') return 'Efectivo';
-  if (norm === 'card' || norm === 'tarjeta') return 'Tarjeta';
-  return pm || 'Pago Móvil BCV';
+  const norm = String(pm || "").toLowerCase();
+  if (norm === "mobile_pay" || norm === "pago_movil") return "Pago Móvil";
+  if (norm === "cash" || norm === "efectivo") return "Efectivo";
+  if (norm === "card" || norm === "tarjeta") return "Tarjeta";
+  return pm || "—";
+}
+
+function formatOrderTime(placedAt: string): string {
+  const d = placedAt ? new Date(placedAt) : null;
+  if (!d || Number.isNaN(d.getTime()) || d.getFullYear() < 2000) return "—";
+  return d.toLocaleString("es-VE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Caracas" });
 }
 ---
 
@@ -108,26 +113,26 @@ function formatPaymentMethod(pm: string): string {
     <meta name="theme-color" content="#FF5A00" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>{currentStore.name} | Portal comercio Traigalo</title>
+    <title>{storeName} | Portal comercio Traigalo</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   </head>
-  <body class="vd-body">
+  <body class="vd-body" data-store-id={storeId} data-store-owner={currentStore?.owner_id || ""}>
     <RoleSwitcher currentRole="vendor" />
 
     <header class="vd-top tg-glass">
       <div class="vd-top-inner">
         <div class="vd-identity">
-          <a href={`/stores/${currentStore.id}`} class="vd-logo">
-            <img src={storeLogo} alt={currentStore.name} width="48" height="48" />
+          <a href={`/stores/${storeId}`} class="vd-logo">
+            <img src={storeLogo} alt={storeName} width="48" height="48" />
           </a>
           <div class="vd-identity-text">
             <div class="vd-name-row">
-              <h1 class="vd-name">{currentStore.name}</h1>
+              <h1 class="vd-name">{storeName}</h1>
               <span class="vd-live" aria-hidden="true"></span>
             </div>
-            <p class="vd-meta">Comercio verificado · <span class="vd-mono">#{currentStore.id.slice(0, 8)}</span></p>
+            <p class="vd-meta">{currentStore ? (currentStore.is_open ? "Abierto" : "Cerrado") : "—"} · <span class="vd-mono">#{storeId ? storeId.slice(0, 8) : "—"}</span></p>
           </div>
         </div>
 
@@ -136,10 +141,6 @@ function formatPaymentMethod(pm: string): string {
             <span class="vd-rate-label">Tasa BCV</span>
             <span class="vd-rate-value">{bcvRate.toFixed(2)} Bs/$</span>
           </div>
-          <label class="vd-switch" title="Estado de tienda">
-            <input type="checkbox" checked class="vd-switch-input" id="store-toggle" aria-label="Tienda abierta">
-            <span class="vd-switch-track" aria-hidden="true"></span>
-          </label>
         </div>
       </div>
 
@@ -147,9 +148,10 @@ function formatPaymentMethod(pm: string): string {
         <nav class="vd-stores" aria-label="Tus tiendas">
           {stores.map((st) => (
             <a
+              data-owner-id={st.owner_id}
               href={`/vendor?store_id=${st.id}`}
-              class={`vd-store-tab ${st.id === currentStore.id ? "is-active" : ""}`}
-              aria-current={st.id === currentStore.id ? "page" : undefined}
+              class={`vd-store-tab ${st.id === storeId ? "is-active" : ""}`}
+              aria-current={st.id === storeId ? "page" : undefined}
             >
               <img src={st.logo_url || "/brand-icon.webp"} alt="" width="16" height="16" />
               <span>{st.name}</span>
@@ -159,7 +161,20 @@ function formatPaymentMethod(pm: string): string {
       )}
     </header>
 
-    <main class="vd-main">
+    <section id="vendor-access-state" class="vd-main" hidden>
+      <div class="vd-empty">
+        <h3 class="vd-empty-title">No tienes acceso a este comercio</h3>
+        <p class="vd-empty-text">Este panel solo está disponible para el propietario del comercio.</p>
+      </div>
+    </section>
+
+    <main class="vd-main" id="vendor-main">
+      {!currentStore && (
+        <div class="vd-empty">
+          <h3 class="vd-empty-title">Comercio no encontrado</h3>
+          <p class="vd-empty-text">{storesResult.ok ? "No hay un comercio asociado a este enlace." : "No se pudo cargar la información de comercios. Intenta de nuevo más tarde."}</p>
+        </div>
+      )}
       <div id="incoming-order-alert" class="vd-alert hidden" role="status">
         <div class="vd-alert-body">
           <svg class="vd-alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
@@ -173,18 +188,18 @@ function formatPaymentMethod(pm: string): string {
 
       <section class="vd-stats" aria-label="Resumen">
         <div class="vd-stat vd-stat--lead">
-          <p class="vd-stat-label">Ventas USD</p>
-          <p class="vd-stat-value">${todayGmvUSD.toFixed(2)}</p>
-          <span class="vd-stat-sub">{todayGmvBs}</span>
+          <p class="vd-stat-label">Ventas entregadas</p>
+          <p class="vd-stat-value">{ordersFailed ? "—" : `$${deliveredUSD.toFixed(2)}`}</p>
+          <span class="vd-stat-sub">{ordersFailed ? "Sin datos" : `${deliveredBs} · ${deliveredOrders.length} entregadas`}</span>
         </div>
         <div class="vd-stat">
           <p class="vd-stat-label">Órdenes</p>
-          <p class="vd-stat-value">{totalOrdersCount}</p>
-          <span class="vd-stat-sub">De esta tienda</span>
+          <p class="vd-stat-value">{ordersFailed ? "—" : totalOrdersCount}</p>
+          <span class="vd-stat-sub">Recientes, sin canceladas</span>
         </div>
         <div class="vd-stat">
           <p class="vd-stat-label">Catálogo</p>
-          <p class="vd-stat-value">{storeProducts.length}</p>
+          <p class="vd-stat-value">{productsFailed ? "—" : storeProducts.length}</p>
           <span class="vd-stat-sub">Artículos</span>
         </div>
       </section>
@@ -193,7 +208,7 @@ function formatPaymentMethod(pm: string): string {
       <section class="vd-orders" aria-labelledby="vd-orders-title">
         <div class="vd-section-head">
           <div class="vd-section-title">
-            <h2 id="vd-orders-title">Órdenes de {currentStore.name}</h2>
+            <h2 id="vd-orders-title">Órdenes de {storeName}</h2>
             <span id="order-count-badge" class="vd-badge">{storeOrders.length}</span>
           </div>
           <button id="refresh-orders-btn" class="vd-link-btn" type="button">
@@ -206,12 +221,12 @@ function formatPaymentMethod(pm: string): string {
           {storeOrders.length === 0 ? (
             <div class="vd-empty">
               <svg class="vd-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v8"/></svg>
-              <h3 class="vd-empty-title">Sin órdenes pendientes para {currentStore.name}</h3>
+              <h3 class="vd-empty-title">{ordersFailed ? "No se pudieron cargar las órdenes" : `Sin órdenes para ${storeName}`}</h3>
               <p class="vd-empty-text">
-                Las órdenes creadas por clientes para <strong>{currentStore.name}</strong> aparecerán aquí en tiempo real con su detalle de productos.
+                {ordersFailed ? "Usa Actualizar para reintentar." : <>Las órdenes de clientes para <strong>{storeName}</strong> aparecerán aquí.</>}
               </p>
-              <a href={`/stores/${currentStore.id}`} class="vd-empty-link">
-                <span>Ver vitrina de {currentStore.name}</span>
+              <a href={`/stores/${storeId}`} class="vd-empty-link">
+                <span>Ver vitrina de {storeName}</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
               </a>
             </div>
@@ -219,18 +234,11 @@ function formatPaymentMethod(pm: string): string {
             storeOrders.map((order) => {
               const totalUSD = Number(order.total) || 0;
               const totalBsFormatted = formatBs(totalUSD, bcvRate);
-              const statusLabel =
-                order.status === 'placed' ? 'Nuevo pedido' :
-                order.status === 'accepted_by_store' ? 'Aceptado' :
-                order.status === 'preparing' ? 'Preparando pedido' :
-                order.status === 'ready_for_pickup' ? 'Listo p/ despacho' :
-                order.status === 'driver_assigned' ? 'Repartidor asignado' :
-                order.status === 'driver_in_transit' || order.status === 'in_transit' ? 'En camino' :
-                order.status === 'delivered' ? 'Entregado' : order.status;
+              const statusLabel = STATUS_LABELS[order.status] || order.status || '—';
 
               const isIncoming = order.status === 'placed';
               const isAccepted = order.status === 'accepted_by_store';
-              const isPreparing = order.status === 'preparing';
+              const isPreparing = order.status === 'in_kitchen';
               const isReady = order.status === 'ready_for_pickup';
               const isPaid = order.payment_status === 'paid';
               const orderItems = Array.isArray(order.items) ? order.items : [];
@@ -241,30 +249,27 @@ function formatPaymentMethod(pm: string): string {
                   <div class="vd-order-head">
                     <div class="vd-order-id">
                       <span class="vd-mono vd-order-num">#{order.order_number || order.id.slice(0, 8)}</span>
-                      <span class="vd-order-time">{new Date(order.placed_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      <span class="vd-order-time">{formatOrderTime(order.placed_at)}</span>
                     </div>
                     <span class={`vd-status vd-status--${tone}`}>{statusLabel}</span>
                   </div>
 
                   <div class="vd-items">
-                    <span class="vd-items-label">Artículos a empacar ({orderItems.length || 1})</span>
+                    <span class="vd-items-label">Artículos a empacar ({orderItems.length})</span>
                     {orderItems.length > 0 ? (
                       orderItems.map((it: any) => {
-                        const pName = productNamesMap[it.product_id] || cleanProductName(it.name || '') || `Artículo #${String(it.product_id || '').slice(0, 6)}`;
+                        const pName = productNamesMap[it.product_id] || it.name || `Artículo #${String(it.product_id || '').slice(0, 6)}`;
                         const qty = Number(it.quantity) || 1;
-                        const unitPrice = Number(it.unit_price) || 0;
+                        const lineTotal = Number(it.subtotal) || (Number(it.unit_price) || 0) * qty;
                         return (
                           <div class="vd-item">
                             <span class="vd-item-name"><strong class="vd-qty">{qty}x</strong> {pName}</span>
-                            <span class="vd-num">${(unitPrice * qty).toFixed(2)}</span>
+                            <span class="vd-num">${lineTotal.toFixed(2)}</span>
                           </div>
                         );
                       })
                     ) : (
-                      <div class="vd-item">
-                        <span class="vd-item-name"><strong class="vd-qty">1x</strong> Pedido de catálogo ({currentStore.name})</span>
-                        <span class="vd-num">${(Number(order.subtotal) || totalUSD).toFixed(2)}</span>
-                      </div>
+                      <p class="vd-note">Detalle de artículos no disponible</p>
                     )}
                     {(order.notes || order.instructions) && (
                       <p class="vd-note">{order.notes || order.instructions}</p>
@@ -274,7 +279,7 @@ function formatPaymentMethod(pm: string): string {
                   <div class="vd-order-meta">
                     <span class="vd-dest">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                      <span>Destino: <strong>{order.delivery_address || 'Higuerote, Miranda'}</strong></span>
+                      <span>Destino: <strong>{order.delivery_address || '—'}</strong></span>
                     </span>
                     <span class={`vd-pay ${isPaid ? 'is-paid' : ''}`}>
                       {isPaid ? 'Pagado' : formatPaymentMethod(order.payment_method)}
@@ -315,16 +320,16 @@ function formatPaymentMethod(pm: string): string {
         <div class="vd-section-head">
           <div>
             <h2 id="vd-catalog-title" class="vd-catalog-title">Control de catálogo y disponibilidad</h2>
-            <p class="vd-catalog-sub">{storeProducts.length} productos sincronizados a tasa BCV</p>
+            <p class="vd-catalog-sub">{productsFailed ? 'No se pudo cargar el catálogo' : `${storeProducts.length} productos`}</p>
           </div>
-          <span class="vd-chip">{currentStore.name}</span>
+          <span class="vd-chip">{storeName}</span>
         </div>
 
         <div class="vd-search">
           <input
             id="vendor-catalog-search"
             type="search"
-            placeholder={`Buscar entre los ${storeProducts.length} productos de ${currentStore.name}...`}
+            placeholder={`Buscar entre los ${storeProducts.length} productos de ${storeName}...`}
             class="vd-search-input"
             aria-label="Buscar productos"
           />
@@ -334,10 +339,13 @@ function formatPaymentMethod(pm: string): string {
         </div>
 
         <div class="vd-product-list" id="vendor-catalog-list">
+          {storeId && !productsFailed && storeProducts.length === 0 && (
+            <div class="vd-empty"><p class="vd-empty-text">Este comercio aún no tiene productos.</p></div>
+          )}
           {storeProducts.map((item) => {
             const priceUSD = Number(item.base_price) || 0;
             const priceBs = formatBs(priceUSD, bcvRate);
-            const displayName = cleanProductName(item.name);
+            const displayName = String(item.name || '—');
             return (
               <div class="vendor-product-row vd-product" data-name={displayName.toLowerCase()}>
                 <div class="vd-product-info">
@@ -372,11 +380,60 @@ function formatPaymentMethod(pm: string): string {
         const API_DISPATCH = "https://api.traigalo.org/v2/dispatch/assign";
         const API_PRODUCTS = "https://api.traigalo.org/v2/products";
 
+        function readToken() {
+          try { return localStorage.getItem("traigalo_token") || ""; } catch { return ""; }
+        }
+
+        function decodeJwtSub(token) {
+          try {
+            const part = token.split(".")[1] || "";
+            const json = atob(part.replace(/-/g, "+").replace(/_/g, "/"));
+            return String(JSON.parse(json).sub || "");
+          } catch { return ""; }
+        }
+
+        function readUserIds(token) {
+          const ids = new Set();
+          try {
+            const user = JSON.parse(localStorage.getItem("traigalo_user") || "null");
+            if (user && user.id) ids.add(String(user.id));
+            if (user && user.keycloak_id) ids.add(String(user.keycloak_id));
+          } catch {}
+          const sub = decodeJwtSub(token);
+          if (sub) ids.add(sub);
+          return ids;
+        }
+
+        const token = readToken();
+        if (!token) {
+          window.location.replace("/login");
+          return;
+        }
+
+        const userIds = readUserIds(token);
+        document.querySelectorAll(".vd-store-tab[data-owner-id]").forEach((tab) => {
+          if (!userIds.has(tab.getAttribute("data-owner-id") || "")) tab.remove();
+        });
+
+        const storeOwner = document.body.getAttribute("data-store-owner") || "";
+        const storeIdAttr = document.body.getAttribute("data-store-id") || "";
+        if (storeIdAttr && !userIds.has(storeOwner)) {
+          const main = document.getElementById("vendor-main");
+          const denied = document.getElementById("vendor-access-state");
+          if (main) main.hidden = true;
+          if (denied) denied.hidden = false;
+          return;
+        }
+
+        function authHeaders() {
+          return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+        }
+
         async function triggerOrderAction(orderId, actionName) {
           try {
             const res = await fetch(`${API_ORDERS}/${orderId}/actions`, {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: authHeaders(),
               body: JSON.stringify({ action: actionName })
             });
 
@@ -385,17 +442,22 @@ function formatPaymentMethod(pm: string): string {
             }
 
             if (actionName === "ready") {
-              await fetch(API_DISPATCH, {
+              const dRes = await fetch(API_DISPATCH, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: authHeaders(),
                 body: JSON.stringify({ order_id: orderId })
-              }).catch(() => {});
+              }).catch(() => null);
+              if (!dRes || !dRes.ok) {
+                alert(`El pedido quedó listo, pero no se pudo solicitar repartidor${dRes ? ` (${dRes.status})` : ""}. Intenta de nuevo o contacta soporte.`);
+              }
             }
 
             window.location.reload();
           } catch (err) {
             alert(`No se pudo ejecutar la acción '${actionName}': ${err.message}`);
+            return false;
           }
+          return true;
         }
 
         function attachActionHandlers() {
@@ -404,9 +466,14 @@ function formatPaymentMethod(pm: string): string {
               const orderId = btn.getAttribute("data-order-id");
               const action = btn.getAttribute("data-action");
               if (orderId && action) {
+                const original = btn.textContent;
                 btn.disabled = true;
                 btn.textContent = "Procesando...";
-                await triggerOrderAction(orderId, action);
+                const ok = await triggerOrderAction(orderId, action);
+                if (!ok) {
+                  btn.disabled = false;
+                  btn.textContent = original;
+                }
               }
             });
           });
@@ -428,21 +495,31 @@ function formatPaymentMethod(pm: string): string {
           });
         }
 
+        function setAvailLabel(checkbox, isAvail) {
+          const label = checkbox.closest("label")?.querySelector(".avail-status-text");
+          if (label) label.textContent = isAvail ? "Disponible" : "Pausado";
+        }
+
         document.querySelectorAll(".product-avail-checkbox").forEach((checkbox) => {
           checkbox.addEventListener("change", async () => {
             const pid = checkbox.getAttribute("data-product-id");
             const isAvail = checkbox.checked;
-            const label = checkbox.closest("label")?.querySelector(".avail-status-text");
-            if (label) {
-              label.textContent = isAvail ? "Disponible" : "Pausado";
-              label.className = `avail-status-text text-[10px] font-bold ${isAvail ? "text-emerald-600" : "text-gray-400"}`;
-            }
-            if (pid) {
-              fetch(`${API_PRODUCTS}/${pid}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
+            if (!pid) return;
+            checkbox.disabled = true;
+            setAvailLabel(checkbox, isAvail);
+            try {
+              const res = await fetch(`${API_PRODUCTS}/${pid}`, {
+                method: "PUT",
+                headers: authHeaders(),
                 body: JSON.stringify({ is_available: isAvail })
-              }).catch(() => {});
+              });
+              if (!res.ok) throw new Error(`Error en servidor: ${res.status}`);
+            } catch (err) {
+              checkbox.checked = !isAvail;
+              setAvailLabel(checkbox, !isAvail);
+              alert(`No se pudo actualizar la disponibilidad: ${err.message}`);
+            } finally {
+              checkbox.disabled = false;
             }
           });
         });

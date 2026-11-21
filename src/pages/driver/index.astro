@@ -1,71 +1,7 @@
 ---
 import RoleSwitcher from '../../components/RoleSwitcher.astro';
-import { getOfficialExchangeRate, formatBs } from '../../adapters/rates';
-import { fetchStoresMap } from '../../adapters/stores';
 import '../../styles/global.css';
 import '../../styles/pages/driver.css';
-
-const API_BASE = 'https://api.traigalo.org/v2';
-const bcvRate = await getOfficialExchangeRate();
-const storesMap = await fetchStoresMap();
-
-const driverId = '33333333-3333-3333-3333-333333333333';
-const driver = {
-  id: driverId,
-  name: 'Carlos Mendoza',
-  vehicle: 'Yamaha FZ • Placa: AB1-23C',
-  rating: '4.9 ★',
-  todayEarningsUSD: 52.40,
-  todayDeliveries: 8,
-  todayTipsUSD: 6.50,
-  onlineTime: '4h 15m'
-};
-
-const earningsBs = formatBs(driver.todayEarningsUSD, bcvRate);
-const tipsBs = formatBs(driver.todayTipsUSD, bcvRate);
-
-let allOrders: any[] = [];
-try {
-  const res = await fetch(`${API_BASE}/orders?size=30`);
-  if (res.ok) {
-    const data = await res.json();
-    if (Array.isArray(data)) allOrders = data;
-  }
-} catch {}
-
-const availableOrders = allOrders.filter(
-  (o) => o && (o.status === 'placed' || o.status === 'accepted_by_store' || o.status === 'preparing' || o.status === 'ready_for_pickup')
-);
-
-let assignedOrders: any[] = [];
-try {
-  const assignedRes = await fetch(`${API_BASE}/orders?driver-id=${driverId}&size=10`);
-  if (assignedRes.ok) {
-    const data = await assignedRes.json();
-    if (Array.isArray(data)) assignedOrders = data;
-  }
-} catch {}
-
-if (assignedOrders.length === 0) {
-  assignedOrders = allOrders.filter(
-    (o) => o && (o.status === 'driver_assigned' || o.status === 'driver_in_transit' || o.status === 'in_transit' || o.status === 'delivered')
-  );
-}
-
-const currentActiveOrder = assignedOrders.find(
-  (o) => o && (o.status === 'driver_assigned' || o.status === 'driver_in_transit' || o.status === 'in_transit')
-) || null;
-
-function formatDriverStatus(st: string): string {
-  if (st === 'driver_assigned') return 'Asignado p/ Retiro';
-  if (st === 'driver_in_transit' || st === 'in_transit') return 'En Camino';
-  if (st === 'delivered') return 'Entregado';
-  if (st === 'ready_for_pickup') return 'Listo en Tienda';
-  if (st === 'preparing') return 'Preparando';
-  if (st === 'accepted_by_store') return 'Aceptado en Tienda';
-  if (st === 'placed') return 'Nuevo Pedido';
-  return st;
-}
 ---
 
 <html lang="es">
@@ -75,7 +11,7 @@ function formatDriverStatus(st: string): string {
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#FF5A00" />
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Panel de repartidor | Traigalo</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -90,99 +26,84 @@ function formatDriverStatus(st: string): string {
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.5" cy="17.5" r="3"/><circle cx="18.5" cy="17.5" r="3"/><path d="M8.5 17.5h6l3-7h-4M5.5 17.5l3-6h5"/><path d="M15 6h2.5l1 4.5"/></svg>
         </a>
         <div class="dv-who">
-          <h1 class="dv-name">{driver.name}</h1>
-          <span class="dv-meta">{driver.rating} · {driver.vehicle}</span>
+          <h1 id="dv-driver-name" class="dv-name">Repartidor</h1>
+          <span id="dv-driver-meta" class="dv-meta">Panel de entregas</span>
         </div>
         <div class="dv-header-end">
           <div class="dv-bcv">
             <span class="dv-label">Tasa BCV</span>
-            <span class="dv-num">{bcvRate.toFixed(2)} Bs/$</span>
+            <span id="dv-bcv-rate" class="dv-num">—</span>
           </div>
-          <div id="gps-status-badge" class="dv-gps" role="status">
-            <span id="gps-pulse" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span id="gps-text" class="dv-gps-text">GPS Activo</span>
+          <div id="gps-status-badge" class="dv-gps dv-gps--off" role="status">
+            <span id="gps-pulse"></span>
+            <span id="gps-text" class="dv-gps-text">Activa tu ubicación para recibir pedidos</span>
           </div>
         </div>
       </div>
     </header>
 
     <main class="dv-main">
+      <p id="dv-error" class="dv-alert hidden" role="alert"></p>
 
-      {currentActiveOrder && (
-        <section class="dv-active" aria-labelledby="dv-active-title">
-          <div class="dv-active-head">
-            <div class="dv-tags">
-              <span id="dv-active-title" class="dv-tag dv-tag--accent">
-                <span class="dv-live" aria-hidden="true"></span>
-                Pedido activo #{currentActiveOrder.order_number || currentActiveOrder.id.slice(0, 8)}
-              </span>
-              <span class="dv-tag dv-tag--ok">{formatDriverStatus(currentActiveOrder.status)}</span>
-            </div>
-            <div class="dv-amount">
-              <span class="dv-amount-usd dv-num">${Number(currentActiveOrder.total).toFixed(2)}</span>
-              <span class="dv-amount-bs dv-num">{formatBs(Number(currentActiveOrder.total), bcvRate)}</span>
-            </div>
+      <section id="dv-active" class="dv-active hidden" aria-labelledby="dv-active-title">
+        <div class="dv-active-head">
+          <div class="dv-tags">
+            <span id="dv-active-title" class="dv-tag dv-tag--accent">
+              <span class="dv-live" aria-hidden="true"></span>
+              <span id="dv-active-code">Pedido activo</span>
+            </span>
+            <span id="dv-active-status" class="dv-tag dv-tag--ok"></span>
           </div>
-
-          <ol class="dv-route">
-            <li class="dv-stop">
-              <span class="dv-step dv-step--pickup" aria-hidden="true">1</span>
-              <div class="dv-stop-body">
-                <span class="dv-label">Recoger en comercio oficial</span>
-                <h4 class="dv-stop-title">{storesMap[currentActiveOrder.store_id]?.name || 'Comercio Oficial'}</h4>
-                <p class="dv-stop-sub">{storesMap[currentActiveOrder.store_id]?.address_line || 'Higuerote, Estado Miranda'}</p>
-              </div>
-            </li>
-            <li class="dv-stop">
-              <span class="dv-step dv-step--drop" aria-hidden="true">2</span>
-              <div class="dv-stop-body">
-                <span class="dv-label">Entregar en destino</span>
-                <h4 class="dv-stop-title">{currentActiveOrder.delivery_address || 'Av. Andrés Eloy Blanco, Higuerote'}</h4>
-                <p class="dv-stop-sub">Entrega express prioritaria</p>
-              </div>
-            </li>
-          </ol>
-
-          <div class="dv-active-actions">
-            <a href={`/orders/track?id=${currentActiveOrder.id}`} class="dv-btn dv-btn--ghost">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg>
-              <span>Ver en mapa</span>
-            </a>
-
-            {currentActiveOrder.status === 'driver_assigned' && (
-              <button data-action="transit" data-order-id={currentActiveOrder.id} type="button" class="btn-driver-action dv-btn dv-btn--primary">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 14 0M13 6l6 6-6 6"/></svg>
-                <span>Iniciar ruta</span>
-              </button>
-            )}
-
-            {(currentActiveOrder.status === 'in_transit' || currentActiveOrder.status === 'driver_in_transit') && (
-              <button data-action="deliver" data-order-id={currentActiveOrder.id} type="button" class="btn-driver-action dv-btn dv-btn--success">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
-                <span>Confirmar entrega</span>
-              </button>
-            )}
+          <div class="dv-amount">
+            <span id="dv-active-usd" class="dv-amount-usd dv-num">—</span>
+            <span id="dv-active-bs" class="dv-amount-bs dv-num"></span>
           </div>
-        </section>
-      )}
+        </div>
+
+        <ol class="dv-route">
+          <li class="dv-stop">
+            <span class="dv-step dv-step--pickup" aria-hidden="true">1</span>
+            <div class="dv-stop-body">
+              <span class="dv-label">Recoger en comercio</span>
+              <h4 id="dv-active-store" class="dv-stop-title">—</h4>
+              <p id="dv-active-store-addr" class="dv-stop-sub">—</p>
+            </div>
+          </li>
+          <li class="dv-stop">
+            <span class="dv-step dv-step--drop" aria-hidden="true">2</span>
+            <div class="dv-stop-body">
+              <span class="dv-label">Entregar en destino</span>
+              <h4 id="dv-active-addr" class="dv-stop-title">—</h4>
+              <p id="dv-active-payment" class="dv-stop-sub">—</p>
+            </div>
+          </li>
+        </ol>
+
+        <div class="dv-active-actions">
+          <a id="dv-active-map" href="/orders/track" class="dv-btn dv-btn--ghost">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg>
+            <span>Ver en mapa</span>
+          </a>
+          <button id="dv-active-action" type="button" class="btn-driver-action dv-btn dv-btn--primary hidden"></button>
+        </div>
+      </section>
 
       <section class="dv-earn" aria-label="Ganancias de hoy">
-        <span class="dv-label dv-label--night">Ganancias acumuladas hoy</span>
+        <span class="dv-label dv-label--night">Ganancias de hoy (envíos y propinas)</span>
         <div class="dv-earn-row">
-          <h2 class="dv-earn-total dv-num">${driver.todayEarningsUSD.toFixed(2)}</h2>
-          <span class="dv-earn-count dv-num">{driver.todayDeliveries} entregas</span>
+          <h2 id="dv-earn-total" class="dv-earn-total dv-num">—</h2>
+          <span id="dv-earn-count" class="dv-earn-count dv-num">Sin entregas hoy</span>
         </div>
-        <p class="dv-earn-bs dv-num">{earningsBs}</p>
+        <p id="dv-earn-bs" class="dv-earn-bs dv-num"></p>
         <div class="dv-earn-grid">
           <div>
             <span class="dv-label dv-label--night">Propinas recibidas</span>
-            <strong class="dv-num">${driver.todayTipsUSD.toFixed(2)}</strong>
-            <span class="dv-earn-sub dv-num">{tipsBs}</span>
+            <strong id="dv-tips-usd" class="dv-num">—</strong>
+            <span id="dv-tips-bs" class="dv-earn-sub dv-num"></span>
           </div>
           <div>
-            <span class="dv-label dv-label--night">Tiempo en ruta</span>
-            <strong class="dv-num">{driver.onlineTime}</strong>
-            <span class="dv-earn-sub dv-num">Eficiencia: 99.4%</span>
+            <span class="dv-label dv-label--night">Pedidos en curso</span>
+            <strong id="dv-inprogress" class="dv-num">—</strong>
           </div>
         </div>
       </section>
@@ -191,80 +112,22 @@ function formatDriverStatus(st: string): string {
         <div class="dv-card-head">
           <div>
             <h3 id="dv-available-title" class="dv-card-title">Pedidos disponibles por comercio</h3>
-            <p class="dv-card-sub">Acepta órdenes activas de comercios verificados en tu zona</p>
+            <p class="dv-card-sub">Pedidos sin repartidor asignado</p>
           </div>
-          <span class="dv-count dv-num">{availableOrders.length} disponibles</span>
+          <span id="dv-available-count" class="dv-count dv-num">—</span>
         </div>
-
-        {availableOrders.length === 0 ? (
-          <div class="dv-empty">
-            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.9 19.1a10 10 0 0 1 0-14.2M19.1 4.9a10 10 0 0 1 0 14.2M7.8 16.2a6 6 0 0 1 0-8.4M16.2 7.8a6 6 0 0 1 0 8.4"/><circle cx="12" cy="12" r="2"/></svg>
-            <p class="dv-empty-title">Buscando nuevas órdenes en tu zona...</p>
-            <p class="dv-card-sub">Mantente con la aplicación abierta</p>
-          </div>
-        ) : (
-          <ul class="dv-list">
-            {availableOrders.map((ord) => {
-              const totalUSD = Number(ord.total) || 0;
-              const totalBsFormatted = formatBs(totalUSD, bcvRate);
-              const sName = storesMap[ord.store_id]?.name || 'Comercio Oficial';
-              return (
-                <li class="dv-offer">
-                  <div class="dv-offer-body">
-                    <div class="dv-tags">
-                      <span class="dv-code dv-num">#{ord.order_number || ord.id.slice(0, 8)}</span>
-                      <span class="dv-tag dv-tag--accent">{sName}</span>
-                      <span class="dv-tag dv-tag--ok">{formatDriverStatus(ord.status)}</span>
-                    </div>
-                    <p class="dv-addr">
-                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
-                      <span>{ord.delivery_address || 'Higuerote, Miranda'}</span>
-                    </p>
-                    <div class="dv-price">
-                      <span class="dv-num">${totalUSD.toFixed(2)}</span>
-                      <span class="dv-price-bs dv-num">{totalBsFormatted}</span>
-                    </div>
-                  </div>
-                  <button data-action="assign_driver" data-order-id={ord.id} type="button" class="btn-driver-action dv-btn dv-btn--primary dv-btn--accept">
-                    Aceptar pedido
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+        <div id="dv-available-empty" class="dv-empty">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.9 19.1a10 10 0 0 1 0-14.2M19.1 4.9a10 10 0 0 1 0 14.2M7.8 16.2a6 6 0 0 1 0-8.4M16.2 7.8a6 6 0 0 1 0 8.4"/><circle cx="12" cy="12" r="2"/></svg>
+          <p id="dv-available-empty-text" class="dv-empty-title">Cargando pedidos…</p>
+        </div>
+        <ul id="dv-available-list" class="dv-list"></ul>
       </section>
 
       <section class="dv-card" aria-labelledby="dv-history-title">
         <h3 id="dv-history-title" class="dv-card-title">Historial de despachos</h3>
-        <ul class="dv-history">
-          {assignedOrders.map(ord => {
-            const sName = storesMap[ord.store_id]?.name || 'Comercio Oficial';
-            const done = ord.status === 'delivered';
-            return (
-              <li class="dv-hist">
-                <span class={`dv-hist-icon ${done ? 'dv-hist-icon--done' : ''}`} aria-hidden="true">
-                  {done ? (
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg>
-                  ) : (
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3"/><circle cx="18.5" cy="17.5" r="3"/><path d="M8.5 17.5h6l3-7h-4M5.5 17.5l3-6h5"/></svg>
-                  )}
-                </span>
-                <div class="dv-hist-body">
-                  <h4 class="dv-stop-title">#{ord.order_number || ord.id.slice(0, 8)} · {sName}</h4>
-                  <p class="dv-stop-sub">{ord.delivery_address || 'Higuerote, Miranda'}</p>
-                  <span class="dv-hist-meta dv-num">{new Date(ord.placed_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · <strong>{formatDriverStatus(ord.status)}</strong></span>
-                </div>
-                <div class="dv-amount">
-                  <span class="dv-num dv-hist-usd">${Number(ord.total).toFixed(2)}</span>
-                  <span class="dv-amount-bs dv-num">{formatBs(Number(ord.total), bcvRate)}</span>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+        <p id="dv-history-empty" class="dv-card-sub">Sin entregas registradas</p>
+        <ul id="dv-history-list" class="dv-history"></ul>
       </section>
-
     </main>
 
     <div id="urgent-dispatch-modal" class="dv-modal hidden" role="dialog" aria-modal="true" aria-labelledby="offer-store-name">
@@ -274,13 +137,13 @@ function formatDriverStatus(st: string): string {
             <path class="dv-ring-track" stroke-width="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
             <path id="countdown-circle" class="dv-ring-bar" stroke-dasharray="100, 100" stroke-width="3.5" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
           </svg>
-          <span id="dispatch-countdown" class="dv-ring-num dv-num">45</span>
+          <span id="dispatch-countdown" class="dv-ring-num dv-num"></span>
         </div>
 
         <div class="dv-sheet-head">
           <span class="dv-tag dv-tag--ok">Nueva oferta de pedido</span>
-          <h3 id="offer-store-name" class="dv-sheet-title">Comercio Oficial</h3>
-          <p id="offer-store-dist" class="dv-card-sub">Retiro a 0.8 km de tu ubicación</p>
+          <h3 id="offer-store-name" class="dv-sheet-title">—</h3>
+          <p id="offer-store-dist" class="dv-card-sub">—</p>
         </div>
 
         <div class="dv-sheet-box">
@@ -288,20 +151,22 @@ function formatDriverStatus(st: string): string {
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
             <div class="dv-stop-body">
               <span class="dv-label">Entrega en</span>
-              <p id="offer-delivery-addr" class="dv-stop-title">Av. Andrés Eloy Blanco, Higuerote</p>
+              <p id="offer-delivery-addr" class="dv-stop-title">—</p>
             </div>
           </div>
           <div class="dv-sheet-earn">
             <span class="dv-label">Ganancia neta</span>
             <div class="dv-amount">
-              <span id="offer-earnings-usd" class="dv-offer-usd dv-num">$3.50</span>
-              <span id="offer-earnings-bs" class="dv-amount-bs dv-num">~ Bs. 3.136,43 @ BCV</span>
+              <span id="offer-earnings-usd" class="dv-offer-usd dv-num">—</span>
+              <span id="offer-earnings-bs" class="dv-amount-bs dv-num"></span>
             </div>
           </div>
         </div>
 
+        <p id="offer-error" class="dv-alert hidden" role="alert"></p>
+
         <div class="dv-sheet-actions">
-          <button id="btn-accept-offer" type="button" class="dv-btn dv-btn--success dv-btn--xl">
+          <button id="btn-accept-offer" type="button" class="dv-btn dv-btn--primary dv-btn--xl">
             <span>Aceptar pedido</span>
           </button>
           <button id="btn-reject-offer" type="button" class="dv-btn dv-btn--text">Rechazar</button>
@@ -309,296 +174,487 @@ function formatDriverStatus(st: string): string {
       </div>
     </div>
 
-    <script is:inline define:vars={{ driverId, bcvRate, storesMap }}>
+    <script is:inline>
       (() => {
-        const API_ORDERS = 'https://api.traigalo.org/v2/orders';
-        const API_LOCATIONS = 'https://api.traigalo.org/v2/drivers/locations';
-        const API_DISPATCH = 'https://api.traigalo.org/v2/dispatch';
+        const API = 'https://api.traigalo.org/v2';
+        const WS_URL = 'wss://api.traigalo.org/v2/drivers/telemetry';
+        const AVAILABLE_STATUSES = ['placed', 'accepted_by_store', 'in_kitchen', 'ready_for_pickup'];
+        const ACTIVE_STATUSES = ['driver_assigned', 'driver_in_transit', 'in_transit'];
+        const STATUS_LABELS = {
+          placed: 'Nuevo pedido',
+          accepted_by_store: 'Aceptado en tienda',
+          in_kitchen: 'Preparando',
+          ready_for_pickup: 'Listo en tienda',
+          driver_assigned: 'Asignado para retiro',
+          driver_in_transit: 'En camino',
+          in_transit: 'En camino',
+          delivered: 'Entregado',
+          cancelled: 'Cancelado'
+        };
+        const PAYMENT_LABELS = { cash: 'Efectivo', pago_movil: 'Pago móvil', card: 'Tarjeta', zelle: 'Zelle' };
+        const DASH = '—';
 
-        let dispatchCountdownTimer = null;
-        let alertSoundInterval = null;
-        let currentOffer = null;
+        const token = readStorage('traigalo_token');
+        if (!token) {
+          window.location.replace('/login');
+          return;
+        }
+        const claims = decodeJwt(token);
+        const user = parseJson(readStorage('traigalo_user'));
+        const driverId = claims && typeof claims.sub === 'string' ? claims.sub : null;
 
-        function playUrgentArpeggio() {
+        const state = { rate: null, stores: {}, orders: [], assigned: [], offer: null, countdown: null, alarm: null };
+
+        function readStorage(key) {
+          try { return window.localStorage.getItem(key); } catch (e) { return null; }
+        }
+
+        function parseJson(raw) {
+          if (!raw) return null;
+          try { return JSON.parse(raw); } catch (e) { return null; }
+        }
+
+        function decodeJwt(jwt) {
+          const part = String(jwt).split('.')[1];
+          if (!part) return null;
           try {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContext) return;
-            const ctx = new AudioContext();
-            const now = ctx.currentTime;
+            const b64 = part.replace(/-/g, '+').replace(/_/g, '/');
+            const json = decodeURIComponent(atob(b64).split('').map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join(''));
+            return JSON.parse(json);
+          } catch (e) { return null; }
+        }
 
-            const notes = [440, 554.37, 659.25, 880];
-            notes.forEach((freq, idx) => {
-              const osc = ctx.createOscillator();
-              const gain = ctx.createGain();
-              osc.type = 'triangle';
-              osc.frequency.setValueAtTime(freq, now + (idx * 0.08));
+        function el(id) { return document.getElementById(id); }
 
-              gain.gain.setValueAtTime(0.3, now + (idx * 0.08));
-              gain.gain.exponentialRampToValueAtTime(0.01, now + (idx * 0.08) + 0.15);
+        function setText(id, value) {
+          const node = el(id);
+          if (node) node.textContent = value;
+        }
 
-              osc.connect(gain);
-              gain.connect(ctx.destination);
+        function show(id, visible) {
+          const node = el(id);
+          if (node) node.classList.toggle('hidden', !visible);
+        }
 
-              osc.start(now + (idx * 0.08));
-              osc.stop(now + (idx * 0.08) + 0.15);
+        function showError(id, message) {
+          setText(id, message);
+          show(id, Boolean(message));
+        }
+
+        function text(value) {
+          return value === undefined || value === null || String(value).trim() === '' ? DASH : String(value);
+        }
+
+        function num(value) {
+          const n = Number(value);
+          return Number.isFinite(n) ? n : null;
+        }
+
+        function usd(value) {
+          const n = num(value);
+          return n === null ? DASH : '$' + n.toFixed(2);
+        }
+
+        function bs(value) {
+          const n = num(value);
+          if (n === null || !state.rate) return '';
+          return 'Bs. ' + new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n * state.rate);
+        }
+
+        function orderCode(order) {
+          return '#' + (order.order_number || String(order.id || '').slice(0, 8) || DASH);
+        }
+
+        function statusLabel(status) {
+          return STATUS_LABELS[status] || text(status);
+        }
+
+        function storeName(storeId) {
+          const store = state.stores[storeId];
+          return store && store.name ? store.name : DASH;
+        }
+
+        function storeAddress(storeId) {
+          const store = state.stores[storeId];
+          return store && store.address_line ? store.address_line : DASH;
+        }
+
+        function isToday(iso) {
+          if (!iso) return false;
+          const d = new Date(iso);
+          const now = new Date();
+          return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+        }
+
+        function timeOf(iso) {
+          if (!iso) return DASH;
+          const d = new Date(iso);
+          return Number.isNaN(d.getTime()) ? DASH : d.toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        async function api(path, options) {
+          const res = await fetch(API + path, {
+            ...(options || {}),
+            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }
+          });
+          if (res.status === 401) {
+            window.location.replace('/login');
+            throw new Error('Sesión expirada');
+          }
+          if (!res.ok) {
+            const body = await res.text().catch(() => '');
+            const parsed = parseJson(body);
+            const detail = parsed && (parsed.error && (parsed.error.message || parsed.error)) || body;
+            throw new Error(detail ? String(detail).trim() : 'Error ' + res.status);
+          }
+          return res.status === 204 ? null : res.json();
+        }
+
+        function unwrap(payload) {
+          if (Array.isArray(payload)) return payload;
+          if (payload && Array.isArray(payload.data)) return payload.data;
+          return [];
+        }
+
+        function renderIdentity() {
+          const name = (user && (user.name || user.full_name || [user.first_name, user.last_name].filter(Boolean).join(' '))) || (claims && (claims.name || claims.preferred_username)) || 'Repartidor';
+          setText('dv-driver-name', name);
+          setText('dv-driver-meta', (user && user.email) || (claims && claims.email) || 'Panel de entregas');
+        }
+
+        function renderRate() {
+          setText('dv-bcv-rate', state.rate ? state.rate.toFixed(2) + ' Bs/$' : DASH);
+        }
+
+        function renderActive() {
+          const order = state.assigned.find((o) => ACTIVE_STATUSES.includes(o.status));
+          show('dv-active', Boolean(order));
+          if (!order) return;
+          setText('dv-active-code', 'Pedido activo ' + orderCode(order));
+          setText('dv-active-status', statusLabel(order.status));
+          setText('dv-active-usd', usd(order.total_usd || order.total));
+          setText('dv-active-bs', bs(order.total_usd || order.total));
+          setText('dv-active-store', storeName(order.store_id));
+          setText('dv-active-store-addr', storeAddress(order.store_id));
+          setText('dv-active-addr', text(order.delivery_address));
+          setText('dv-active-payment', 'Pago: ' + (PAYMENT_LABELS[order.payment_method] || text(order.payment_method)));
+          const map = el('dv-active-map');
+          if (map) map.setAttribute('href', '/orders/track?id=' + encodeURIComponent(order.id));
+          const btn = el('dv-active-action');
+          if (!btn) return;
+          const delivering = order.status !== 'driver_assigned';
+          btn.setAttribute('data-order-id', order.id);
+          btn.setAttribute('data-action', delivering ? 'deliver' : 'transit');
+          btn.textContent = delivering ? 'Confirmar entrega' : 'Iniciar ruta';
+          btn.disabled = false;
+          btn.classList.remove('hidden');
+        }
+
+        function renderEarnings() {
+          const today = state.assigned.filter((o) => o.status === 'delivered' && isToday(o.delivered_at));
+          const inProgress = state.assigned.filter((o) => ACTIVE_STATUSES.includes(o.status)).length;
+          setText('dv-inprogress', String(inProgress));
+          if (today.length === 0) {
+            setText('dv-earn-total', '$0.00');
+            setText('dv-earn-count', 'Sin entregas hoy');
+            setText('dv-earn-bs', '');
+            setText('dv-tips-usd', '$0.00');
+            setText('dv-tips-bs', '');
+            return;
+          }
+          const tips = today.reduce((sum, o) => sum + (num(o.tip_usd) || 0), 0);
+          const fees = today.reduce((sum, o) => sum + (num(o.delivery_fee) || 0), 0);
+          setText('dv-earn-total', usd(fees + tips));
+          setText('dv-earn-count', today.length + (today.length === 1 ? ' entrega' : ' entregas'));
+          setText('dv-earn-bs', bs(fees + tips));
+          setText('dv-tips-usd', usd(tips));
+          setText('dv-tips-bs', bs(tips));
+        }
+
+        function tag(className, value) {
+          const span = document.createElement('span');
+          span.className = className;
+          span.textContent = value;
+          return span;
+        }
+
+        function renderAvailable() {
+          const list = el('dv-available-list');
+          if (!list) return;
+          const available = state.orders.filter((o) => !o.driver_id && AVAILABLE_STATUSES.includes(o.status));
+          setText('dv-available-count', available.length + ' disponibles');
+          setText('dv-available-empty-text', 'No hay pedidos disponibles en este momento');
+          show('dv-available-empty', available.length === 0);
+          list.replaceChildren(...available.map((order) => {
+            const li = document.createElement('li');
+            li.className = 'dv-offer';
+            const body = document.createElement('div');
+            body.className = 'dv-offer-body';
+            const tags = document.createElement('div');
+            tags.className = 'dv-tags';
+            tags.append(tag('dv-code dv-num', orderCode(order)), tag('dv-tag dv-tag--accent', storeName(order.store_id)), tag('dv-tag dv-tag--ok', statusLabel(order.status)));
+            const addr = document.createElement('p');
+            addr.className = 'dv-addr';
+            addr.append(tag('', text(order.delivery_address)));
+            const price = document.createElement('div');
+            price.className = 'dv-price';
+            price.append(tag('dv-num', usd(order.total_usd || order.total)), tag('dv-price-bs dv-num', bs(order.total_usd || order.total)));
+            body.append(tags, addr, price);
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn-driver-action dv-btn dv-btn--primary dv-btn--accept';
+            btn.setAttribute('data-action', 'assign_driver');
+            btn.setAttribute('data-order-id', order.id);
+            btn.textContent = 'Aceptar pedido';
+            li.append(body, btn);
+            return li;
+          }));
+        }
+
+        function renderHistory() {
+          const list = el('dv-history-list');
+          if (!list) return;
+          show('dv-history-empty', state.assigned.length === 0);
+          list.replaceChildren(...state.assigned.map((order) => {
+            const li = document.createElement('li');
+            li.className = 'dv-hist';
+            const icon = tag('dv-hist-icon' + (order.status === 'delivered' ? ' dv-hist-icon--done' : ''), order.status === 'delivered' ? '✓' : '•');
+            icon.setAttribute('aria-hidden', 'true');
+            const body = document.createElement('div');
+            body.className = 'dv-hist-body';
+            const title = document.createElement('h4');
+            title.className = 'dv-stop-title';
+            title.textContent = orderCode(order) + ' · ' + storeName(order.store_id);
+            const sub = document.createElement('p');
+            sub.className = 'dv-stop-sub';
+            sub.textContent = text(order.delivery_address);
+            const meta = tag('dv-hist-meta dv-num', timeOf(order.delivered_at || order.placed_at) + ' · ' + statusLabel(order.status));
+            body.append(title, sub, meta);
+            const amount = document.createElement('div');
+            amount.className = 'dv-amount';
+            amount.append(tag('dv-num dv-hist-usd', usd(order.total_usd || order.total)), tag('dv-amount-bs dv-num', bs(order.total_usd || order.total)));
+            li.append(icon, body, amount);
+            return li;
+          }));
+        }
+
+        function renderAll() {
+          renderRate();
+          renderActive();
+          renderEarnings();
+          renderAvailable();
+          renderHistory();
+        }
+
+        async function loadRate() {
+          const data = await api('/rates');
+          const rate = num(data && (data.rate || (data.data && data.data.rate)));
+          state.rate = rate && rate > 0 ? rate : null;
+        }
+
+        async function loadStores() {
+          const data = await api('/stores?size=100');
+          state.stores = unwrap(data).reduce((acc, s) => ({ ...acc, [s.id]: { name: s.name, address_line: s.address_line } }), {});
+        }
+
+        async function loadOrders() {
+          const [open, mine] = await Promise.all([
+            api('/orders?size=50'),
+            driverId ? api('/orders?driver-id=' + encodeURIComponent(driverId) + '&size=50') : Promise.resolve([])
+          ]);
+          state.orders = unwrap(open);
+          state.assigned = unwrap(mine).filter((o) => o && o.driver_id === driverId);
+        }
+
+        async function refresh() {
+          const results = await Promise.allSettled([loadRate(), loadStores(), loadOrders()]);
+          const failed = results.filter((r) => r.status === 'rejected').map((r) => r.reason && r.reason.message);
+          showError('dv-error', failed.length ? 'No se pudo cargar parte del panel: ' + failed.join(' · ') : '');
+          renderAll();
+        }
+
+        async function runOrderAction(btn) {
+          const orderId = btn.getAttribute('data-order-id');
+          const action = btn.getAttribute('data-action');
+          if (!orderId || !action || !driverId) return;
+          const label = btn.textContent;
+          btn.disabled = true;
+          btn.textContent = 'Procesando…';
+          try {
+            await api('/orders/' + encodeURIComponent(orderId) + '/actions', {
+              method: 'POST',
+              body: JSON.stringify({ action, driver_id: driverId })
             });
-          } catch {}
-        }
-
-        function startUrgentAlertAudio() {
-          playUrgentArpeggio();
-          if (!alertSoundInterval) {
-            alertSoundInterval = setInterval(playUrgentArpeggio, 1200);
+            showError('dv-error', '');
+            await refresh();
+          } catch (err) {
+            showError('dv-error', 'No se pudo completar la acción: ' + err.message);
+            btn.disabled = false;
+            btn.textContent = label;
           }
         }
 
-        function stopUrgentAlertAudio() {
-          if (alertSoundInterval) {
-            clearInterval(alertSoundInterval);
-            alertSoundInterval = null;
-          }
+        document.addEventListener('click', (event) => {
+          const btn = event.target instanceof Element ? event.target.closest('.btn-driver-action') : null;
+          if (btn && !btn.disabled) runOrderAction(btn);
+        });
+
+        function playArpeggio() {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          if (!Ctx) return;
+          const ctx = new Ctx();
+          const now = ctx.currentTime;
+          [440, 554.37, 659.25, 880].forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            const start = now + idx * 0.08;
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, start);
+            gain.gain.setValueAtTime(0.3, start);
+            gain.gain.exponentialRampToValueAtTime(0.01, start + 0.15);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(start);
+            osc.stop(start + 0.15);
+          });
         }
 
-        function showDispatchOfferModal(offer) {
-          currentOffer = offer;
-          const modal = document.getElementById('urgent-dispatch-modal');
-          const countdownEl = document.getElementById('dispatch-countdown');
-          const circle = document.getElementById('countdown-circle');
-          const storeNameEl = document.getElementById('offer-store-name');
-          const storeDistEl = document.getElementById('offer-store-dist');
-          const addrEl = document.getElementById('offer-delivery-addr');
-          const earnUsdEl = document.getElementById('offer-earnings-usd');
-          const earnBsEl = document.getElementById('offer-earnings-bs');
+        function stopTimers() {
+          if (state.alarm) clearInterval(state.alarm);
+          if (state.countdown) clearInterval(state.countdown);
+          state.alarm = null;
+          state.countdown = null;
+        }
 
-          const resolvedStoreName = offer.store_name || (storesMap && storesMap[offer.store_id] && storesMap[offer.store_id].name) || 'Comercio Oficial';
-          if (storeNameEl) storeNameEl.textContent = resolvedStoreName;
-          if (storeDistEl) storeDistEl.textContent = `Retiro a ${offer.pickup_distance || '0.8 km'} de tu ubicación`;
-          if (addrEl) addrEl.textContent = offer.delivery_address || 'Av. Andrés Eloy Blanco, Higuerote';
+        function closeOffer() {
+          show('urgent-dispatch-modal', false);
+          showError('offer-error', '');
+          stopTimers();
+          state.offer = null;
+        }
 
-          const earningsUSD = Number(offer.earnings_usd || 3.50);
-          const earningsBS = earningsUSD * (bcvRate || 896.12);
-          if (earnUsdEl) earnUsdEl.textContent = `$${earningsUSD.toFixed(2)}`;
-          if (earnBsEl) {
-            earnBsEl.textContent = `~ Bs. ${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2 }).format(earningsBS)} @ BCV`;
+        function openOffer(offer) {
+          state.offer = offer;
+          const order = state.orders.find((o) => o.id === offer.order_id);
+          const earnings = num(offer.earnings_usd);
+          setText('offer-store-name', text(offer.store_name));
+          setText('offer-store-dist', order ? 'Pedido ' + orderCode(order) : 'Pedido ' + text(String(offer.order_id || '').slice(0, 8)));
+          setText('offer-delivery-addr', text(order && order.delivery_address));
+          setText('offer-earnings-usd', usd(earnings));
+          setText('offer-earnings-bs', earnings !== null && state.rate ? '~ ' + bs(earnings) + ' @ BCV' : '');
+          showError('offer-error', '');
+          const accept = el('btn-accept-offer');
+          if (accept) { accept.disabled = false; accept.textContent = 'Aceptar pedido'; }
+          show('urgent-dispatch-modal', true);
+          stopTimers();
+          playArpeggio();
+          state.alarm = setInterval(playArpeggio, 1200);
+          const total = num(offer.expires_in);
+          const circle = el('countdown-circle');
+          if (!total || total <= 0) {
+            setText('dispatch-countdown', '');
+            return;
           }
-
-          if (modal) modal.classList.remove('hidden');
-          startUrgentAlertAudio();
-
-          let timeLeft = 45;
-          if (countdownEl) countdownEl.textContent = String(timeLeft);
+          let left = total;
+          setText('dispatch-countdown', String(left));
           if (circle) circle.setAttribute('stroke-dasharray', '100, 100');
-
-          if (dispatchCountdownTimer) clearInterval(dispatchCountdownTimer);
-          dispatchCountdownTimer = setInterval(() => {
-            timeLeft--;
-            if (countdownEl) countdownEl.textContent = String(timeLeft);
-            if (circle) {
-              const pct = (timeLeft / 45) * 100;
-              circle.setAttribute('stroke-dasharray', `${pct}, 100`);
-            }
-
-            if (timeLeft <= 0) {
-              closeDispatchOfferModal();
-            }
+          state.countdown = setInterval(() => {
+            left -= 1;
+            setText('dispatch-countdown', String(Math.max(left, 0)));
+            if (circle) circle.setAttribute('stroke-dasharray', (Math.max(left, 0) / total) * 100 + ', 100');
+            if (left <= 0) closeOffer();
           }, 1000);
         }
 
-        function closeDispatchOfferModal() {
-          const modal = document.getElementById('urgent-dispatch-modal');
-          if (modal) modal.classList.add('hidden');
-          stopUrgentAlertAudio();
-          if (dispatchCountdownTimer) {
-            clearInterval(dispatchCountdownTimer);
-            dispatchCountdownTimer = null;
-          }
-          currentOffer = null;
-        }
-
-        const acceptOfferBtn = document.getElementById('btn-accept-offer');
-        if (acceptOfferBtn) {
-          acceptOfferBtn.addEventListener('click', async () => {
-            if (!currentOffer) return;
-            acceptOfferBtn.disabled = true;
-            acceptOfferBtn.textContent = 'Aceptando...';
-
-            try {
-              const offerId = currentOffer.id || currentOffer.offer_id || currentOffer.order_id;
-              const res = await fetch(`${API_DISPATCH}/offers/${offerId}/actions`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'accept', driver_id: driverId })
-              });
-
-              if (!res.ok) {
-                await fetch(`${API_ORDERS}/${offerId}/actions`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ action: 'assign_driver', driver_id: driverId })
-                });
-              }
-
-              closeDispatchOfferModal();
-              window.location.reload();
-            } catch (err) {
-              closeDispatchOfferModal();
-              window.location.reload();
-            }
-          });
-        }
-
-        const rejectOfferBtn = document.getElementById('btn-reject-offer');
-        if (rejectOfferBtn) {
-          rejectOfferBtn.addEventListener('click', async () => {
-            if (currentOffer) {
-              const offerId = currentOffer.id || currentOffer.offer_id || currentOffer.order_id;
-              await fetch(`${API_DISPATCH}/offers/${offerId}/actions`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'reject', driver_id: driverId })
-              }).catch(() => {});
-            }
-            closeDispatchOfferModal();
-          });
-        }
-
-        function initDriverWebSocket() {
-          let ws = null;
-          try {
-            ws = new WebSocket(`wss://ws.traigalo.org/ws?driver_id=${encodeURIComponent(driverId)}`);
-          } catch {}
-
-          if (ws) {
-            ws.onmessage = (event) => {
-              try {
-                const data = JSON.parse(event.data);
-                if (data.event === 'dispatch_offer' || data.type === 'dispatch_offer' || data.type === 'driver_offer') {
-                  showDispatchOfferModal(data.payload || data);
-                }
-              } catch {}
-            };
-          }
-        }
-
-        initDriverWebSocket();
-
-        async function triggerDriverAction(orderId, actionName) {
-          try {
-            const res = await fetch(`${API_ORDERS}/${orderId}/actions`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                action: actionName,
-                driver_id: driverId 
-              })
-            });
-
-            if (!res.ok) {
-              throw new Error(`Error en servidor: ${res.status}`);
-            }
-
-            window.location.reload();
-          } catch (err) {
-            alert(`No se pudo ejecutar la acción: ${err.message}`);
-          }
-        }
-
-        document.querySelectorAll('.btn-driver-action').forEach((btn) => {
-          btn.addEventListener('click', async () => {
-            const orderId = btn.getAttribute('data-order-id');
-            const action = btn.getAttribute('data-action');
-            if (orderId && action) {
-              btn.disabled = true;
-              btn.textContent = 'Procesando...';
-              await triggerDriverAction(orderId, action);
-            }
-          });
-        });
-
-        function sendLocationUpdate(lat, lng, heading = 0, speed = 0) {
-          fetch(API_LOCATIONS, {
+        async function offerAction(action) {
+          const offer = state.offer;
+          if (!offer || !offer.offer_id) return;
+          await api('/dispatch/offers/' + encodeURIComponent(offer.offer_id) + '/actions', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              driver_id: driverId,
-              latitude: lat,
-              longitude: lng,
-              heading: heading || 0,
-              speed: speed || 0
-            })
-          }).catch(() => {});
+            body: JSON.stringify({ action })
+          });
         }
 
-        function startGpsTracking() {
-          const gpsPulse = document.getElementById('gps-pulse');
-          const gpsText = document.getElementById('gps-text');
-
-          if ('geolocation' in navigator) {
-            navigator.geolocation.watchPosition(
-              (pos) => {
-                const { latitude, longitude, heading, speed } = pos.coords;
-                sendLocationUpdate(latitude, longitude, heading || 0, speed || 0);
-                if (gpsText) gpsText.textContent = 'GPS Transmitiendo';
-                if (gpsPulse) gpsPulse.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-ping';
-              },
-              () => {
-                simulateGpsMovement();
-              },
-              { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
-            );
-          } else {
-            simulateGpsMovement();
-          }
+        const acceptBtn = el('btn-accept-offer');
+        if (acceptBtn) {
+          acceptBtn.addEventListener('click', async () => {
+            acceptBtn.disabled = true;
+            acceptBtn.textContent = 'Aceptando…';
+            try {
+              await offerAction('accept');
+              closeOffer();
+              await refresh();
+            } catch (err) {
+              stopTimers();
+              showError('offer-error', 'No se pudo aceptar la oferta: ' + err.message);
+              acceptBtn.disabled = false;
+              acceptBtn.textContent = 'Aceptar pedido';
+            }
+          });
         }
 
-        let simStep = 0;
-        function simulateGpsMovement() {
-          const baseLat = 10.4852;
-          const baseLng = -66.0975;
-          sendLocationUpdate(baseLat, baseLng, 90.0, 25.0);
-          setInterval(() => {
-            simStep = (simStep + 1) % 100;
-            const lat = baseLat + (Math.sin(simStep * 0.1) * 0.002);
-            const lng = baseLng + (Math.cos(simStep * 0.1) * 0.002);
-            sendLocationUpdate(lat, lng, 90.0, 25.0);
-          }, 5000);
+        const rejectBtn = el('btn-reject-offer');
+        if (rejectBtn) {
+          rejectBtn.addEventListener('click', async () => {
+            try {
+              await offerAction('reject');
+              closeOffer();
+            } catch (err) {
+              showError('offer-error', 'No se pudo rechazar la oferta: ' + err.message);
+            }
+          });
         }
 
-        function playDriverAlertTone() {
+        function connectTelemetry() {
+          if (!driverId) return;
+          const ws = new WebSocket(WS_URL);
+          ws.addEventListener('message', (event) => {
+            const data = parseJson(event.data);
+            if (!data || data.event !== 'dispatch_offer' || data.driver_id !== driverId) return;
+            openOffer(data);
+          });
+          ws.addEventListener('close', () => setTimeout(connectTelemetry, 5000));
+        }
+
+        function setGps(active, message) {
+          const badge = el('gps-status-badge');
+          if (badge) badge.classList.toggle('dv-gps--off', !active);
+          setText('gps-text', message);
+        }
+
+        async function sendLocation(coords) {
           try {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContext) return;
-            const ctx = new AudioContext();
-            const now = ctx.currentTime;
-
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(523.25, now);
-            osc.frequency.setValueAtTime(659.25, now + 0.1);
-            osc.frequency.setValueAtTime(783.99, now + 0.2);
-            osc.frequency.setValueAtTime(1046.50, now + 0.3);
-
-            gain.gain.setValueAtTime(0.25, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-
-            osc.start(now);
-            osc.stop(now + 0.5);
-          } catch {}
+            await api('/drivers/locations', {
+              method: 'POST',
+              body: JSON.stringify({ driver_id: driverId, latitude: coords.latitude, longitude: coords.longitude })
+            });
+            setGps(true, 'GPS transmitiendo');
+          } catch (err) {
+            setGps(false, 'Ubicación no enviada: ' + err.message);
+          }
         }
 
-        window.addEventListener('load', () => {
-          const hasOrders = document.querySelector('.btn-driver-action') !== null;
-          if (hasOrders) {
-            playDriverAlertTone();
+        function startGps() {
+          if (!driverId) {
+            setGps(false, 'Sesión sin identificador de repartidor');
+            return;
           }
-        });
+          if (!('geolocation' in navigator)) {
+            setGps(false, 'Activa tu ubicación para recibir pedidos');
+            return;
+          }
+          navigator.geolocation.watchPosition(
+            (pos) => sendLocation(pos.coords),
+            () => setGps(false, 'Activa tu ubicación para recibir pedidos'),
+            { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
+          );
+        }
 
-        startGpsTracking();
+        renderIdentity();
+        if (!driverId) showError('dv-error', 'Tu sesión no contiene un identificador de repartidor válido. Inicia sesión de nuevo.');
+        refresh();
+        connectTelemetry();
+        startGps();
       })();
     </script>
   </body>
