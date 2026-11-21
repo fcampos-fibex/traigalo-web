@@ -241,6 +241,13 @@ const curatedCategories = [
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://admin.traigalo.org" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <script is:inline>
+      try {
+        if (!localStorage.getItem('traigalo_token') && !sessionStorage.getItem('traigalo_landing_seen')) {
+          location.replace('/bienvenida' + location.search);
+        }
+      } catch {}
+    </script>
   </head>
   <body>
     <div class="tg-page">
@@ -611,13 +618,6 @@ const curatedCategories = [
 
     <script is:inline define:vars={{ bcvRate }}>
     (() => {
-      try {
-        if (!localStorage.getItem('traigalo_location')) {
-          location.replace('/bienvenida');
-          return;
-        }
-      } catch {}
-
       window.addEventListener('traigalo:rubro-changed', (e) => {
         const rubro = e.detail?.rubro || 'all';
         const popSection = document.getElementById('popular-stores');

@@ -149,6 +149,9 @@ const modules = [
 
     <LocationModal />
 
+    <script is:inline>
+      try { sessionStorage.setItem('traigalo_landing_seen', '1'); } catch {}
+    </script>
     <script is:inline src="/world/scrub-engine.js"></script>
     <script is:inline>
       (() => {
