@@ -115,7 +115,8 @@ function mountScrollWorld(container, config) {
   const topbar = el('div', 'sw-topbar');
   if (config.brand) {
     const brand = el('a', 'sw-brand'); brand.href = (config.brand.href || '#');
-    brand.appendChild(el('span', 'sw-brand__mark'));
+    if (config.brand.mark) { const img = el('img', 'sw-brand__img'); img.src = config.brand.mark; img.alt = ''; img.width = 32; img.height = 32; brand.appendChild(img); }
+    else brand.appendChild(el('span', 'sw-brand__mark'));
     const nm = el('span', 'sw-brand__name'); nm.textContent = config.brand.name || ''; brand.appendChild(nm);
     topbar.appendChild(brand);
   }
@@ -128,9 +129,17 @@ function mountScrollWorld(container, config) {
   const stage = el('div', 'sw-stage');
   const copylayer = el('div', 'sw-copylayer');
   const route = el('div', 'sw-route');
-  const hint = el('div', 'sw-hint');
-  const hintText = el('span'); hintText.textContent = config.hint || 'scroll'; hint.appendChild(hintText);
+  const hint = el('button', 'sw-hint'); hint.type = 'button';
+  hint.setAttribute('aria-label', config.hintAction || config.hint || 'scroll');
   hint.appendChild(el('i'));
+  const hintText = el('span'); hintText.textContent = config.hint || 'scroll'; hint.appendChild(hintText);
+  const hintArrow = el('b'); hintArrow.setAttribute('aria-hidden', 'true'); hint.appendChild(hintArrow);
+  hint.addEventListener('click', () => {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollBy({ top: Math.round(window.innerHeight * 0.9), behavior: reduce ? 'auto' : 'smooth' });
+  });
+  const nudgeTimer = setTimeout(() => { if (window.scrollY < 8) hint.classList.add('is-nudging'); }, 3500);
+  window.addEventListener('scroll', () => { clearTimeout(nudgeTimer); hint.classList.remove('is-nudging'); }, { once: true, passive: true });
   const track = el('div', 'sw-track');
 
   [sky, scrollbar, topbar, stage, copylayer, route, hint, track].forEach(n => container.appendChild(n));
@@ -266,6 +275,7 @@ function mountScrollWorld(container, config) {
     }
     scrollbarFill.style.transform = `scaleX(${clamp(y / (totalW * vh))})`;
     hint.style.opacity = clamp(1 - y / (0.5 * vh));
+    hint.style.pointerEvents = y > 0.4 * vh ? 'none' : '';
     if (particles) particles.style.transform = `translate3d(0, ${-y * 0.05}px, 0)`;
     ticking = false;
   }
@@ -375,6 +385,7 @@ function injectCSS() {
   .sw-topbar{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:clamp(14px,2.4vw,26px) clamp(18px,5vw,64px);}
   .sw-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--sw-ink);}
   .sw-brand__mark{width:24px;height:28px;border-radius:7px 7px 10px 10px;background:linear-gradient(160deg,var(--sw-accent),color-mix(in srgb,var(--sw-accent) 60%,#000));box-shadow:0 6px 14px color-mix(in srgb,var(--sw-accent) 40%,transparent);}
+  .sw-brand__img{width:32px;height:32px;border-radius:9px;object-fit:cover;display:block;}
   .sw-brand__name{font-family:var(--sw-font-display);font-weight:700;font-size:1.1rem;}
   .sw-nav{display:flex;gap:4px;padding:5px;background:color-mix(in srgb,#fff 55%,transparent);backdrop-filter:blur(10px);border:1px solid color-mix(in srgb,var(--sw-accent) 16%,transparent);border-radius:999px;}
   .sw-nav__item{font:inherit;font-size:.82rem;color:var(--sw-ink-soft);border:0;background:transparent;cursor:pointer;padding:7px 14px;border-radius:999px;transition:color .25s,background .25s;}
@@ -405,9 +416,15 @@ function injectCSS() {
   .sw-route__dot.is-active i{background:var(--sw-accent);transform:scale(1.4);box-shadow:0 0 0 5px color-mix(in srgb,var(--sw-accent) 22%,transparent);}
   .sw-route__label{position:absolute;right:24px;top:50%;transform:translateY(-50%) translateX(6px);white-space:nowrap;font-size:.78rem;font-weight:600;color:var(--sw-ink);background:color-mix(in srgb,#fff 85%,transparent);backdrop-filter:blur(6px);padding:5px 11px;border-radius:999px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;border:1px solid color-mix(in srgb,var(--sw-accent) 14%,transparent);}
   .sw-route__dot:hover .sw-route__label,.sw-route__dot.is-active .sw-route__label{opacity:1;transform:translateY(-50%) translateX(0);}
-  .sw-hint{position:fixed;left:50%;bottom:26px;z-index:30;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:10px;font-size:.76rem;letter-spacing:.14em;text-transform:uppercase;color:var(--sw-ink-soft);transition:opacity .3s;}
-  .sw-hint i{width:22px;height:34px;border-radius:12px;border:2px solid color-mix(in srgb,var(--sw-ink) 28%,transparent);position:relative;}
+  .sw-hint{position:fixed;left:50%;bottom:28px;z-index:30;transform:translateX(-50%);display:flex;align-items:center;gap:12px;padding:12px 20px 12px 14px;border:0;border-radius:999px;font:inherit;font-size:1rem;font-weight:600;color:var(--sw-ink);background:color-mix(in srgb,#fff 82%,transparent);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4);box-shadow:0 10px 30px color-mix(in srgb,var(--sw-ink) 18%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--sw-ink) 10%,transparent);cursor:pointer;transition:opacity .3s,box-shadow .3s;}
+  .sw-hint:hover{box-shadow:0 14px 36px color-mix(in srgb,var(--sw-accent) 30%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--sw-accent) 40%,transparent);}
+  .sw-hint:focus-visible{outline:3px solid var(--sw-accent);outline-offset:3px;}
+  .sw-hint i{flex:none;width:22px;height:34px;border-radius:12px;border:2px solid color-mix(in srgb,var(--sw-ink) 35%,transparent);position:relative;}
   .sw-hint i::after{content:"";position:absolute;left:50%;top:7px;width:4px;height:7px;border-radius:2px;background:var(--sw-accent);transform:translateX(-50%);animation:sw-wheel 1.7s ease-in-out infinite;}
+  .sw-hint b{flex:none;width:12px;height:12px;border-right:3px solid var(--sw-accent);border-bottom:3px solid var(--sw-accent);transform:rotate(45deg) translate(-2px,-2px);animation:sw-chev 1.4s ease-in-out infinite;}
+  .sw-hint.is-nudging{animation:sw-nudge 2.2s ease-in-out infinite;}
+  @keyframes sw-chev{0%,100%{transform:rotate(45deg) translate(-3px,-3px);opacity:.55}50%{transform:rotate(45deg) translate(2px,2px);opacity:1}}
+  @keyframes sw-nudge{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-8px)}}
   @keyframes sw-wheel{0%{opacity:0;top:6px}40%{opacity:1}100%{opacity:0;top:17px}}
   .sw-track{position:relative;z-index:1;width:100%;pointer-events:none;}
   @media (max-width:860px){
@@ -433,7 +450,7 @@ function injectCSS() {
     .sw-route__dot{width:28px;height:28px;}
     .sw-btn{padding:15px 26px;}
   }
-  @media (prefers-reduced-motion:reduce){ .sw-hint i::after{animation:none;} .sw-pt{display:none;} }
+  @media (prefers-reduced-motion:reduce){ .sw-hint i::after,.sw-hint b,.sw-hint.is-nudging{animation:none;} .sw-pt{display:none;} }
   `;
   // Wrap in a cascade layer so the page's own theme tokens (unlayered
   // :root / .sw-root { --sw-bg / --sw-ink / --sw-accent … }) always win over
