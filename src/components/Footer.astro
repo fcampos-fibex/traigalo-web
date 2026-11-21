@@ -4,52 +4,48 @@ import Logo from './Logo.astro';
 const currentYear = new Date().getFullYear();
 ---
 
-<footer class="bg-[#0B0D10] text-gray-400 py-12 border-t border-gray-900 mt-16">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
-    <div class="space-y-4">
-      <Logo variant="light" size="md" />
-      <p class="text-xs text-gray-400 leading-relaxed">
-        Tu Super-App de entregas express, comercios oficiales, tecnología, cuidado personal y movilidad urbana en tiempo real.
-      </p>
+<footer class="tg-footer">
+  <div class="tg-wrap">
+    <div class="tg-footer-grid">
+      <div>
+        <Logo variant="light" size="md" />
+        <p style="margin-top: var(--space-md)">
+          Tu super-app de entregas express, comercios oficiales, tecnología, cuidado personal y movilidad urbana en tiempo real.
+        </p>
+      </div>
+
+      <div>
+        <h2>Explorar</h2>
+        <ul>
+          <li><a href="/">Tiendas y catálogo</a></li>
+          <li><a href="/rides">Traigalo Rides (taxis y motos)</a></li>
+          <li><a href="/favorites">Mis favoritos</a></li>
+          <li><a href="/orders">Rastreo de pedidos</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h2>Aliados y flota</h2>
+        <ul>
+          <li><a href="/vendor">Portal para comercios</a></li>
+          <li><a href="/driver">Panel de repartidores</a></li>
+          <li><a href="/register">Registrar mi negocio</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h2>Pagos y cobertura</h2>
+        <p>Precios duales actualizados automáticamente a la tasa oficial del Banco Central de Venezuela (BCV).</p>
+        <p style="margin-top: var(--space-xs)">Pago móvil, efectivo y tarjetas.</p>
+      </div>
     </div>
 
-    <div>
-      <h4 class="text-white text-xs font-black uppercase tracking-wider mb-3">Explorar</h4>
-      <ul class="space-y-2 text-xs font-medium">
-        <li><a href="/" class="hover:text-[#FF7A00] transition-colors">Tiendas y Catálogo</a></li>
-        <li><a href="/rides" class="hover:text-[#FF7A00] transition-colors">Traigalo Rides (Taxis y Motos)</a></li>
-        <li><a href="/favorites" class="hover:text-[#FF7A00] transition-colors">Mis Favoritos</a></li>
-        <li><a href="/orders" class="hover:text-[#FF7A00] transition-colors">Rastreo de Pedidos</a></li>
-      </ul>
-    </div>
-
-    <div>
-      <h4 class="text-white text-xs font-black uppercase tracking-wider mb-3">Aliados y Flota</h4>
-      <ul class="space-y-2 text-xs font-medium">
-        <li><a href="/vendor" class="hover:text-[#FF7A00] transition-colors">Portal para Comercios</a></li>
-        <li><a href="/driver" class="hover:text-[#FF7A00] transition-colors">Panel de Repartidores</a></li>
-        <li><a href="/register" class="hover:text-[#FF7A00] transition-colors">Registrar mi Negocio</a></li>
-      </ul>
-    </div>
-
-    <div>
-      <h4 class="text-white text-xs font-black uppercase tracking-wider mb-3">Pagos y Cobertura</h4>
-      <p class="text-xs text-gray-400 mb-3 leading-relaxed">
-        Precios duales actualizados automáticamente a la tasa oficial del Banco Central de Venezuela (BCV).
-      </p>
-      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-950/80 text-emerald-400 border border-emerald-800/60">
-        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-        Pago Móvil • Efectivo • Tarjetas
-      </span>
-    </div>
-  </div>
-
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 pt-8 border-t border-gray-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500">
-    <span>© {currentYear} Traigalo Corp C.A. Todos los derechos reservados.</span>
-    <div class="flex items-center gap-4">
-      <a href="/login" class="hover:text-white transition-colors">Mi Cuenta</a>
-      <span>•</span>
-      <a href="/orders" class="hover:text-white transition-colors">Ayuda en Línea</a>
+    <div class="tg-footer-base">
+      <span>© {currentYear} Traigalo Corp C.A. Todos los derechos reservados.</span>
+      <nav aria-label="Cuenta y ayuda">
+        <a href="/login">Mi cuenta</a>
+        <a href="/orders">Ayuda en línea</a>
+      </nav>
     </div>
   </div>
 </footer>

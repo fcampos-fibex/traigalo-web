@@ -5,17 +5,18 @@ import BottomNav from '../../components/BottomNav.astro';
 import RoleSwitcher from '../../components/RoleSwitcher.astro';
 import { getOfficialExchangeRate } from '../../adapters/rates';
 import '../../styles/global.css';
+import '../../styles/pages/rides.css';
 
 const bcvRate = await getOfficialExchangeRate();
 const bcvFormatted = bcvRate.toFixed(2);
 ---
 
 <!doctype html>
-<html lang="es">
+<html lang="es" data-rubro="rides">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <title>Traigalo Rides ⚡ | Taxis, Motos y Movilidad en Higuerote y Miranda</title>
+    <title>Traigalo Rides | Taxis, Motos y Movilidad en Higuerote y Miranda</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=3" />
     <link rel="apple-touch-icon" href="/icon-192.png?v=3" />
     <link rel="manifest" href="/manifest.json" />
@@ -37,330 +38,220 @@ const bcvFormatted = bcvRate.toFixed(2);
       }
     </style>
   </head>
-  <body class="bg-[#F5F6F8] text-[#0B0D10] min-h-screen flex flex-col pb-28 antialiased selection:bg-[#FF5A00] selection:text-white" data-bcv-rate={bcvRate}>
+  <body class="rd-body" data-bcv-rate={bcvRate}>
     <RoleSwitcher currentRole="client" />
     <Header />
 
-    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 w-full">
-      <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-xs font-black tracking-wide uppercase mb-1">
-            <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
-            Traigalo Mobility • Higuerote & Miranda
+    <main class="rd-main">
+      <section class="rd-stage" aria-label="Mapa del viaje">
+        <div id="rides-map"></div>
+
+        <div class="rd-stage-top">
+          <div class="rd-chip">
+            <span id="rides-ws-indicator" class="rd-dot"></span>
+            <span id="rides-ws-status">Unidades Verificadas en Zona</span>
           </div>
-          <h1 class="text-2xl sm:text-3xl font-black text-[#0B0D10] tracking-tight">
-            Viaja seguro, rápido y a tasa oficial
-          </h1>
+          <div class="rd-chip rd-chip--rate">
+            <span class="rd-chip-muted">Tasa oficial BCV:</span>
+            <strong>{bcvFormatted} Bs/$</strong>
+          </div>
         </div>
 
-        <div class="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl border border-gray-100 shadow-xs">
-          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
-          <span class="text-xs font-bold text-gray-500">Tasa Oficial BCV:</span>
-          <span class="text-xs font-black text-gray-900">{bcvFormatted} Bs/$</span>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
-        <div class="lg:col-span-5 space-y-5">
-          
-          <div class="bg-white rounded-3xl p-5 sm:p-6 border border-gray-100 shadow-sm space-y-4">
-            <h2 class="text-base font-black text-gray-900 tracking-tight flex items-center justify-between">
-              <span>¿A dónde te llevamos?</span>
-              <span class="text-xs font-extrabold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">Tarifa GPS</span>
-            </h2>
-
-            <div class="space-y-3 relative">
-              <div class="relative">
-                <div class="absolute left-3.5 top-3.5 w-3 h-3 rounded-full border-2 border-emerald-500 bg-white"></div>
-                <input 
-                  id="ride-origin"
-                  type="text" 
-                  value="Av. Andrés Eloy Blanco, Higuerote"
-                  placeholder="Punto de partida..." 
-                  class="w-full h-11 pl-10 pr-4 bg-gray-50 border border-gray-100 rounded-2xl text-xs font-semibold text-gray-900 focus:outline-none focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 transition-all"
-                />
-              </div>
-
-              <div class="pl-4">
-                <div class="w-0.5 h-4 bg-gray-200 border-l border-dashed border-gray-300 ml-1"></div>
-              </div>
-
-              <div class="relative">
-                <div class="absolute left-3.5 top-3.5 w-3 h-3 rounded-full bg-[#FF5A00]"></div>
-                <input 
-                  id="ride-destination"
-                  type="text" 
-                  value="Bahía de Carenero / Puerto Totumo"
-                  placeholder="¿Cuál es tu destino?" 
-                  class="w-full h-11 pl-10 pr-4 bg-gray-50 border border-gray-100 rounded-2xl text-xs font-semibold text-gray-900 focus:outline-none focus:bg-white focus:border-[#FF5A00] focus:ring-2 focus:ring-[#FF5A00]/10 transition-all"
-                />
-              </div>
-            </div>
-
-            <div class="pt-2 flex items-center justify-between text-xs text-gray-500 border-t border-gray-50">
-              <span class="font-bold flex items-center gap-1.5">
-                <span class="text-blue-600 font-extrabold">📏</span>
-                Distancia estimada: <strong id="ride-km" class="text-gray-900">3.4 km</strong>
-              </span>
-              <span class="font-bold flex items-center gap-1.5">
-                <span class="text-amber-500 font-extrabold">⏱</span>
-                Tiempo: <strong id="ride-min" class="text-gray-900">8 min</strong>
-              </span>
-            </div>
+        <div id="searching-overlay" class="rd-searching hidden">
+          <div class="rd-spinner" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>
           </div>
-
-          <div class="space-y-3">
-            <h3 class="text-xs font-black text-gray-500 uppercase tracking-wider px-1">
-              Selecciona tu categoría
-            </h3>
-
-            <div class="space-y-2.5" id="vehicle-selector">
-              <div 
-                data-type="moto" 
-                data-base="1.5" 
-                data-km="0.5" 
-                class="vehicle-card cursor-pointer p-4 rounded-3xl bg-white border-2 border-transparent hover:border-gray-200 shadow-sm transition-all flex items-center justify-between group active:scale-[0.99]"
-              >
-                <div class="flex items-center gap-3.5">
-                  <div class="w-13 h-13 rounded-2xl bg-amber-50 flex items-center justify-center text-3xl shadow-2xs group-hover:scale-105 transition-transform">
-                    🛵
-                  </div>
-                  <div>
-                    <div class="flex items-center gap-2">
-                      <span class="text-sm font-black text-gray-900">Moto Express</span>
-                      <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-black">Más Rápido</span>
-                    </div>
-                    <p class="text-xs text-gray-400">1 pasajero • Ideal para traslado rápido</p>
-                    <span class="text-[11px] font-bold text-gray-500">Llegada en 3 min</span>
-                  </div>
-                </div>
-                <div class="text-right">
-                  <div class="text-base font-black text-gray-900 fare-usd">$3.20</div>
-                  <div class="text-[11px] font-bold text-gray-400 fare-bs">~ Bs. 2,867.58</div>
-                </div>
-              </div>
-
-              <div 
-                data-type="auto" 
-                data-base="2.8" 
-                data-km="0.8" 
-                class="vehicle-card active cursor-pointer p-4 rounded-3xl bg-white border-2 border-[#FF5A00] shadow-md shadow-orange-500/10 transition-all flex items-center justify-between group active:scale-[0.99]"
-              >
-                <div class="flex items-center gap-3.5">
-                  <div class="w-13 h-13 rounded-2xl bg-orange-50 flex items-center justify-center text-3xl shadow-2xs group-hover:scale-105 transition-transform">
-                    🚗
-                  </div>
-                  <div>
-                    <div class="flex items-center gap-2">
-                      <span class="text-sm font-black text-gray-900">Auto Traigalo</span>
-                      <span class="px-2 py-0.5 rounded-full bg-[#FF5A00]/10 text-[#FF5A00] text-[10px] font-black">Popular</span>
-                    </div>
-                    <p class="text-xs text-gray-400">4 pasajeros • A/C garantizado</p>
-                    <span class="text-[11px] font-bold text-gray-500">Llegada en 5 min</span>
-                  </div>
-                </div>
-                <div class="text-right">
-                  <div class="text-base font-black text-[#FF5A00] fare-usd">$5.52</div>
-                  <div class="text-[11px] font-bold text-gray-500 fare-bs">~ Bs. 4,946.58</div>
-                </div>
-              </div>
-
-              <div 
-                data-type="comfort" 
-                data-base="4.5" 
-                data-km="1.2" 
-                class="vehicle-card cursor-pointer p-4 rounded-3xl bg-white border-2 border-transparent hover:border-gray-200 shadow-sm transition-all flex items-center justify-between group active:scale-[0.99]"
-              >
-                <div class="flex items-center gap-3.5">
-                  <div class="w-13 h-13 rounded-2xl bg-blue-50 flex items-center justify-center text-3xl shadow-2xs group-hover:scale-105 transition-transform">
-                    🚙
-                  </div>
-                  <div>
-                    <div class="flex items-center gap-2">
-                      <span class="text-sm font-black text-gray-900">Traigalo Comfort XL</span>
-                      <span class="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-black">Premium</span>
-                    </div>
-                    <p class="text-xs text-gray-400">Camioneta SUV espaciosa • Equipaje</p>
-                    <span class="text-[11px] font-bold text-gray-500">Llegada en 7 min</span>
-                  </div>
-                </div>
-                <div class="text-right">
-                  <div class="text-base font-black text-gray-900 fare-usd">$8.58</div>
-                  <div class="text-[11px] font-bold text-gray-400 fare-bs">~ Bs. 7,688.71</div>
-                </div>
-              </div>
-
-              <div 
-                data-type="flete" 
-                data-base="5.0" 
-                data-km="1.0" 
-                class="vehicle-card cursor-pointer p-4 rounded-3xl bg-white border-2 border-transparent hover:border-gray-200 shadow-sm transition-all flex items-center justify-between group active:scale-[0.99]"
-              >
-                <div class="flex items-center gap-3.5">
-                  <div class="w-13 h-13 rounded-2xl bg-purple-50 flex items-center justify-center text-3xl shadow-2xs group-hover:scale-105 transition-transform">
-                    📦
-                  </div>
-                  <div>
-                    <div class="flex items-center gap-2">
-                      <span class="text-sm font-black text-gray-900">Envíos y Fletes</span>
-                    </div>
-                    <p class="text-xs text-gray-400">Carga mediana • Encomiendas express</p>
-                    <span class="text-[11px] font-bold text-gray-500">Llegada en 8 min</span>
-                  </div>
-                </div>
-                <div class="text-right">
-                  <div class="text-base font-black text-gray-900 fare-usd">$8.40</div>
-                  <div class="text-[11px] font-bold text-gray-400 fare-bs">~ Bs. 7,527.41</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="pt-2">
-            <button 
-              id="btn-request-ride"
-              class="w-full py-4 rounded-2xl bg-gradient-to-r from-[#FF5A00] to-[#FF7A00] hover:from-[#E65000] hover:to-[#FF5A00] text-white text-base font-black shadow-lg shadow-orange-500/30 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <span>Solicitar Carrera Ahora</span>
-              <span class="text-lg">⚡</span>
-            </button>
-          </div>
-
+          <h4 class="rd-searching-title">Buscando conductores cercanos...</h4>
+          <p class="rd-searching-copy">Contactando unidades verificadas en Higuerote y Carenero.</p>
+          <div class="rd-progress"><span></span></div>
         </div>
 
-        <div class="lg:col-span-7 space-y-4">
-          
-          <div class="relative bg-slate-900 rounded-3xl overflow-hidden shadow-xl border border-slate-800 h-[380px] sm:h-[460px] flex items-center justify-center">
-            <div id="rides-map" class="absolute inset-0 z-0"></div>
-
-            <div class="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none z-10">
-              <div class="bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/10 text-white text-xs font-black flex items-center gap-2 pointer-events-auto">
-                <span id="rides-ws-indicator" class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                <span id="rides-ws-status">Unidades Verificadas en Zona</span>
-              </div>
-              <div class="bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/10 text-white text-xs font-bold pointer-events-auto">
-                Higuerote • Miranda
-              </div>
+        <div class="rd-stage-bottom">
+          <div class="rd-route-pill">
+            <div>
+              <span class="rd-route-label">Origen</span>
+              <span id="label-origin" class="rd-route-value">Higuerote</span>
             </div>
-
-            <div id="searching-overlay" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-20">
-              <div class="relative w-20 h-20 mb-4 flex items-center justify-center">
-                <div class="absolute inset-0 rounded-full border-4 border-orange-500/20 border-t-[#FF5A00] animate-spin"></div>
-                <span class="text-3xl animate-bounce">⚡</span>
-              </div>
-              <h4 class="text-white text-lg font-black tracking-tight mb-1">Buscando conductores cercanos...</h4>
-              <p class="text-slate-400 text-xs max-w-sm mb-4">Contactando unidades verificadas en Higuerote y Carenero.</p>
-              <div class="w-48 bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                <div class="bg-[#FF5A00] h-full w-2/3 animate-pulse"></div>
-              </div>
-            </div>
-
-            <div class="absolute bottom-4 left-4 right-4 flex items-center justify-between z-10">
-              <div class="bg-black/75 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-white/10 text-white text-xs flex items-center gap-3">
-                <div>
-                  <span class="text-[10px] text-slate-400 block font-semibold leading-tight">ORIGEN</span>
-                  <span id="label-origin" class="font-extrabold text-slate-100">Higuerote</span>
-                </div>
-                <span class="text-orange-500 font-black">→</span>
-                <div>
-                  <span class="text-[10px] text-slate-400 block font-semibold leading-tight">DESTINO</span>
-                  <span id="label-dest" class="font-extrabold text-slate-100">Carenero</span>
-                </div>
-              </div>
-
-              <div class="flex items-center gap-2">
-                <button id="btn-recenter" class="w-10 h-10 rounded-2xl bg-black/75 hover:bg-black backdrop-blur-md text-white flex items-center justify-center border border-white/10 shadow-md active:scale-95 transition-all" title="Centrar Mapa">
-                  🎯
-                </button>
-              </div>
+            <svg class="rd-route-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            <div>
+              <span class="rd-route-label">Destino</span>
+              <span id="label-dest" class="rd-route-value">Carenero</span>
             </div>
           </div>
+          <button id="btn-recenter" class="rd-icon-btn" title="Centrar mapa" aria-label="Centrar mapa">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+          </button>
+        </div>
+      </section>
 
-          <div id="driver-standby-card" class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between gap-4">
-            <div class="flex items-center gap-3.5">
-              <div class="w-12 h-12 rounded-2xl bg-orange-50 text-[#FF5A00] flex items-center justify-center text-2xl shrink-0">
-                ⚡
-              </div>
-              <div>
-                <h4 class="text-sm font-black text-gray-900">Conductores listos para tu carrera</h4>
-                <p class="text-xs text-gray-400 mt-0.5">Selecciona tu categoría y presiona <strong>Solicitar Carrera Ahora</strong> para asignar tu unidad.</p>
-              </div>
-            </div>
-            <span class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-black shrink-0">
-              6 en línea
+      <section class="rd-sheet tg-glass" aria-label="Solicitar carrera">
+        <span class="rd-grabber" aria-hidden="true"></span>
+
+        <header class="rd-sheet-head">
+          <span class="rd-eyebrow"><span class="rd-dot rd-dot--module"></span>Traigalo Mobility • Higuerote & Miranda</span>
+          <h1 class="rd-title">Viaja seguro, rápido y a tasa oficial</h1>
+        </header>
+
+        <div class="rd-block">
+          <div class="rd-block-head">
+            <h2 class="rd-h2">¿A dónde te llevamos?</h2>
+            <span class="rd-tag">Tarifa GPS</span>
+          </div>
+
+          <div class="rd-route">
+            <label class="rd-field">
+              <span class="rd-pin rd-pin--a" aria-hidden="true"></span>
+              <input id="ride-origin" type="text" value="Av. Andrés Eloy Blanco, Higuerote" placeholder="Punto de partida..." aria-label="Punto de partida" />
+            </label>
+            <span class="rd-route-line" aria-hidden="true"></span>
+            <label class="rd-field">
+              <span class="rd-pin rd-pin--b" aria-hidden="true"></span>
+              <input id="ride-destination" type="text" value="Bahía de Carenero / Puerto Totumo" placeholder="¿Cuál es tu destino?" aria-label="Destino" />
+            </label>
+          </div>
+
+          <div class="rd-metrics">
+            <span>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 17 17 3l4 4L7 21z"/><path d="m7 13 2 2M10 10l2 2M13 7l2 2"/></svg>
+              Distancia estimada: <strong id="ride-km">3.4 km</strong>
+            </span>
+            <span>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>
+              Tiempo: <strong id="ride-min">8 min</strong>
             </span>
           </div>
-
-          <div id="driver-card" class="hidden bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-4">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-3.5">
-                <div class="relative">
-                  <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-black text-xl flex items-center justify-center ring-2 ring-blue-500/30">
-                    CR
-                  </div>
-                  <span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white" title="Conductor en línea"></span>
-                </div>
-                <div>
-                  <div class="flex items-center gap-2">
-                    <h4 class="text-base font-black text-gray-900">Carlos R. Mendoza</h4>
-                    <span class="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 text-[10px] font-black flex items-center gap-1">
-                      <span>★</span> 4.95
-                    </span>
-                  </div>
-                  <p class="text-xs text-gray-400 font-semibold">Toyota Corolla Blanco (2018)</p>
-                  <div class="flex items-center gap-2 mt-0.5">
-                    <span class="px-2 py-0.5 rounded-lg bg-gray-100 text-gray-800 text-[11px] font-black tracking-wider uppercase">
-                      AB123CD
-                    </span>
-                    <span class="text-[11px] text-emerald-600 font-bold">• Conductor Asignado</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="text-right">
-                <span class="text-[10px] uppercase font-bold text-gray-400 block leading-tight">Llegada</span>
-                <span class="text-lg font-black text-blue-600">4 min</span>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3 pt-2 border-t border-gray-50">
-              <button 
-                id="btn-share-trip"
-                class="py-2.5 px-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
-              >
-                <span>💬</span>
-                <span>Compartir Viaje</span>
-              </button>
-
-              <button 
-                id="btn-sos"
-                class="py-2.5 px-4 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
-              >
-                <span>🚨</span>
-                <span>Botón SOS 911</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="bg-gradient-to-r from-blue-900 to-indigo-900 rounded-3xl p-5 text-white shadow-lg flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <div class="w-11 h-11 rounded-2xl bg-white/10 flex items-center justify-center text-2xl shrink-0">
-                🛡️
-              </div>
-              <div>
-                <h5 class="text-xs font-black text-white">Traigalo Seguro 100%</h5>
-                <p class="text-[11px] text-blue-200">Conductores verificados con antecedentes penales y monitoreo telemático en vivo.</p>
-              </div>
-            </div>
-            <a href="https://wa.me/584120000000" target="_blank" class="shrink-0 px-3 py-1.5 rounded-xl bg-white text-blue-900 text-xs font-black hover:bg-blue-50 transition-all">
-              Soporte 24/7
-            </a>
-          </div>
-
         </div>
 
-      </div>
+        <div class="rd-block">
+          <h3 class="rd-h3">Selecciona tu categoría</h3>
+
+          <div class="rd-vehicles" id="vehicle-selector">
+            <div data-type="moto" data-base="1.5" data-km="0.5" class="vehicle-card" tabindex="0" role="button">
+              <div class="rd-v-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17" r="3"/><circle cx="18.5" cy="17" r="3"/><path d="M8.5 17h6l3-6h-4l-2-4H9M14 7h3"/></svg>
+              </div>
+              <div class="rd-v-body">
+                <div class="rd-v-name">Moto Express <span class="rd-badge rd-badge--ok">Más rápido</span></div>
+                <p class="rd-v-meta">1 pasajero • Ideal para traslado rápido</p>
+                <span class="rd-v-eta">Llegada en 3 min</span>
+              </div>
+              <div class="rd-v-price">
+                <div class="fare-usd">$3.20</div>
+                <div class="fare-bs">~ Bs. 2,867.58</div>
+              </div>
+            </div>
+
+            <div data-type="auto" data-base="2.8" data-km="0.8" class="vehicle-card active" tabindex="0" role="button">
+              <div class="rd-v-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16v-3l2-5h14l2 5v3z"/><circle cx="7" cy="16.5" r="1.8"/><circle cx="17" cy="16.5" r="1.8"/><path d="M5 13h14"/></svg>
+              </div>
+              <div class="rd-v-body">
+                <div class="rd-v-name">Auto Traigalo <span class="rd-badge rd-badge--module">Popular</span></div>
+                <p class="rd-v-meta">4 pasajeros • A/C garantizado</p>
+                <span class="rd-v-eta">Llegada en 5 min</span>
+              </div>
+              <div class="rd-v-price">
+                <div class="fare-usd">$5.52</div>
+                <div class="fare-bs">~ Bs. 4,946.58</div>
+              </div>
+            </div>
+
+            <div data-type="comfort" data-base="4.5" data-km="1.2" class="vehicle-card" tabindex="0" role="button">
+              <div class="rd-v-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 16v-4l3-5h11l4 5h2v4z"/><circle cx="7" cy="16.5" r="1.8"/><circle cx="17" cy="16.5" r="1.8"/><path d="M10 7v5"/></svg>
+              </div>
+              <div class="rd-v-body">
+                <div class="rd-v-name">Traigalo Comfort XL <span class="rd-badge">Premium</span></div>
+                <p class="rd-v-meta">Camioneta SUV espaciosa • Equipaje</p>
+                <span class="rd-v-eta">Llegada en 7 min</span>
+              </div>
+              <div class="rd-v-price">
+                <div class="fare-usd">$8.58</div>
+                <div class="fare-bs">~ Bs. 7,688.71</div>
+              </div>
+            </div>
+
+            <div data-type="flete" data-base="5.0" data-km="1.0" class="vehicle-card" tabindex="0" role="button">
+              <div class="rd-v-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/></svg>
+              </div>
+              <div class="rd-v-body">
+                <div class="rd-v-name">Envíos y fletes</div>
+                <p class="rd-v-meta">Carga mediana • Encomiendas express</p>
+                <span class="rd-v-eta">Llegada en 8 min</span>
+              </div>
+              <div class="rd-v-price">
+                <div class="fare-usd">$8.40</div>
+                <div class="fare-bs">~ Bs. 7,527.41</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button id="btn-request-ride" class="tg-btn tg-btn--primary rd-cta">
+          <span>Solicitar carrera ahora</span>
+        </button>
+
+        <div id="driver-standby-card" class="rd-card rd-standby">
+          <div class="rd-card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>
+          </div>
+          <div class="rd-card-body">
+            <h4 class="rd-card-title">Conductores listos para tu carrera</h4>
+            <p class="rd-card-copy">Selecciona tu categoría y presiona <strong>Solicitar carrera ahora</strong> para asignar tu unidad.</p>
+          </div>
+          <span class="rd-badge rd-badge--ok">6 en línea</span>
+        </div>
+
+        <div id="driver-card" class="rd-card rd-driver hidden">
+          <div class="rd-driver-row">
+            <div class="rd-avatar">
+              CR
+              <span class="rd-avatar-dot" title="Conductor en línea"></span>
+            </div>
+            <div class="rd-card-body">
+              <div class="rd-driver-name">
+                <h4 class="rd-card-title">Carlos R. Mendoza</h4>
+                <span class="rd-badge rd-badge--star">
+                  <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true"><path d="m12 2 3 6.6 7 .7-5.3 4.8 1.6 7L12 17.5 5.7 21l1.6-7L2 9.3l7-.7z"/></svg>
+                  4.95
+                </span>
+              </div>
+              <p class="rd-card-copy">Toyota Corolla Blanco (2018)</p>
+              <div class="rd-driver-meta">
+                <span class="rd-plate">AB123CD</span>
+                <span class="rd-assigned">• Conductor asignado</span>
+              </div>
+            </div>
+            <div class="rd-eta">
+              <span class="rd-route-label">Llegada</span>
+              <strong>4 min</strong>
+            </div>
+          </div>
+
+          <div class="rd-driver-actions">
+            <button id="btn-share-trip" class="tg-btn tg-btn--sm rd-act rd-act--share">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.8 7L4 20l1-5A8 8 0 1 1 21 12z"/></svg>
+              <span>Compartir viaje</span>
+            </button>
+            <button id="btn-sos" class="tg-btn tg-btn--sm rd-act rd-act--sos">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/></svg>
+              <span>Botón SOS 911</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="rd-safe">
+          <div class="rd-card-icon rd-card-icon--night" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>
+          </div>
+          <div class="rd-card-body">
+            <h5 class="rd-safe-title">Traigalo seguro 100%</h5>
+            <p class="rd-safe-copy">Conductores verificados con antecedentes penales y monitoreo telemático en vivo.</p>
+          </div>
+          <a href="https://wa.me/584120000000" target="_blank" class="tg-btn tg-btn--sm tg-btn--quiet rd-safe-link">Soporte 24/7</a>
+        </div>
+      </section>
     </main>
 
     <Footer />

@@ -1,8 +1,11 @@
 ---
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
 import BottomNav from '../../components/BottomNav.astro';
 import { getOfficialExchangeRate, formatBs } from '../../adapters/rates';
 import { fetchActiveStores, enrichStore } from '../../adapters/stores';
 import '../../styles/global.css';
+import '../../styles/pages/store.css';
 
 const { id } = Astro.params;
 const API_BASE = 'https://api.traigalo.org/v2';
@@ -99,15 +102,16 @@ if (resolvedStoreId) {
 
 const storeName = storeData?.name || 'Comercio Oficial';
 const storeRubroKey = storeData?.rubroKey || 'tecnologia';
-const storeRubroBadge = storeData?.rubroBadge || '🏬 Comercio Verificado';
+const storeRubroBadge = storeData?.rubroBadge || 'Comercio verificado';
+const storeRubroLabel = storeRubroBadge.replace(/^[^\p{L}]+/u, '').trim();
 const storeCategory = storeData?.description || 'Comercio Oficial Verificado en Traigalo';
 const storeCover = storeData?.cover_url || '/brand-icon.webp';
 const storeLogo = storeData?.logo_url || '/brand-icon.webp';
 const avgRating = reviewsData.length > 0
   ? (reviewsData.reduce((acc, r) => acc + (Number(r.store_rating || r.rating) || 5), 0) / reviewsData.length).toFixed(1)
   : '4.9';
-const storeReviewsText = reviewsData.length > 0 ? `${reviewsData.length} reseñas verificadas` : 'Comercio Oficial Verificado';
-const storeTime = '15-25 min';
+const storeReviewsText = reviewsData.length > 0 ? `${reviewsData.length} reseñas verificadas` : 'Comercio oficial verificado';
+const storeTime = '15 a 25 min';
 const storeFee = '$1.50';
 const storeAddress = storeData?.address_line || 'Higuerote, Miranda';
 
@@ -152,339 +156,289 @@ const distinctSubcats = [...new Set(products.map(p => p.subcategory))];
 const menuCategories = ['Todos los Productos', ...distinctSubcats];
 ---
 
-<html lang="es">
+<html lang="es" data-rubro={storeRubroKey}>
   <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{storeName} | Tienda en Traigalo</title>
+    <meta name="description" content={storeCategory} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#FF5A00" />
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <title>{storeName} | Tienda Oficial en Traigalo ⚡</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://admin.traigalo.org" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   </head>
-  <body class="bg-[#FAFAFC] text-[#1A1D20] min-h-screen flex flex-col pb-28 antialiased selection:bg-[#FF7A00] selection:text-white">
-    
-    <div class="bg-white border-b border-gray-100">
-      <div class="max-w-5xl mx-auto">
-        <div class="relative h-48 sm:h-64 md:h-72 w-full bg-gray-900 overflow-hidden sm:rounded-b-3xl shadow-sm">
-          <img src={storeCover} alt={`Portada oficial de ${storeName}`} class="w-full h-full object-cover" />
-          <div class="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
-            <div class="flex items-center gap-2">
-              <a href="/" class="h-10 px-3.5 rounded-full bg-white/95 backdrop-blur-md flex items-center gap-1.5 text-gray-900 text-xs font-extrabold shadow-md hover:bg-white transition-all active:scale-95">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
-                </svg>
-                <span>Volver al Marketplace</span>
+  <body>
+    <div class="tg-page">
+      <div class="tg-aura" aria-hidden="true"></div>
+
+      <Header />
+
+      <div class="tg-wrap">
+        <section class="tg-shop-hero" aria-labelledby="store-name">
+          <div class="tg-shop-cover">
+            <img src={storeCover} alt={`Portada de ${storeName}`} width="1280" height="480" fetchpriority="high" onerror="this.remove()" />
+          </div>
+
+          <nav class="tg-shop-nav" aria-label="Otras tiendas">
+            <a href="/" class="tg-shop-chip tg-glass">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
+              </svg>
+              <span>Volver al marketplace</span>
+            </a>
+            {allStores.filter((s) => s.id !== resolvedStoreId).map((other) => (
+              <a href={`/stores/${other.id}`} class="tg-shop-chip tg-shop-chip--other tg-glass">
+                <span>Ir a {other.name}</span>
               </a>
+            ))}
+          </nav>
 
-              {allStores.filter((s) => s.id !== resolvedStoreId).map((other) => (
-                <a 
-                  href={`/stores/${other.id}`}
-                  class="hidden sm:inline-flex h-10 px-3.5 rounded-full bg-gray-950/80 hover:bg-gray-950 backdrop-blur-md border border-white/20 text-white text-xs font-bold items-center gap-1.5 shadow-md transition-all"
-                >
-                  <span>Ir a {other.name}</span>
-                  <span>→</span>
-                </a>
-              ))}
-            </div>
-
-            <div class="flex items-center gap-2">
-              <div class="px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-md text-[10px] font-black text-gray-800 shadow-md border border-gray-100">
-                BCV: {bcvRate.toFixed(2)} Bs/$
+          <div class="tg-shop-panel tg-glass">
+            <div class="tg-shop-id">
+              <img class="tg-shop-logo" src={storeLogo} alt={`Logo de ${storeName}`} width="88" height="88" onerror="this.onerror=null; this.classList.add('is-broken');" />
+              <div class="tg-shop-title">
+                <div class="tg-shop-tags">
+                  <span class="tg-shop-open">Abierto ahora</span>
+                  <span class="tg-filter-pill">{storeRubroLabel}</span>
+                </div>
+                <h1 id="store-name">{storeName}</h1>
+                <p class="tg-shop-desc">{storeCategory}</p>
+                <p class="tg-shop-address">{storeAddress}</p>
               </div>
-              <button 
+              <button
                 id="btn-favorite-store"
                 type="button"
                 aria-label="Guardar tienda en favoritos"
-                class="w-10 h-10 rounded-full bg-white/95 backdrop-blur-md flex items-center justify-center text-gray-700 shadow-md hover:text-rose-500 transition-all cursor-pointer active:scale-90"
+                aria-pressed="false"
+                class="tg-icon-btn tg-shop-fav"
               >
-                <span id="fav-heart-icon" class="text-base">🤍</span>
+                <span id="fav-heart-icon" class="tg-shop-heart" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+                    <path d="M12 20s-7-4.35-7-10a4 4 0 0 1 7-2.65A4 4 0 0 1 19 10c0 5.65-7 10-7 10z" />
+                  </svg>
+                </span>
               </button>
             </div>
+
+            <dl class="tg-store-facts tg-shop-facts">
+              <div><dt>Calificación</dt><dd>{avgRating} <span class="tg-shop-muted">({storeReviewsText})</span></dd></div>
+              <div><dt>Entrega</dt><dd>{storeTime}</dd></div>
+              <div><dt>Envío</dt><dd>{storeFee}</dd></div>
+              <div><dt>Productos</dt><dd>{products.length}</dd></div>
+              <div><dt>Tasa BCV</dt><dd>{bcvRate.toFixed(2)} Bs/$</dd></div>
+            </dl>
           </div>
-        </div>
-
-        <div class="px-4 sm:px-6 pb-5 pt-0">
-          <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-            <div class="flex items-start sm:items-end gap-4">
-              <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-white p-1 shadow-xl shrink-0 overflow-hidden border-4 border-white -mt-10 sm:-mt-12 relative z-10">
-                <img src={storeLogo} alt={`Logo oficial de ${storeName}`} class="w-full h-full object-cover rounded-2xl" />
-              </div>
-              <div class="pt-2 sm:pt-3 min-w-0">
-                <div class="flex flex-wrap items-center gap-1.5 mb-1">
-                  <span class="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-black uppercase tracking-wider">
-                    ● Abierto Ahora
-                  </span>
-                  <span class="px-2.5 py-0.5 rounded-full bg-orange-50 text-[#FF7A00] text-[10px] font-black uppercase tracking-wider">
-                    {storeRubroBadge}
-                  </span>
-                </div>
-                <h1 class="text-2xl sm:text-3xl font-black text-gray-950 tracking-tight leading-tight">{storeName}</h1>
-                <p class="text-xs font-bold text-gray-600 mt-0.5">{storeCategory}</p>
-                <p class="text-[11px] text-gray-500 mt-0.5">📍 {storeAddress}</p>
-              </div>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-2 text-xs font-bold text-gray-700 bg-gray-50 p-2.5 rounded-2xl border border-gray-100">
-              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white shadow-2xs text-amber-500 font-black">
-                ★ {avgRating} <span class="text-gray-400 font-semibold">({storeReviewsText})</span>
-              </span>
-              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white shadow-2xs text-gray-700">
-                ⚡ {storeTime}
-              </span>
-              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-700 font-extrabold">
-                🛵 Envío {storeFee}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="bg-white/95 backdrop-blur-md border-b border-gray-100 px-4 py-3 shadow-2xs sticky top-0 z-30">
-      <div class="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar" id="store-cat-tabs">
-          {menuCategories.map((cat, idx) => (
-            <button 
-              type="button"
-              data-subcat={cat}
-              class={`store-tab-btn shrink-0 px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer active:scale-95 ${
-                idx === 0 
-                  ? 'bg-[#FF7A00] text-white shadow-md shadow-orange-600/20' 
-                  : 'bg-gray-50 border border-gray-200/70 text-gray-700 hover:border-orange-300'
-              }`}
-            >
-              <span>{cat}</span>
-              <span class="ml-1 opacity-75">({subcatCounts[cat] || 0})</span>
-            </button>
-          ))}
-        </div>
-
-        <div class="flex items-center gap-2 shrink-0">
-          <div class="relative flex-1 sm:w-56">
-            <input 
-              id="store-search-input"
-              type="text"
-              placeholder={`Buscar en ${storeName}...`}
-              class="w-full h-9 pl-8 pr-3 rounded-xl bg-gray-50 border border-gray-200 text-xs font-semibold text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-[#FF7A00]"
-            />
-            <svg class="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-
-          <select
-            id="store-sort-select"
-            aria-label="Ordenar productos"
-            class="h-9 px-2.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-extrabold text-gray-700 focus:outline-none focus:border-[#FF7A00] cursor-pointer"
-          >
-            <option value="default">Ordenar: Destacados</option>
-            <option value="price-asc">Precio: Menor a Mayor</option>
-            <option value="price-desc">Precio: Mayor a Menor</option>
-            <option value="name-asc">Nombre: A - Z</option>
-          </select>
-        </div>
-      </div>
-    </div>
-
-    <main id="store-catalog-top" class="flex-1 max-w-5xl mx-auto px-4 sm:px-6 py-6 w-full space-y-6">
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <p id="store-pagination-status" class="text-xs sm:text-sm font-extrabold text-gray-600">
-          Mostrando 1–{Math.min(12, products.length)} de {products.length} productos (Página 1 de {Math.max(1, Math.ceil(products.length / 12))})
-        </p>
-        <div class="flex items-center gap-2">
-          <label for="store-pagesize-select" class="text-xs font-bold text-gray-500">Mostrar:</label>
-          <select
-            id="store-pagesize-select"
-            class="h-8 px-2.5 rounded-xl bg-white border border-gray-200 text-xs font-extrabold text-gray-800 focus:outline-none focus:border-[#FF7A00] cursor-pointer"
-          >
-            <option value="12">12 por pág.</option>
-            <option value="24">24 por pág.</option>
-            <option value="48">48 por pág.</option>
-          </select>
-        </div>
+        </section>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="products-list">
-        {products.map((item, idx) => (
-          <div 
-            class={`product-card bg-white rounded-3xl p-4 border border-gray-100 shadow-xs hover:shadow-md transition-all flex gap-3.5 group cursor-pointer ${idx >= 12 ? 'hidden' : ''}`}
-            data-id={item.id}
-            data-order={item.order}
-            data-store-id={item.storeId}
-            data-store-name={item.storeName}
-            data-name={item.name}
-            data-search={item.name.toLowerCase()}
-            data-subcat={item.subcategory}
-            data-price={item.price}
-            data-image={item.image}
-            data-desc={item.desc}
-          >
-            <div class="flex-1 flex flex-col justify-between min-w-0">
-              <div>
-                <span class="text-[9px] font-black uppercase tracking-wider text-[#FF7A00] block mb-0.5">{item.subcategory}</span>
-                <h3 class="text-sm font-extrabold text-gray-900 group-hover:text-[#FF7A00] transition-colors leading-snug line-clamp-2">
-                  {item.name}
-                </h3>
-                <p class="text-[11px] text-gray-400 mt-1 line-clamp-2 leading-relaxed">
-                  {item.desc}
-                </p>
-              </div>
-
-              <div class="mt-3 flex flex-col">
-                <span class="text-sm font-black text-gray-950">
-                  ${item.price.toFixed(2)}
-                </span>
-                <span class="text-[10px] text-gray-400 font-semibold tracking-tight">
-                  {item.priceBs}
-                </span>
-              </div>
-            </div>
-
-            <div class="relative w-28 h-28 rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 shrink-0 flex items-center justify-center p-2">
-              <img 
-                src={item.image} 
-                alt={item.name} 
-                class="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform" 
-                loading="lazy" 
-                onerror={`this.onerror=null; this.src='${FALLBACK_PRODUCT_IMAGE}';`}
-              />
-              <button 
+      <div class="tg-shop-toolbar">
+        <div class="tg-wrap tg-shop-toolbar-inner">
+          <div class="tg-cats tg-shop-cats no-scrollbar" id="store-cat-tabs">
+            {menuCategories.map((cat, idx) => (
+              <button
                 type="button"
-                aria-label={`Añadir ${item.name}`}
-                class="btn-add-product absolute bottom-2 right-2 w-8 h-8 rounded-full bg-[#FF7A00] hover:bg-[#E66E00] active:scale-90 text-white flex items-center justify-center shadow-md shadow-orange-600/30 transition-all z-10 cursor-pointer font-black"
+                data-subcat={cat}
+                aria-pressed={idx === 0 ? 'true' : 'false'}
+                class="store-tab-btn category-btn"
               >
-                +
+                <span class="tg-cat-name">{cat}</span>
+                <span class="cat-count-label">{subcatCounts[cat] || 0}</span>
               </button>
+            ))}
+          </div>
+
+          <div class="tg-shop-controls">
+            <div class="tg-search tg-shop-search">
+              <input
+                id="store-search-input"
+                type="search"
+                aria-label={`Buscar en ${storeName}`}
+                placeholder={`Buscar en ${storeName}`}
+              />
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <select id="store-sort-select" aria-label="Ordenar productos" class="tg-select">
+              <option value="default">Destacados</option>
+              <option value="price-asc">Precio: menor a mayor</option>
+              <option value="price-desc">Precio: mayor a menor</option>
+              <option value="name-asc">Nombre de la A a la Z</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <main id="store-catalog-top" class="tg-wrap tg-main tg-shop-main">
+        <section class="tg-section" aria-labelledby="store-catalog-title">
+          <div class="tg-head">
+            <div>
+              <h2 id="store-catalog-title">Catálogo</h2>
+              <p id="store-pagination-status" class="tg-count">
+                Mostrando 1 a {Math.min(12, products.length)} de {products.length} productos (página 1 de {Math.max(1, Math.ceil(products.length / 12))})
+              </p>
+            </div>
+            <div class="tg-shop-pagesize">
+              <label for="store-pagesize-select">Mostrar</label>
+              <select id="store-pagesize-select" class="tg-select">
+                <option value="12">12 por página</option>
+                <option value="24">24 por página</option>
+                <option value="48">48 por página</option>
+              </select>
             </div>
           </div>
-        ))}
-      </div>
 
-      <div id="store-pagination-bar" class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
-        <span id="store-pagination-summary" class="text-xs font-extrabold text-gray-600"></span>
-        <div id="store-pagination-buttons" class="flex flex-wrap items-center justify-center gap-1.5"></div>
-      </div>
-
-      <div id="store-no-results" class="hidden text-center py-10 bg-white rounded-3xl border border-gray-100 mt-4">
-        <p class="text-xs font-bold text-gray-500">No encontramos artículos con ese criterio en {storeName}</p>
-      </div>
-
-      {reviewsData.length > 0 && (
-        <section class="bg-white rounded-3xl p-5 border border-gray-100 shadow-xs space-y-3">
-          <div class="flex items-center justify-between">
-            <h2 class="text-sm font-black uppercase tracking-wider text-gray-400">Opiniones de Clientes Verificados</h2>
-            <span class="text-xs font-black text-amber-500">★ {avgRating} ({reviewsData.length})</span>
-          </div>
-          <div class="space-y-2.5 divide-y divide-gray-50">
-            {reviewsData.slice(0, 5).map((rev) => (
-              <div class="pt-2.5 first:pt-0">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs font-extrabold text-gray-900">Compra Verificada</span>
-                  <span class="text-xs font-black text-amber-400">{'★'.repeat(Number(rev.store_rating || rev.rating || 5))}</span>
+          <div class="tg-products" id="products-list">
+            {products.map((item, idx) => (
+              <div
+                class={`product-card product-item ${idx >= 12 ? 'hidden' : ''}`}
+                data-id={item.id}
+                data-order={item.order}
+                data-store-id={item.storeId}
+                data-store-name={item.storeName}
+                data-name={item.name}
+                data-search={item.name.toLowerCase()}
+                data-subcat={item.subcategory}
+                data-price={item.price}
+                data-image={item.image}
+                data-desc={item.desc}
+              >
+                <div class="tg-product-img">
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    width="300"
+                    height="300"
+                    loading="lazy"
+                    decoding="async"
+                    onerror="this.onerror=null; this.classList.add('is-broken');"
+                  />
                 </div>
-                {rev.comment && (
-                  <p class="text-xs text-gray-500 mt-1">{rev.comment}</p>
-                )}
+                <div>
+                  <span class="tg-shop-subcat">{item.subcategory}</span>
+                  <h3 class="tg-product-name">{item.name}</h3>
+                  <p class="tg-shop-pdesc">{item.desc}</p>
+                </div>
+                <div class="tg-product-buy">
+                  <div>
+                    <span class="tg-price">${item.price.toFixed(2)}</span>
+                    <span class="tg-price-bs">{item.priceBs}</span>
+                  </div>
+                  <button type="button" aria-label={`Agregar ${item.name} al carrito`} class="btn-add-product btn-home-add">+</button>
+                </div>
               </div>
             ))}
           </div>
+
+          <div id="store-pagination-bar" class="tg-pagination">
+            <span id="store-pagination-summary"></span>
+            <div id="store-pagination-buttons" class="tg-page-btns"></div>
+          </div>
+
+          <div id="store-no-results" class="hidden tg-empty">
+            <h3>No encontramos artículos con ese criterio en {storeName}</h3>
+          </div>
         </section>
-      )}
-    </main>
 
-    <div id="product-modal" class="fixed inset-0 z-[60] bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 opacity-0 pointer-events-none transition-opacity duration-200">
-      <div id="modal-card" class="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl transform translate-y-full sm:translate-y-4 transition-transform duration-200 flex flex-col max-h-[90vh]">
-        <div class="flex items-center justify-between pb-3 border-b border-gray-100">
-          <div class="flex items-center gap-2">
-            <img src={storeLogo} alt="" class="w-5 h-5 rounded-full object-cover" />
-            <span class="text-xs font-black uppercase tracking-wider text-[#FF7A00]">{storeName}</span>
-          </div>
-          <button id="close-modal-btn" type="button" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 font-black cursor-pointer">
-            ✕
-          </button>
-        </div>
-        <div class="overflow-y-auto py-4 space-y-4 flex-1">
-          <div class="h-44 w-full rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 flex items-center justify-center p-4">
-            <img id="modal-img" src="" alt="" class="w-full h-full object-contain" />
-          </div>
-          <div>
-            <h2 id="modal-title" class="text-base font-extrabold text-gray-900 leading-snug"></h2>
-            <p id="modal-desc" class="text-xs text-gray-500 leading-relaxed mt-1"></p>
-          </div>
+        {reviewsData.length > 0 && (
+          <section class="tg-section tg-shop-reviews" aria-labelledby="store-reviews-title">
+            <div class="tg-head">
+              <h2 id="store-reviews-title">Opiniones de clientes</h2>
+              <p>{avgRating} de 5, {reviewsData.length} reseñas</p>
+            </div>
+            <ul class="tg-shop-review-list">
+              {reviewsData.slice(0, 5).map((rev) => (
+                <li>
+                  <div class="tg-row">
+                    <span class="tg-shop-review-who">Compra verificada</span>
+                    <span class="tg-shop-stars" aria-label={`${Number(rev.store_rating || rev.rating || 5)} de 5`}>{'★'.repeat(Number(rev.store_rating || rev.rating || 5))}</span>
+                  </div>
+                  {rev.comment && <p>{rev.comment}</p>}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </main>
 
-          <div class="flex items-center justify-between p-3 rounded-2xl bg-gray-50 border border-gray-100">
+      <div id="product-modal" class="tg-modal opacity-0 pointer-events-none" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div id="modal-card" class="tg-modal-card translate-y-full sm:translate-y-4">
+          <div class="tg-row">
+            <span class="tg-store-chip tg-shop-modal-store">
+              <img src={storeLogo} alt="" width="20" height="20" onerror="this.remove()" />
+              {storeName}
+            </span>
+            <button id="close-modal-btn" type="button" class="tg-close" aria-label="Cerrar">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" /></svg>
+            </button>
+          </div>
+          <div class="tg-modal-body">
+            <div class="tg-modal-img">
+              <img id="modal-img" src="" alt="" />
+            </div>
             <div>
-              <span class="text-xs font-bold text-gray-700 block">Cantidad</span>
-              <span class="text-[10px] text-gray-400">Unidades a solicitar</span>
+              <h2 id="modal-title"></h2>
+              <p id="modal-desc" class="tg-modal-desc"></p>
             </div>
-            <div class="flex items-center gap-3 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-xs">
-              <button id="modal-qty-minus" type="button" class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-[#FF7A00] font-black text-sm flex items-center justify-center transition-colors cursor-pointer">
-                -
-              </button>
-              <span id="modal-qty-display" class="w-6 text-center text-sm font-black text-gray-950">1</span>
-              <button id="modal-qty-plus" type="button" class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-[#FF7A00] font-black text-sm flex items-center justify-center transition-colors cursor-pointer">
-                +
-              </button>
+            <div class="tg-row tg-divide">
+              <div>
+                <span class="tg-field-label">Cantidad</span>
+                <span class="tg-price-bs">Unidades a solicitar</span>
+              </div>
+              <div class="tg-qty">
+                <button id="modal-qty-minus" type="button" aria-label="Quitar una unidad">-</button>
+                <span id="modal-qty-display">1</span>
+                <button id="modal-qty-plus" type="button" aria-label="Agregar una unidad">+</button>
+              </div>
             </div>
-          </div>
-
-          <div>
-            <label for="modal-notes" class="block text-xs font-bold text-gray-700 mb-1">
-              Especificaciones opcionales
-            </label>
-            <textarea 
-              id="modal-notes" 
-              rows="2" 
-              maxlength="200"
-              placeholder="Ej. Color preferido, modelo de teléfono o indicación para la tienda..." 
-              class="w-full p-3 text-xs rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:border-[#FF7A00] focus:ring-2 focus:ring-[#FF7A00]/20 resize-none transition-all font-medium text-gray-800"
-            ></textarea>
-          </div>
-
-          <div class="pt-2 flex items-center justify-between border-t border-gray-100">
-            <span class="text-xs text-gray-500 font-bold">Subtotal producto</span>
-            <div class="text-right">
-              <span id="modal-price" class="text-lg font-black text-[#FF7A00] block"></span>
-              <span id="modal-price-bs" class="text-[10px] text-gray-400 font-semibold block"></span>
+            <div>
+              <label for="modal-notes" class="tg-field-label">Especificaciones opcionales</label>
+              <textarea
+                id="modal-notes"
+                rows="2"
+                maxlength="200"
+                placeholder="Ej. color preferido, modelo de teléfono o indicación para la tienda"
+                class="tg-input tg-shop-notes"
+              ></textarea>
+            </div>
+            <div class="tg-row tg-divide">
+              <span class="tg-field-label">Subtotal producto</span>
+              <div>
+                <span id="modal-price" class="tg-modal-price"></span>
+                <span id="modal-price-bs" class="tg-price-bs tg-shop-right"></span>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="pt-3 border-t border-gray-100 flex items-center gap-3">
-          <button id="modal-add-btn" type="button" class="flex-1 h-12 rounded-2xl bg-[#FF7A00] hover:bg-[#E66E00] text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-orange-600/30 active:scale-98 transition-all cursor-pointer">
-            <span id="modal-add-btn-text">Agregar al Carrito</span>
-          </button>
+          <div class="tg-modal-foot">
+            <button id="modal-add-btn" type="button" class="tg-btn tg-btn--primary">
+              <span id="modal-add-btn-text">Agregar al carrito</span>
+            </button>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div id="cart-bar" class="fixed bottom-14 md:bottom-4 left-0 right-0 z-40 p-4 pointer-events-none transition-all duration-300 opacity-0 translate-y-4">
-      <div class="max-w-4xl mx-auto pointer-events-auto">
-        <a 
-          href="/checkout" 
-          class="w-full h-14 rounded-2xl bg-gradient-to-r from-[#FF7A00] to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white font-extrabold text-sm px-6 flex items-center justify-between shadow-xl shadow-orange-600/30 active:scale-98 transition-all"
-        >
-          <div class="flex items-center gap-2.5">
-            <span id="cart-count" class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs">0</span>
-            <div>
-              <span class="block leading-tight">Ver Carrito</span>
-              <span id="cart-stores-label" class="block text-[10px] text-white/85 font-semibold"></span>
-            </div>
-          </div>
-          <div class="flex items-center gap-2 text-right">
-            <div>
-              <span id="cart-total" class="font-black">$0.00</span>
-              <span id="cart-total-bs" class="block text-[10px] text-white/80 font-medium"></span>
-            </div>
-            <span>→</span>
-          </div>
+      <div id="cart-bar" class="tg-cartbar opacity-0 translate-y-4 pointer-events-none">
+        <a href="/checkout">
+          <span class="tg-cart-left">
+            <span id="cart-count" class="tg-cart-count">0</span>
+            <span>
+              Ver carrito
+              <small id="cart-stores-label"></small>
+            </span>
+          </span>
+          <span class="tg-cart-total">
+            <span id="cart-total">$0.00</span>
+            <small id="cart-total-bs"></small>
+          </span>
         </a>
       </div>
-    </div>
 
-    <BottomNav />
+      <Footer />
+      <BottomNav />
+    </div>
 
     <script is:inline define:vars={{ bcvRate, resolvedStoreId, storeName }}>
     (() => {
@@ -589,8 +543,8 @@ const menuCategories = ['Todos los Productos', ...distinctSubcats];
         }
       }
       function updateFavIcon() {
-        if (favIcon) {
-          favIcon.textContent = isStoreFavorited() ? '❤️' : '🤍';
+        if (favIcon && favBtn) {
+          favBtn.setAttribute('aria-pressed', isStoreFavorited() ? 'true' : 'false');
         }
       }
       if (favBtn) {
@@ -623,18 +577,14 @@ const menuCategories = ['Todos los Productos', ...distinctSubcats];
 
         const startIdx = (currentPage - 1) * pageSize + 1;
         const endIdx = Math.min(currentPage * pageSize, totalItems);
-        summary.textContent = `Página ${currentPage} de ${totalPages} • Mostrando ${startIdx}–${endIdx} de ${totalItems} productos`;
+        summary.textContent = `Página ${currentPage} de ${totalPages}, mostrando ${startIdx} a ${endIdx} de ${totalItems} productos`;
         btnWrap.innerHTML = '';
 
         const prevBtn = document.createElement('button');
         prevBtn.type = 'button';
-        prevBtn.textContent = '← Anterior';
+        prevBtn.textContent = 'Anterior';
         prevBtn.disabled = currentPage <= 1;
-        prevBtn.className = `px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
-          currentPage <= 1
-            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            : 'bg-gray-100 hover:bg-orange-50 text-gray-800 hover:text-[#FF7A00] cursor-pointer'
-        }`;
+        prevBtn.className = 'tg-page-btn';
         prevBtn.addEventListener('click', () => {
           if (currentPage > 1) {
             currentPage--;
@@ -647,9 +597,8 @@ const menuCategories = ['Todos los Productos', ...distinctSubcats];
           const b = document.createElement('button');
           b.type = 'button';
           b.textContent = String(p);
-          b.className = p === currentPage
-            ? 'w-8 h-8 rounded-xl text-xs font-black bg-[#FF7A00] text-white shadow-md shadow-orange-500/20 cursor-pointer'
-            : 'w-8 h-8 rounded-xl text-xs font-extrabold bg-gray-50 hover:bg-orange-50 text-gray-700 hover:text-[#FF7A00] border border-gray-200 cursor-pointer';
+          b.className = 'tg-page-btn';
+          if (p === currentPage) b.setAttribute('aria-current', 'page');
           b.addEventListener('click', () => {
             if (currentPage !== p) {
               currentPage = p;
@@ -661,13 +610,9 @@ const menuCategories = ['Todos los Productos', ...distinctSubcats];
 
         const nextBtn = document.createElement('button');
         nextBtn.type = 'button';
-        nextBtn.textContent = 'Siguiente →';
+        nextBtn.textContent = 'Siguiente';
         nextBtn.disabled = currentPage >= totalPages;
-        nextBtn.className = `px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
-          currentPage >= totalPages
-            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            : 'bg-gray-100 hover:bg-orange-50 text-gray-800 hover:text-[#FF7A00] cursor-pointer'
-        }`;
+        nextBtn.className = 'tg-page-btn';
         nextBtn.addEventListener('click', () => {
           if (currentPage < totalPages) {
             currentPage++;
@@ -723,7 +668,7 @@ const menuCategories = ['Todos los Productos', ...distinctSubcats];
           if (totalMatched === 0) {
             statusEl.textContent = '0 productos encontrados';
           } else {
-            statusEl.textContent = `Mostrando ${startIdx + 1}–${Math.min(endIdx, totalMatched)} de ${totalMatched} productos (Página ${currentPage} de ${totalPages})`;
+            statusEl.textContent = `Mostrando ${startIdx + 1} a ${Math.min(endIdx, totalMatched)} de ${totalMatched} productos (página ${currentPage} de ${totalPages})`;
           }
         }
 
@@ -743,9 +688,8 @@ const menuCategories = ['Todos los Productos', ...distinctSubcats];
       document.querySelectorAll('.store-tab-btn').forEach((btn) => {
         btn.addEventListener('click', () => {
           document.querySelectorAll('.store-tab-btn').forEach((b) => {
-            b.className = 'store-tab-btn shrink-0 px-3.5 py-2 rounded-xl text-xs font-extrabold bg-gray-50 border border-gray-200/70 text-gray-700 hover:border-orange-300 transition-all cursor-pointer active:scale-95';
+            b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
           });
-          btn.className = 'store-tab-btn shrink-0 px-3.5 py-2 rounded-xl text-xs font-extrabold bg-[#FF7A00] text-white shadow-md shadow-orange-600/20 transition-all cursor-pointer active:scale-95';
           activeSubcat = btn.getAttribute('data-subcat') || 'Todos los Productos';
           currentPage = 1;
           filterAndPaginateStoreProducts(false);
@@ -883,10 +827,10 @@ const menuCategories = ['Todos los Productos', ...distinctSubcats];
             e.stopPropagation();
             addToCart(prod);
             addBtn.textContent = '✓';
-            addBtn.classList.add('bg-emerald-600');
+            addBtn.classList.add('is-added');
             setTimeout(() => {
               addBtn.textContent = '+';
-              addBtn.classList.remove('bg-emerald-600');
+              addBtn.classList.remove('is-added');
             }, 900);
           });
         }

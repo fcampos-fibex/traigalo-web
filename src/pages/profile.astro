@@ -1,5 +1,6 @@
 ---
 import "../styles/global.css";
+import "../styles/pages/account.css";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import BottomNav from "../components/BottomNav.astro";
@@ -23,11 +24,11 @@ try {
 
 function formatStatusLabel(st: string): string {
   if (st === "placed") return "Confirmado";
-  if (st === "accepted_by_store") return "Aceptado en Tienda";
+  if (st === "accepted_by_store") return "Aceptado en tienda";
   if (st === "preparing") return "Preparando";
-  if (st === "ready_for_pickup") return "Listo p/ Despacho";
-  if (st === "driver_assigned") return "Repartidor Asignado";
-  if (st === "driver_in_transit" || st === "in_transit") return "En Camino";
+  if (st === "ready_for_pickup") return "Listo para despacho";
+  if (st === "driver_assigned") return "Repartidor asignado";
+  if (st === "driver_in_transit" || st === "in_transit") return "En camino";
   if (st === "delivered") return "Entregado";
   if (st === "cancelled") return "Cancelado";
   return st || "Confirmado";
@@ -38,12 +39,12 @@ const user = {
   email: "freddy@traigalo.com",
   phone: "+58 412 890 1234",
   addresses: [
-    { title: "Ubicación Principal", address: "Av. Andrés Eloy Blanco, Higuerote, Miranda", isDefault: true }
+    { title: "Ubicación principal", address: "Av. Andrés Eloy Blanco, Higuerote, Miranda", isDefault: true }
   ],
   paymentMethods: [
-    { brand: "Pago Móvil BCV", last4: "Banesco (0134) • Verificado", isDefault: true },
-    { brand: "Tarjeta Débito / Crédito", last4: "Internacional / Nacional", isDefault: false },
-    { brand: "Efectivo USD / Bs", last4: "Contra entrega", isDefault: false }
+    { brand: "Pago móvil", last4: "Banesco (0134)", isDefault: true },
+    { brand: "Tarjeta de débito o crédito", last4: "Nacional o internacional", isDefault: false },
+    { brand: "Efectivo en dólares o bolívares", last4: "Contra entrega", isDefault: false }
   ]
 };
 ---
@@ -51,121 +52,113 @@ const user = {
 <!doctype html>
 <html lang="es">
   <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tu cuenta | Traigalo</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=3" />
     <link rel="apple-touch-icon" href="/icon-192.png?v=3" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#FF5A00" />
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Mi Perfil | Traigalo ⚡</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   </head>
-  <body class="bg-[#FAFAFC] text-[#121212] font-['Plus_Jakarta_Sans',sans-serif] antialiased selection:bg-[#FF7A00] selection:text-white pb-32">
-    <RoleSwitcher currentRole="client" />
-    <Header />
+  <body>
+    <div class="tg-page">
+      <div class="tg-aura" aria-hidden="true"></div>
+      <RoleSwitcher currentRole="client" />
+      <Header />
 
-    <main class="max-w-2xl mx-auto px-4 sm:px-6 pt-5 space-y-5 w-full flex-1">
-      <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
-        <div id="profile-avatar" class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#FF7A00] to-amber-500 flex items-center justify-center text-white text-2xl font-black shadow-md shadow-orange-500/20">
-          FC
-        </div>
-        <div class="flex-1 min-w-0">
-          <h2 id="profile-name" class="text-base font-extrabold text-gray-900 leading-snug">{user.name}</h2>
-          <p id="profile-email" class="text-xs text-gray-500 truncate">{user.email} • {user.phone}</p>
-          <div class="mt-1 flex items-center gap-1.5">
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-black border border-amber-200/60">
-              ⭐ Cuenta Verificada Traigalo
-            </span>
+      <main class="tg-wrap tg-main acc-narrow">
+        <section class="acc-identity" aria-labelledby="profile-name">
+          <div id="profile-avatar" class="acc-avatar" aria-hidden="true">FC</div>
+          <div class="acc-identity-text">
+            <h1 id="profile-name">{user.name}</h1>
+            <p id="profile-email">{user.email}</p>
+            <p class="acc-meta">{user.phone}</p>
           </div>
-        </div>
-      </div>
+        </section>
 
-      <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-3">
-        <div class="flex items-center justify-between">
-          <h3 class="text-xs font-black uppercase tracking-wider text-gray-400">Dirección de Entrega</h3>
-          <button id="btn-profile-change-address" type="button" class="text-xs font-bold text-[#FF7A00] hover:underline cursor-pointer">Cambiar en Mapa</button>
-        </div>
-        <div class="space-y-2.5">
-          {user.addresses.map((addr) => (
-            <div class="p-3 rounded-2xl bg-[#FAFAFC] border border-gray-100 flex items-start gap-3">
-              <div class="w-8 h-8 rounded-xl bg-orange-100 text-[#FF7A00] flex items-center justify-center shrink-0 mt-0.5">
-                📍
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2">
-                  <p class="text-xs font-extrabold text-gray-900">{addr.title}</p>
-                  {addr.isDefault && (
-                    <span class="text-[9px] font-bold bg-[#FF7A00] text-white px-1.5 py-0.5 rounded-md">Activa</span>
-                  )}
+        <section class="acc-group" aria-labelledby="acc-address-title">
+          <div class="acc-group-head">
+            <h2 id="acc-address-title">Dirección de entrega</h2>
+            <button id="btn-profile-change-address" type="button" class="tg-btn tg-btn--quiet tg-btn--sm">Cambiar en el mapa</button>
+          </div>
+          <ul class="acc-list">
+            {user.addresses.map((addr) => (
+              <li class="acc-row">
+                <svg class="acc-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+                <div class="acc-row-text">
+                  <p class="acc-row-title">{addr.title}</p>
+                  <p id="profile-saved-address" class="acc-row-sub">{addr.address}</p>
                 </div>
-                <p id="profile-saved-address" class="text-xs text-gray-500 truncate mt-0.5">{addr.address}</p>
-              </div>
+                {addr.isDefault && <span class="acc-tag">Activa</span>}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section class="acc-group" aria-labelledby="acc-pay-title">
+          <div class="acc-group-head">
+            <h2 id="acc-pay-title">Métodos de pago</h2>
+            <p class="acc-meta">Tasa BCV {bcvRate.toFixed(2)} Bs por dólar</p>
+          </div>
+          <ul class="acc-list">
+            {user.paymentMethods.map((pm) => (
+              <li class="acc-row">
+                <svg class="acc-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 10h18" stroke="currentColor" stroke-width="1.8"/></svg>
+                <div class="acc-row-text">
+                  <p class="acc-row-title">{pm.brand}</p>
+                  <p class="acc-row-sub">{pm.last4}</p>
+                </div>
+                {pm.isDefault && <span class="acc-tag">Preferido</span>}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section class="acc-group" aria-labelledby="acc-orders-title">
+          <div class="acc-group-head">
+            <h2 id="acc-orders-title">Pedidos recientes</h2>
+            <a href="/orders" class="tg-btn tg-btn--quiet tg-btn--sm">Ver todos</a>
+          </div>
+          {recentOrders.length === 0 ? (
+            <div class="tg-empty">
+              <h3>Todavía no tienes pedidos</h3>
+              <p>Tus pedidos aparecerán aquí para que puedas seguirlos.</p>
             </div>
-          ))}
-        </div>
-      </div>
+          ) : (
+            <ul class="acc-list">
+              {recentOrders.map((ord) => {
+                const storeLabel = storesMap[ord.store_id]?.name || 'Comercio';
+                const totalUsd = Number(ord.total) || 0;
+                return (
+                  <li class="acc-row acc-order">
+                    <div class="acc-row-text">
+                      <p class="acc-row-title">{storeLabel}</p>
+                      <p class="acc-row-sub">Orden #{ord.order_number || ord.id.slice(0, 8)}, <strong class="acc-status">{formatStatusLabel(ord.status)}</strong></p>
+                      <p class="acc-row-sub">{ord.delivery_address || 'Higuerote, Miranda'}</p>
+                    </div>
+                    <div class="acc-order-side">
+                      <span class="tg-price">${totalUsd.toFixed(2)}</span>
+                      <span class="tg-price-bs">{formatBs(totalUsd, bcvRate)}</span>
+                      <a href={`/orders/track?id=${ord.id}`} class="acc-link">Rastrear pedido</a>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
 
-      <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-3">
-        <div class="flex items-center justify-between">
-          <h3 class="text-xs font-black uppercase tracking-wider text-gray-400">Métodos de Pago Habilitados</h3>
-          <span class="text-xs font-bold text-emerald-600">Tasa BCV: {bcvRate.toFixed(2)} Bs/$</span>
-        </div>
-        <div class="space-y-2">
-          {user.paymentMethods.map((pm) => (
-            <div class="p-3 rounded-2xl bg-[#FAFAFC] border border-gray-100 flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-xl bg-gray-100 text-gray-700 flex items-center justify-center font-black text-xs">
-                  💳
-                </div>
-                <div>
-                  <p class="text-xs font-extrabold text-gray-900">{pm.brand}</p>
-                  <p class="text-[11px] text-gray-400">{pm.last4}</p>
-                </div>
-              </div>
-              {pm.isDefault && (
-                <span class="text-xs text-emerald-600 font-bold">Preferido</span>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+        <section class="acc-group acc-exit" aria-label="Sesión">
+          <button id="btn-profile-logout" type="button" class="acc-logout">Cerrar sesión</button>
+        </section>
+      </main>
 
-      <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-3">
-        <div class="flex items-center justify-between">
-          <h3 class="text-xs font-black uppercase tracking-wider text-gray-400">Pedidos Recientes</h3>
-          <a href="/orders" class="text-xs font-bold text-[#FF7A00] hover:underline">Ver todos</a>
-        </div>
-        <div class="space-y-2.5">
-          {recentOrders.map((ord) => {
-            const storeLabel = storesMap[ord.store_id]?.name || 'Comercio Oficial';
-            const totalUsd = Number(ord.total) || 0;
-            return (
-              <div class="p-3 rounded-2xl bg-[#FAFAFC] border border-gray-100 space-y-2">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <p class="text-xs font-extrabold text-gray-900">{storeLabel}</p>
-                    <p class="text-[11px] text-gray-500">Orden #{ord.order_number || ord.id.slice(0, 8)} • <strong class="text-[#FF7A00]">{formatStatusLabel(ord.status)}</strong></p>
-                  </div>
-                  <div class="text-right">
-                    <span class="text-xs font-black text-gray-900">${totalUsd.toFixed(2)}</span>
-                    <span class="block text-[9px] text-gray-400 font-semibold">{formatBs(totalUsd, bcvRate)}</span>
-                  </div>
-                </div>
-                <div class="flex items-center justify-between pt-1 border-t border-gray-100">
-                  <span class="text-[11px] text-gray-500 truncate max-w-[200px]">📍 {ord.delivery_address || 'Higuerote, Miranda'}</span>
-                  <a href={`/orders/track?id=${ord.id}`} class="text-xs font-bold text-[#FF7A00] hover:underline">Rastrear →</a>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </main>
-
-    <Footer />
-    <BottomNav />
+      <Footer />
+      <BottomNav />
+    </div>
     <LocationModal />
 
     <script is:inline>
@@ -197,6 +190,14 @@ const user = {
             if (typeof window.openLocationModal === "function") {
               window.openLocationModal();
             }
+          });
+        }
+
+        const profileLogoutBtn = document.getElementById("btn-profile-logout");
+        if (profileLogoutBtn) {
+          profileLogoutBtn.addEventListener("click", () => {
+            const headerLogout = document.getElementById("btn-logout");
+            if (headerLogout) headerLogout.click();
           });
         }
 

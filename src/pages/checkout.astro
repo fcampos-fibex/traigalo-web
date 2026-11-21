@@ -2,352 +2,244 @@
 import { getOfficialExchangeRate } from '../adapters/rates';
 import { fetchStoresMap } from '../adapters/stores';
 import LocationModal from '../components/LocationModal.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
 import '../styles/global.css';
+import '../styles/pages/checkout.css';
 
 const bcvRate = await getOfficialExchangeRate();
 const storesLookup = await fetchStoresMap();
 ---
 
-<html lang="es">
+<!doctype html>
+<html lang="es" data-rubro="all">
   <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Confirmar pedido | Traigalo</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=3" />
     <link rel="apple-touch-icon" href="/icon-192.png?v=3" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#FF5A00" />
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <title>Confirmar Pedido Multi-Tienda | Traigalo ⚡</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   </head>
-  <body class="bg-[#FAFAFC] text-[#1A1D20] min-h-screen flex flex-col pb-36 antialiased selection:bg-[#FF7A00] selection:text-white">
-    
-    <header class="bg-white/90 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40 px-4 py-3.5">
-      <div class="max-w-2xl mx-auto flex items-center justify-between">
-        <a href="/" class="w-10 h-10 rounded-full bg-gray-50 hover:bg-gray-100 flex items-center justify-center text-gray-800 transition-colors active:scale-95">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
-          </svg>
-        </a>
-        <div class="text-center">
-          <h1 class="text-base font-extrabold text-gray-900 leading-tight">Finalizar Pedido</h1>
-          <span class="text-[10px] font-bold text-emerald-600">Tasa Oficial BCV: {bcvRate.toFixed(2)} Bs/$</span>
-        </div>
-        <a href="/" class="text-[11px] font-extrabold text-[#FF5A00] hover:underline">
-          + Tiendas
-        </a>
-      </div>
-    </header>
+  <body>
+    <div class="tg-page co-page">
+      <div class="tg-aura" aria-hidden="true"></div>
+      <Header />
 
-    <main class="flex-1 max-w-2xl mx-auto px-4 py-5 w-full space-y-4">
-      
-      <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs space-y-3">
-        <div class="flex items-center justify-between">
-          <span class="text-[10px] font-extrabold uppercase tracking-wider text-gray-400">Dirección y Contacto de Entrega</span>
-          <button id="btn-change-checkout-address" type="button" class="text-xs font-bold text-[#FF7A00] hover:underline cursor-pointer">
-            Cambiar en Mapa
-          </button>
+      <main class="tg-wrap tg-main co-main">
+        <div class="co-intro">
+          <a href="/" class="tg-btn tg-btn--quiet tg-btn--sm co-back" aria-label="Volver a las tiendas">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+            <span>Seguir comprando</span>
+          </a>
+          <h1 class="co-title">Finalizar pedido</h1>
+          <p class="co-rate">Tasa oficial BCV: {bcvRate.toFixed(2)} Bs/$</p>
         </div>
-        <div class="flex items-center gap-3 pb-3 border-b border-gray-50">
-          <div class="w-10 h-10 rounded-2xl bg-orange-50 text-[#FF7A00] flex items-center justify-center text-lg shrink-0">
-            📍
-          </div>
-          <div class="flex-1 min-w-0">
-            <h3 class="text-sm font-bold text-gray-900 truncate">Punto de Entrega Confirmado</h3>
-            <p id="checkout-address" class="text-xs text-gray-500 truncate">Av. Andrés Eloy Blanco, Higuerote</p>
-          </div>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-          <div>
-            <label for="customer-name" class="block text-[10px] font-extrabold uppercase tracking-wider text-gray-400 mb-1">
-              Quien Recibe
-            </label>
-            <input
-              id="customer-name"
-              type="text"
-              value="Freddy Campos"
-              placeholder="Nombre y Apellido"
-              class="w-full h-10 px-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:bg-white focus:border-[#FF7A00]"
-            />
-          </div>
-          <div>
-            <label for="customer-phone" class="block text-[10px] font-extrabold uppercase tracking-wider text-gray-400 mb-1">
-              Teléfono / WhatsApp
-            </label>
-            <input
-              id="customer-phone"
-              type="tel"
-              value="+58 412 890 1234"
-              placeholder="Ej. 0412-8901234"
-              class="w-full h-10 px-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:bg-white focus:border-[#FF7A00]"
-            />
-          </div>
-        </div>
-      </section>
 
-      <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg shrink-0">
-            ⚡
-          </div>
-          <div>
-            <h4 class="text-xs font-bold text-gray-900">Despacho Express Multi-Tienda</h4>
-            <p id="checkout-eta-label" class="text-[11px] text-gray-400">Estimado: 15-25 minutos</p>
-          </div>
-        </div>
-        <span id="checkout-distance-badge" class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px]">
-          Tarifa calculada por GPS
-        </span>
-      </section>
-
-      <div id="multi-store-banner" class="hidden rounded-2xl bg-gradient-to-r from-indigo-950 to-slate-900 text-white p-3.5 flex items-center justify-between gap-3 shadow-sm">
-        <div class="flex items-center gap-2.5">
-          <span class="text-lg">🏬</span>
-          <div>
-            <p class="text-xs font-black">Carrito Multi-Tienda Activo</p>
-            <p id="multi-store-banner-sub" class="text-[10px] text-slate-300 font-medium">Tus artículos se despacharán desde cada comercio oficial simultáneamente</p>
-          </div>
-        </div>
-        <span id="multi-store-count-pill" class="px-2.5 py-1 rounded-full bg-[#FF5A00] text-white text-[10px] font-black shrink-0">
-          2 Tiendas
-        </span>
-      </div>
-
-      <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-400">Tu Pedido por Comercio</h3>
-          <button id="clear-cart-btn" class="text-[11px] font-bold text-gray-400 hover:text-red-500 transition-colors cursor-pointer">
-            Vaciar Carrito
-          </button>
-        </div>
-        <div id="cart-items-container" class="space-y-4">
-          <div class="text-center py-8 text-gray-400 text-xs">Cargando productos del carrito...</div>
-        </div>
-      </section>
-
-      <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs">
-        <label for="order-notes" class="block text-xs font-extrabold uppercase tracking-wider text-gray-400 mb-1">
-          Notas de Entrega y Especificaciones
-        </label>
-        <p class="text-[11px] text-gray-400 font-medium mb-2">Instrucciones para el repartidor o la tienda (ej. referencia de casa, color, modelo)</p>
-        <textarea 
-          id="order-notes"
-          rows="2"
-          placeholder="Escribe aquí indicaciones especiales sobre tu entrega o productos..."
-          class="w-full p-3 bg-gray-50 border border-gray-100 rounded-2xl text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-[#FF7A00] focus:ring-2 focus:ring-[#FF7A00]/20 transition-all resize-none"
-        ></textarea>
-      </section>
-
-      <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs">
-        <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-400 mb-3">Método de Pago</h3>
-        <div class="space-y-2.5" id="payment-options">
-          <label class="payment-option flex items-center justify-between p-3.5 rounded-2xl border-2 border-[#FF7A00] bg-orange-50/30 cursor-pointer transition-all" data-value="mobile_pay">
-            <div class="flex items-center gap-3">
-              <span class="text-xl">📱</span>
-              <div>
-                <h4 class="text-xs font-bold text-gray-900">Pago Móvil / Transferencia BCV</h4>
-                <p class="text-[10px] text-gray-500">Confirmación inmediata a tasa oficial ({bcvRate.toFixed(2)} Bs/$)</p>
+        <div class="co-layout">
+          <div class="co-steps">
+            <section class="co-step" aria-labelledby="step-address">
+              <header class="co-step-head">
+                <span class="co-step-num" aria-hidden="true">1</span>
+                <h2 id="step-address">Dirección y contacto</h2>
+                <button id="btn-change-checkout-address" type="button" class="tg-btn tg-btn--quiet tg-btn--sm">Cambiar en mapa</button>
+              </header>
+              <div class="co-address">
+                <span class="co-icon" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.2-7-11.5a7 7 0 1 1 14 0C19 14.8 12 21 12 21z" /><circle cx="12" cy="9.5" r="2.5" /></svg>
+                </span>
+                <div class="co-address-text">
+                  <h3>Punto de entrega confirmado</h3>
+                  <p id="checkout-address">Av. Andrés Eloy Blanco, Higuerote</p>
+                </div>
               </div>
-            </div>
-            <input type="radio" name="payment" value="mobile_pay" checked class="text-[#FF7A00] focus:ring-[#FF7A00] w-4 h-4 accent-[#FF7A00]" />
-          </label>
+              <div class="co-grid-2">
+                <div>
+                  <label for="customer-name" class="tg-field-label">Quién recibe</label>
+                  <input id="customer-name" type="text" value="Freddy Campos" placeholder="Nombre y apellido" autocomplete="name" class="tg-input co-input" />
+                </div>
+                <div>
+                  <label for="customer-phone" class="tg-field-label">Teléfono o WhatsApp</label>
+                  <input id="customer-phone" type="tel" value="+58 412 890 1234" placeholder="Ej. 0412-8901234" autocomplete="tel" class="tg-input co-input" />
+                </div>
+              </div>
+            </section>
 
-          <div id="mobile-pay-details" class="p-4 rounded-2xl bg-orange-50/50 border border-orange-200 space-y-3">
-            <div class="flex items-center justify-between pb-2 border-b border-orange-100 text-xs">
-              <span class="font-extrabold text-[#FF7A00] uppercase text-[10px] tracking-wider">Datos Pago Móvil Oficial</span>
-              <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[9px] font-black">Cuenta Verificada</span>
-            </div>
-            <div class="grid grid-cols-2 gap-2 text-xs">
-              <div>
-                <span class="text-[10px] text-gray-400 block font-semibold">Banco Destino:</span>
-                <strong class="text-gray-900">Banesco (0134)</strong>
+            <section class="co-step" aria-labelledby="step-delivery">
+              <header class="co-step-head">
+                <span class="co-step-num" aria-hidden="true">2</span>
+                <h2 id="step-delivery">Entrega</h2>
+              </header>
+              <div class="co-delivery">
+                <span class="co-icon co-icon--ok" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" stroke-linecap="round" /></svg>
+                </span>
+                <div class="co-delivery-text">
+                  <h3>Despacho express multi-tienda</h3>
+                  <p id="checkout-eta-label">Estimado: 15-25 minutos</p>
+                </div>
+                <span id="checkout-distance-badge" class="co-badge">Tarifa calculada por GPS</span>
               </div>
-              <div>
-                <span class="text-[10px] text-gray-400 block font-semibold">Teléfono:</span>
-                <strong class="text-gray-900">0412-8901234</strong>
+
+              <div id="multi-store-banner" class="co-banner hidden">
+                <div>
+                  <p class="co-banner-title">Carrito multi-tienda activo</p>
+                  <p id="multi-store-banner-sub" class="co-banner-sub">Tus artículos se despacharán desde cada comercio oficial simultáneamente</p>
+                </div>
+                <span id="multi-store-count-pill" class="co-banner-pill">2 Tiendas</span>
               </div>
+
               <div>
-                <span class="text-[10px] text-gray-400 block font-semibold">RIF / C.I.:</span>
-                <strong class="text-gray-900">J-50123456-7</strong>
+                <label for="order-notes" class="tg-field-label">Notas de entrega y especificaciones</label>
+                <p class="co-hint" id="order-notes-hint">Instrucciones para el repartidor o la tienda (ej. referencia de casa, color, modelo)</p>
+                <textarea id="order-notes" rows="3" aria-describedby="order-notes-hint" placeholder="Escribe aquí indicaciones especiales sobre tu entrega o productos..." class="tg-input co-textarea"></textarea>
               </div>
-              <div>
-                <span class="text-[10px] text-gray-400 block font-semibold">Monto exacto en Bs:</span>
-                <strong id="mobile-pay-exact-bs" class="text-[#FF5A00] font-black">Bs. 0,00</strong>
+
+              <div class="co-tip">
+                <div class="co-tip-head">
+                  <h3 id="tip-title">Propina para el repartidor</h3>
+                  <p>100% íntegra para tu repartidor asignado</p>
+                </div>
+                <div class="co-tip-grid" id="tip-options" role="group" aria-labelledby="tip-title">
+                  <button type="button" data-tip="0" class="btn-tip" aria-pressed="true"><span>Sin propina</span><span class="co-tip-sub">$0.00</span></button>
+                  <button type="button" data-tip="0.5" class="btn-tip" aria-pressed="false"><span>$0.50</span><span class="co-tip-sub">Pequeña</span></button>
+                  <button type="button" data-tip="1.0" class="btn-tip" aria-pressed="false"><span>$1.00</span><span class="co-tip-sub">Estándar</span></button>
+                  <button type="button" data-tip="2.0" class="btn-tip" aria-pressed="false"><span>$2.00</span><span class="co-tip-sub">Generosa</span></button>
+                </div>
               </div>
-            </div>
-            <div class="pt-2 border-t border-orange-100 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <div>
-                <label for="mobile-pay-bank" class="block text-[10px] font-black uppercase tracking-wider text-gray-600 mb-1">
-                  Banco Emisor
+            </section>
+
+            <section class="co-step" aria-labelledby="step-payment">
+              <header class="co-step-head">
+                <span class="co-step-num" aria-hidden="true">3</span>
+                <h2 id="step-payment">Método de pago</h2>
+              </header>
+              <div class="co-pay" id="payment-options">
+                <label class="payment-option" data-value="mobile_pay" aria-current="true">
+                  <span class="co-pay-text">
+                    <strong>Pago Móvil / Transferencia BCV</strong>
+                    <span>Confirmación inmediata a tasa oficial ({bcvRate.toFixed(2)} Bs/$)</span>
+                  </span>
+                  <input type="radio" name="payment" value="mobile_pay" checked />
                 </label>
-                <select 
-                  id="mobile-pay-bank"
-                  class="w-full h-11 px-3 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:border-[#FF7A00]"
-                >
-                  <option value="0134">Banesco (0134)</option>
-                  <option value="0102">Banco de Venezuela (0102)</option>
-                  <option value="0105">Mercantil (0105)</option>
-                  <option value="0108">BBVA Provincial (0108)</option>
-                  <option value="0191">BNC (0191)</option>
-                  <option value="0172">Bancamiga (0172)</option>
-                  <option value="0114">Bancaribe (0114)</option>
-                  <option value="0174">Banplus (0174)</option>
-                </select>
-              </div>
-              <div>
-                <label for="mobile-pay-ref" class="block text-[10px] font-black uppercase tracking-wider text-gray-600 mb-1">
-                  Referencia (últimos 6 dígitos)
+
+                <div id="mobile-pay-details" class="co-pay-details">
+                  <div class="co-pay-details-head">
+                    <h3>Datos Pago Móvil oficial</h3>
+                    <span class="co-badge">Cuenta verificada</span>
+                  </div>
+                  <dl class="co-facts">
+                    <div><dt>Banco destino</dt><dd>Banesco (0134)</dd></div>
+                    <div><dt>Teléfono</dt><dd>0412-8901234</dd></div>
+                    <div><dt>RIF / C.I.</dt><dd>J-50123456-7</dd></div>
+                    <div><dt>Monto exacto en Bs</dt><dd id="mobile-pay-exact-bs" class="co-exact">Bs. 0,00</dd></div>
+                  </dl>
+                  <div class="co-grid-2">
+                    <div>
+                      <label for="mobile-pay-bank" class="tg-field-label">Banco emisor</label>
+                      <select id="mobile-pay-bank" class="tg-select co-input">
+                        <option value="0134">Banesco (0134)</option>
+                        <option value="0102">Banco de Venezuela (0102)</option>
+                        <option value="0105">Mercantil (0105)</option>
+                        <option value="0108">BBVA Provincial (0108)</option>
+                        <option value="0191">BNC (0191)</option>
+                        <option value="0172">Bancamiga (0172)</option>
+                        <option value="0114">Bancaribe (0114)</option>
+                        <option value="0174">Banplus (0174)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label for="mobile-pay-ref" class="tg-field-label">Referencia (últimos 6 dígitos)</label>
+                      <input type="text" id="mobile-pay-ref" placeholder="Ej. 849201" maxlength="12" inputmode="numeric" aria-describedby="mobile-pay-ref-hint" class="tg-input co-input co-mono" />
+                      <p class="co-hint" id="mobile-pay-ref-hint">Obligatorio para Pago Móvil, mínimo 4 dígitos</p>
+                    </div>
+                  </div>
+                </div>
+
+                <label class="payment-option" data-value="cash" aria-current="false">
+                  <span class="co-pay-text">
+                    <strong>Efectivo contra entrega</strong>
+                    <span>Pagas en dólares o bolívares al recibir tu pedido</span>
+                  </span>
+                  <input type="radio" name="payment" value="cash" />
                 </label>
-                <input 
-                  type="text" 
-                  id="mobile-pay-ref"
-                  placeholder="Ej. 849201" 
-                  maxlength="12"
-                  class="w-full h-11 px-3.5 bg-white border border-gray-200 rounded-xl text-xs font-mono font-bold text-gray-900 focus:outline-none focus:border-[#FF7A00] focus:ring-2 focus:ring-[#FF7A00]/20 transition-all"
-                />
+
+                <label class="payment-option" data-value="card" aria-current="false">
+                  <span class="co-pay-text">
+                    <strong>Tarjeta de débito / crédito</strong>
+                    <span>Visa, Mastercard o Maestro Nacional</span>
+                  </span>
+                  <input type="radio" name="payment" value="card" />
+                </label>
+
+                <div id="card-pay-details" class="co-pay-details hidden">
+                  <div>
+                    <label for="card-number" class="tg-field-label">Número de tarjeta</label>
+                    <input id="card-number" type="text" maxlength="19" placeholder="16 dígitos" inputmode="numeric" autocomplete="cc-number" class="tg-input co-input co-mono" />
+                  </div>
+                  <div class="co-grid-2 co-grid-2--tight">
+                    <div>
+                      <label for="card-exp" class="tg-field-label">Vencimiento</label>
+                      <input id="card-exp" type="text" maxlength="5" placeholder="08/28" autocomplete="cc-exp" class="tg-input co-input co-mono" />
+                    </div>
+                    <div>
+                      <label for="card-cvv" class="tg-field-label">CVV</label>
+                      <input id="card-cvv" type="password" maxlength="4" placeholder="3 o 4 dígitos" autocomplete="cc-csc" class="tg-input co-input co-mono" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <aside class="co-summary tg-glass" aria-labelledby="summary-title">
+            <div class="co-summary-head">
+              <h2 id="summary-title">Tu pedido por comercio</h2>
+              <button id="clear-cart-btn" type="button" class="co-link-danger">Vaciar carrito</button>
+            </div>
+            <div id="cart-items-container" class="co-stores">
+              <p class="co-loading">Cargando productos del carrito…</p>
+            </div>
+
+            <div class="co-breakdown">
+              <h3>Desglose de pago</h3>
+              <div class="co-line">
+                <span>Subtotal de productos</span>
+                <span class="co-amt"><span id="breakdown-subtotal">$0.00</span><span id="breakdown-subtotal-bs" class="tg-price-bs"></span></span>
+              </div>
+              <div class="co-line">
+                <span id="breakdown-delivery-label">Costo de Envío</span>
+                <span class="co-amt"><span id="breakdown-delivery">$1.50</span><span id="breakdown-delivery-bs" class="tg-price-bs"></span></span>
+              </div>
+              <div class="co-line">
+                <span>Tarifa de servicio y plataforma</span>
+                <span class="co-amt"><span id="breakdown-service">$0.50</span><span id="breakdown-service-bs" class="tg-price-bs"></span></span>
+              </div>
+              <div id="breakdown-tip-row" class="co-line hidden">
+                <span>Propina al repartidor</span>
+                <span class="co-amt"><span id="breakdown-tip" class="co-tip-amt">$0.00</span><span id="breakdown-tip-bs" class="tg-price-bs"></span></span>
+              </div>
+              <div class="co-line co-total">
+                <span>Total a pagar<span id="breakdown-total-bs" class="co-total-bs"></span></span>
+                <span id="breakdown-total" class="co-total-usd">$0.00</span>
               </div>
             </div>
-          </div>
 
-          <label class="payment-option flex items-center justify-between p-3.5 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white cursor-pointer transition-all" data-value="cash">
-            <div class="flex items-center gap-3">
-              <span class="text-xl">💵</span>
-              <div>
-                <h4 class="text-xs font-bold text-gray-900">Efectivo contra entrega</h4>
-                <p class="text-[10px] text-gray-400">Pagas en dólares o bolívares al recibir tu pedido</p>
-              </div>
+            <div class="co-paybar">
+              <button id="btn-confirm-order" type="button" class="tg-btn tg-btn--primary co-confirm">
+                <span id="btn-text">Confirmar y Enviar Pedido</span>
+                <span id="btn-total" class="co-confirm-total">$0.00</span>
+              </button>
             </div>
-            <input type="radio" name="payment" value="cash" class="text-[#FF7A00] focus:ring-[#FF7A00] w-4 h-4 accent-[#FF7A00]" />
-          </label>
+          </aside>
+        </div>
+      </main>
 
-          <label class="payment-option flex items-center justify-between p-3.5 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white cursor-pointer transition-all" data-value="card">
-            <div class="flex items-center gap-3">
-              <span class="text-xl">💳</span>
-              <div>
-                <h4 class="text-xs font-bold text-gray-900">Tarjeta de Débito / Crédito</h4>
-                <p class="text-[10px] text-gray-400">Visa, Mastercard o Maestro Nacional</p>
-              </div>
-            </div>
-            <input type="radio" name="payment" value="card" class="text-[#FF7A00] focus:ring-[#FF7A00] w-4 h-4 accent-[#FF7A00]" />
-          </label>
-
-          <div id="card-pay-details" class="hidden p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-2.5">
-            <div>
-              <label for="card-number" class="block text-[10px] font-black uppercase tracking-wider text-gray-500 mb-1">Número de Tarjeta</label>
-              <input id="card-number" type="text" maxlength="19" placeholder="4532 •••• •••• 8910" class="w-full h-10 px-3 bg-white border border-gray-200 rounded-xl text-xs font-mono font-bold text-gray-900 focus:outline-none focus:border-[#FF7A00]" />
-            </div>
-            <div class="grid grid-cols-2 gap-2.5">
-              <div>
-                <label for="card-exp" class="block text-[10px] font-black uppercase tracking-wider text-gray-500 mb-1">Vencimiento</label>
-                <input id="card-exp" type="text" maxlength="5" placeholder="08/28" class="w-full h-10 px-3 bg-white border border-gray-200 rounded-xl text-xs font-mono font-bold text-gray-900 focus:outline-none focus:border-[#FF7A00]" />
-              </div>
-              <div>
-                <label for="card-cvv" class="block text-[10px] font-black uppercase tracking-wider text-gray-500 mb-1">CVV</label>
-                <input id="card-cvv" type="password" maxlength="4" placeholder="•••" class="w-full h-10 px-3 bg-white border border-gray-200 rounded-xl text-xs font-mono font-bold text-gray-900 focus:outline-none focus:border-[#FF7A00]" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs">
-        <div class="flex items-center justify-between mb-3">
-          <div>
-            <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-400">Propina para el Repartidor</h3>
-            <p class="text-[11px] text-gray-500 font-medium">100% íntegra para tu repartidor asignado</p>
-          </div>
-          <span class="text-xl">🛵</span>
-        </div>
-        <div class="grid grid-cols-4 gap-2" id="tip-options">
-          <button 
-            type="button" 
-            data-tip="0" 
-            class="btn-tip py-2.5 px-2 rounded-2xl border-2 border-[#FF7A00] bg-orange-50/40 text-gray-900 text-xs font-extrabold flex flex-col items-center justify-center transition-all cursor-pointer"
-          >
-            <span>Sin propina</span>
-            <span class="text-[9px] text-gray-400 font-bold">$0.00</span>
-          </button>
-          <button 
-            type="button" 
-            data-tip="0.5" 
-            class="btn-tip py-2.5 px-2 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white text-gray-900 text-xs font-extrabold flex flex-col items-center justify-center transition-all cursor-pointer"
-          >
-            <span>$0.50</span>
-            <span class="text-[9px] text-gray-400 font-bold">Pequeña</span>
-          </button>
-          <button 
-            type="button" 
-            data-tip="1.0" 
-            class="btn-tip py-2.5 px-2 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white text-gray-900 text-xs font-extrabold flex flex-col items-center justify-center transition-all cursor-pointer"
-          >
-            <span>$1.00</span>
-            <span class="text-[9px] text-gray-400 font-bold">Estándar</span>
-          </button>
-          <button 
-            type="button" 
-            data-tip="2.0" 
-            class="btn-tip py-2.5 px-2 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white text-gray-900 text-xs font-extrabold flex flex-col items-center justify-center transition-all cursor-pointer"
-          >
-            <span>$2.00</span>
-            <span class="text-[9px] text-gray-400 font-bold">Generosa</span>
-          </button>
-        </div>
-      </section>
-
-      <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs space-y-2 text-xs">
-        <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-400 mb-2">Desglose de Pago</h3>
-        <div class="flex justify-between text-gray-500">
-          <span>Subtotal de Productos</span>
-          <div class="text-right">
-            <span id="breakdown-subtotal" class="font-bold text-gray-800">$0.00</span>
-            <span id="breakdown-subtotal-bs" class="block text-[10px] text-gray-400 font-semibold"></span>
-          </div>
-        </div>
-        <div class="flex justify-between text-gray-500">
-          <span id="breakdown-delivery-label">Costo de Envío</span>
-          <div class="text-right">
-            <span id="breakdown-delivery" class="font-bold text-gray-800">$1.50</span>
-            <span id="breakdown-delivery-bs" class="block text-[10px] text-gray-400 font-semibold"></span>
-          </div>
-        </div>
-        <div class="flex justify-between text-gray-500">
-          <span>Tarifa de Servicio y Plataforma</span>
-          <div class="text-right">
-            <span id="breakdown-service" class="font-bold text-gray-800">$0.50</span>
-            <span id="breakdown-service-bs" class="block text-[10px] text-gray-400 font-semibold"></span>
-          </div>
-        </div>
-        <div id="breakdown-tip-row" class="hidden justify-between text-gray-500">
-          <span>Propina al Repartidor</span>
-          <div class="text-right">
-            <span id="breakdown-tip" class="font-bold text-emerald-600">$0.00</span>
-            <span id="breakdown-tip-bs" class="block text-[10px] text-gray-400 font-semibold"></span>
-          </div>
-        </div>
-        <div class="pt-3 border-t border-gray-100 flex justify-between items-center text-sm font-black text-gray-950">
-          <div>
-            <span>Total a Pagar</span>
-            <span id="breakdown-total-bs" class="block text-[11px] text-emerald-700 font-extrabold mt-0.5"></span>
-          </div>
-          <span id="breakdown-total" class="text-xl text-[#FF7A00] font-black">$0.00</span>
-        </div>
-      </section>
-
-    </main>
-
-    <div class="fixed bottom-0 left-0 right-0 z-50 p-4 bg-white/95 backdrop-blur-md border-t border-gray-100 shadow-xl shadow-gray-200/50">
-      <div class="max-w-2xl mx-auto">
-        <button 
-          id="btn-confirm-order"
-          type="button"
-          class="w-full h-14 rounded-2xl bg-gradient-to-r from-[#FF7A00] to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-orange-600/30 active:scale-98 transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
-        >
-          <span id="btn-text">Confirmar y Enviar Pedido</span>
-          <span>•</span>
-          <span id="btn-total">$0.00</span>
-        </button>
-      </div>
+      <Footer />
     </div>
 
     <script is:inline define:vars={{ bcvRate, storesLookup }}>
@@ -379,9 +271,9 @@ const storesLookup = await fetchStoresMap();
             currentDriverTip = val;
 
             tipButtons.forEach(b => {
-              b.className = 'btn-tip py-2.5 px-2 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white text-gray-900 text-xs font-extrabold flex flex-col items-center justify-center transition-all cursor-pointer';
+              b.setAttribute('aria-pressed', 'false');
             });
-            btn.className = 'btn-tip py-2.5 px-2 rounded-2xl border-2 border-[#FF7A00] bg-orange-50/40 text-gray-900 text-xs font-extrabold flex flex-col items-center justify-center transition-all cursor-pointer';
+            btn.setAttribute('aria-pressed', 'true');
 
             renderCart();
           });
@@ -461,7 +353,7 @@ const storesLookup = await fetchStoresMap();
                 etaEl.textContent = `Estimado: ${est.eta_minutes}-${est.eta_minutes + 10} minutos`;
               }
               if (distBadge && typeof est.distance_km === 'number') {
-                distBadge.textContent = `${est.distance_km.toFixed(1)} km • $${baseDeliveryFeePerStore.toFixed(2)}/tienda`;
+                distBadge.textContent = `${est.distance_km.toFixed(1)} km, $${baseDeliveryFeePerStore.toFixed(2)}/tienda`;
               }
               renderCart();
             }
@@ -488,9 +380,9 @@ const storesLookup = await fetchStoresMap();
           document.querySelectorAll('.payment-option').forEach(label => {
             const radio = label.querySelector('input[type="radio"]');
             if (radio && radio.checked) {
-              label.className = 'payment-option flex items-center justify-between p-3.5 rounded-2xl border-2 border-[#FF7A00] bg-orange-50/30 cursor-pointer transition-all';
+              label.setAttribute('aria-current', 'true');
             } else {
-              label.className = 'payment-option flex items-center justify-between p-3.5 rounded-2xl border border-gray-100 hover:border-gray-200 bg-white cursor-pointer transition-all';
+              label.setAttribute('aria-current', 'false');
             }
           });
         }
@@ -546,12 +438,9 @@ const storesLookup = await fetchStoresMap();
           if (cart.length === 0) {
             if (multiBanner) multiBanner.classList.add('hidden');
             container.innerHTML = `
-              <div class="py-8 text-center">
-                <span class="text-3xl block mb-2">🛒</span>
-                <p class="text-xs font-bold text-gray-500">Tu carrito está vacío</p>
-                <a href="/" class="inline-block mt-3 px-4 py-2 rounded-xl bg-orange-50 text-[#FF7A00] font-black text-xs hover:bg-orange-100 transition-colors">
-                  Explorar Catálogo y Tiendas Oficiales
-                </a>
+              <div class="tg-empty co-empty">
+                <p>Tu carrito está vacío</p>
+                <a href="/" class="tg-btn tg-btn--quiet tg-btn--sm">Explorar catálogo y tiendas oficiales</a>
               </div>
             `;
             if (confirmBtn) confirmBtn.disabled = true;
@@ -619,40 +508,31 @@ const storesLookup = await fetchStoresMap();
             const groupSubtotal = group.items.reduce((acc, it) => acc + (Number(it.price) * (it.qty || 1)), 0);
             const groupItemsCount = group.items.reduce((acc, it) => acc + (it.qty || 1), 0);
             return `
-              <div class="rounded-2xl border border-gray-100 bg-[#FAFAFC] p-3.5 space-y-3">
-                <div class="flex items-center justify-between pb-2.5 border-b border-gray-200/70">
-                  <div class="flex items-center gap-2.5">
-                    <img src="${group.logo}" alt="${group.storeName}" class="w-8 h-8 rounded-xl object-cover border border-gray-200" />
-                    <div>
-                      <div class="flex items-center gap-1.5">
-                        <h4 class="text-xs font-black text-gray-900">${group.storeName}</h4>
-                        <span class="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[9px] font-black">Oficial</span>
-                      </div>
-                      <span class="text-[10px] font-bold text-gray-400">${groupItemsCount} ${groupItemsCount === 1 ? 'artículo' : 'artículos'} • Subtotal: $${groupSubtotal.toFixed(2)}</span>
-                    </div>
+              <div class="co-store">
+                <div class="co-store-head">
+                  <img src="${group.logo}" alt="${group.storeName}" class="co-store-logo" width="36" height="36" />
+                  <div class="co-store-id">
+                    <h4>${group.storeName} <span class="co-badge">Oficial</span></h4>
+                    <span class="co-store-meta">${groupItemsCount} ${groupItemsCount === 1 ? 'artículo' : 'artículos'}, subtotal $${groupSubtotal.toFixed(2)}</span>
                   </div>
-                  <a href="/stores/${group.storeId}" class="text-[10px] font-extrabold text-[#FF5A00] hover:underline">
-                    + Agregar más
-                  </a>
+                  <a href="/stores/${group.storeId}" class="co-store-more">Agregar más</a>
                 </div>
-                <div class="space-y-2.5">
+                <div class="co-items">
                   ${group.items.map(item => `
-                    <div class="flex items-center justify-between gap-3 bg-white p-2.5 rounded-xl border border-gray-100">
-                      <div class="w-12 h-12 rounded-xl overflow-hidden bg-gray-50 shrink-0 p-1 border border-gray-100">
-                        <img src="${item.image || ''}" alt="${item.name}" class="w-full h-full object-contain" />
+                    <div class="co-item">
+                      <div class="co-item-img">
+                        <img src="${item.image || ''}" alt="${item.name}" width="48" height="48" />
                       </div>
-                      <div class="flex-1 min-w-0">
-                        <h5 class="text-xs font-bold text-gray-900 truncate">${item.name}</h5>
-                        ${item.notes ? `<p class="text-[10px] text-gray-400 truncate">Nota: ${item.notes}</p>` : ''}
-                        <div class="flex items-baseline gap-1.5 mt-0.5">
-                          <span class="text-xs font-black text-[#FF7A00]">$${(Number(item.price) * (item.qty || 1)).toFixed(2)}</span>
-                          <span class="text-[9px] text-gray-400 font-semibold">${formatBs(Number(item.price) * (item.qty || 1))}</span>
-                        </div>
+                      <div class="co-item-body">
+                        <h5>${item.name}</h5>
+                        ${item.notes ? `<p class="co-item-note">Nota: ${item.notes}</p>` : ''}
+                        <span class="co-item-price">$${(Number(item.price) * (item.qty || 1)).toFixed(2)}</span>
+                        <span class="tg-price-bs">${formatBs(Number(item.price) * (item.qty || 1))}</span>
                       </div>
-                      <div class="flex items-center gap-2 bg-gray-50 rounded-xl px-2 py-1 border border-gray-200/60">
-                        <button data-action="minus" data-id="${item.id}" class="btn-qty text-xs font-black text-gray-600 hover:text-[#FF7A00] w-5 h-5 flex items-center justify-center cursor-pointer">-</button>
-                        <span class="text-xs font-black text-gray-900">${item.qty}</span>
-                        <button data-action="plus" data-id="${item.id}" class="btn-qty text-xs font-black text-gray-600 hover:text-[#FF7A00] w-5 h-5 flex items-center justify-center cursor-pointer">+</button>
+                      <div class="tg-qty co-qty">
+                        <button type="button" data-action="minus" data-id="${item.id}" class="btn-qty" aria-label="Quitar uno">-</button>
+                        <span>${item.qty}</span>
+                        <button type="button" data-action="plus" data-id="${item.id}" class="btn-qty" aria-label="Agregar uno">+</button>
                       </div>
                     </div>
                   `).join('')}

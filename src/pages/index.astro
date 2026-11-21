@@ -68,142 +68,87 @@ stores = await fetchActiveStores();
 const rubroStoreCounts: Record<string, number> = {};
 const rubroProductCounts: Record<string, number> = {};
 
+async function loadStoreProducts(store: any): Promise<any[]> {
+  try {
+    const prodRes = await fetch(`${API_BASE}/stores/${store.id}/products`);
+    if (!prodRes.ok) return [];
+    const items = await prodRes.json();
+    if (!Array.isArray(items)) return [];
+    return items.map((it: any, idx: number) => {
+      const cleanName = normalizeName(it.name);
+      let img = FALLBACK_PRODUCT_IMAGE;
+      if (it.attributes?.image_url) {
+        img = it.attributes.image_url;
+      } else if (it.attributes?.asset_id) {
+        img = `${ASSET_BASE}/${it.attributes.asset_id}`;
+      } else if (assetMap[it.name]) {
+        img = `${ASSET_BASE}/${assetMap[it.name]}`;
+      } else if (assetMap[cleanName]) {
+        img = `${ASSET_BASE}/${assetMap[cleanName]}`;
+      }
+      const price = Number(it.base_price) || 0;
+      return {
+        id: it.id,
+        originalOrder: idx,
+        storeId: store.id,
+        storeKey: store.id,
+        rubroKey: store.rubroKey,
+        name: cleanName,
+        desc: it.description || `Disponible en ${store.name} con entrega express garantizada.`,
+        storeName: store.name,
+        storeBadge: store.badgeUrl,
+        category: classifyProductCategory(cleanName, store.rubroKey),
+        price,
+        priceBs: formatBs(price, bcvRate),
+        rating: '4.9',
+        time: '15-20 min',
+        image: img
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
 for (const store of stores) {
   store.bannerUrl = store.cover_url;
   store.badgeUrl = store.logo_url;
   store.verticalLabel = store.description;
   store.addressDisplay = store.address_line;
-  store.productCount = 0;
   rubroStoreCounts[store.rubroKey] = (rubroStoreCounts[store.rubroKey] || 0) + 1;
-
-  try {
-    const prodRes = await fetch(`${API_BASE}/stores/${store.id}/products`);
-    if (prodRes.ok) {
-      const items = await prodRes.json();
-      if (Array.isArray(items)) {
-        store.productCount = items.length;
-        rubroProductCounts[store.rubroKey] = (rubroProductCounts[store.rubroKey] || 0) + items.length;
-        const mapped = items.map((it: any, idx: number) => {
-          const cleanName = normalizeName(it.name);
-          let img = '';
-          if (it.attributes?.image_url) {
-            img = it.attributes.image_url;
-          } else if (it.attributes?.asset_id) {
-            img = `${ASSET_BASE}/${it.attributes.asset_id}`;
-          } else if (assetMap[it.name]) {
-            img = `${ASSET_BASE}/${assetMap[it.name]}`;
-          } else if (assetMap[cleanName]) {
-            img = `${ASSET_BASE}/${assetMap[cleanName]}`;
-          } else {
-            img = FALLBACK_PRODUCT_IMAGE;
-          }
-
-          const price = Number(it.base_price) || 0;
-          const catSlug = classifyProductCategory(cleanName, store.rubroKey);
-          return {
-            id: it.id,
-            originalOrder: idx,
-            storeId: store.id,
-            storeKey: store.id,
-            rubroKey: store.rubroKey,
-            name: cleanName,
-            desc: it.description || `Disponible en ${store.name} con entrega express garantizada.`,
-            storeName: store.name,
-            storeBadge: store.badgeUrl,
-            category: catSlug,
-            price: price,
-            priceBs: formatBs(price, bcvRate),
-            rating: '4.9',
-            time: '15-20 min',
-            image: img
-          };
-        });
-        allProducts.push(...mapped);
-      }
-    }
-  } catch {}
 }
+
+const productsByStore = await Promise.all(stores.map(loadStoreProducts));
+stores.forEach((store, i) => {
+  const items = productsByStore[i];
+  store.productCount = items.length;
+  rubroProductCounts[store.rubroKey] = (rubroProductCounts[store.rubroKey] || 0) + items.length;
+  allProducts.push(...items);
+});
 
 function buildRubroSubtitle(key: string, defaultSubtitle: string): string {
   const sCount = rubroStoreCounts[key] || 0;
   const pCount = rubroProductCounts[key] || 0;
   if (sCount > 0) {
-    return `${sCount} tienda${sCount > 1 ? 's' : ''} activa${sCount > 1 ? 's' : ''} • ${pCount} artículos`;
+    return `${sCount} tienda${sCount > 1 ? 's' : ''}, ${pCount} artículos`;
   }
   return defaultSubtitle;
 }
 
+function doorBadge(key: string, fallback: string): string {
+  const count = rubroStoreCounts[key] || 0;
+  if (count === 0) return fallback;
+  return `${count} abierta${count > 1 ? 's' : ''}`;
+}
+
 const storeVerticals = [
-  {
-    key: 'all',
-    title: 'Todos los Comercios',
-    subtitle: `${stores.length} tiendas • ${allProducts.length} productos`,
-    badge: 'Multi-Rubro',
-    icon: '🏬',
-    activeCount: stores.length,
-    colorClass: 'from-orange-500/10 to-amber-500/5 border-[#FF7A00]',
-    iconBg: 'bg-orange-100 text-[#FF7A00]'
-  },
-  {
-    key: 'restaurantes',
-    title: 'Comida y Restaurantes',
-    subtitle: buildRubroSubtitle('restaurantes', 'Hamburguesas, Pizzas y Bebidas'),
-    badge: 'Gastronomía',
-    icon: '🍔',
-    activeCount: rubroStoreCounts['restaurantes'] || 0,
-    colorClass: 'from-rose-500/10 to-orange-500/5 border-gray-100',
-    iconBg: 'bg-rose-50 text-rose-600'
-  },
-  {
-    key: 'supermercados',
-    title: 'Supermercados',
-    subtitle: buildRubroSubtitle('supermercados', 'Víveres, Despensa y Hogar'),
-    badge: 'Mercado',
-    icon: '🛒',
-    activeCount: rubroStoreCounts['supermercados'] || 0,
-    colorClass: 'from-emerald-500/10 to-teal-500/5 border-gray-100',
-    iconBg: 'bg-emerald-50 text-emerald-600'
-  },
-  {
-    key: 'farmacias',
-    title: 'Farmacias y Salud',
-    subtitle: buildRubroSubtitle('farmacias', 'Medicamentos y Primeros Auxilios'),
-    badge: 'Salud 24/7',
-    icon: '💊',
-    activeCount: rubroStoreCounts['farmacias'] || 0,
-    colorClass: 'from-cyan-500/10 to-blue-500/5 border-gray-100',
-    iconBg: 'bg-cyan-50 text-cyan-600'
-  },
-  {
-    key: 'tecnologia',
-    title: 'Tiendas y Tecnología',
-    subtitle: buildRubroSubtitle('tecnologia', 'Audio, Celulares y Gaming'),
-    badge: 'Tecnología',
-    icon: '🎮',
-    activeCount: rubroStoreCounts['tecnologia'] || 0,
-    colorClass: 'from-blue-500/10 to-indigo-500/5 border-gray-100',
-    iconBg: 'bg-blue-50 text-blue-600'
-  },
-  {
-    key: 'barberia',
-    title: 'Barbería y Belleza',
-    subtitle: buildRubroSubtitle('barberia', 'Cuidado Capilar y Estética'),
-    badge: 'Belleza',
-    icon: '💈',
-    activeCount: rubroStoreCounts['barberia'] || 0,
-    colorClass: 'from-amber-500/10 to-yellow-500/5 border-gray-100',
-    iconBg: 'bg-amber-50 text-amber-600'
-  },
-  {
-    key: 'mascotas',
-    title: 'Mascotas y Agro',
-    subtitle: buildRubroSubtitle('mascotas', 'Alimentos, Collares y Salud Animal'),
-    badge: 'Pet Shop',
-    icon: '🐾',
-    activeCount: rubroStoreCounts['mascotas'] || 0,
-    colorClass: 'from-purple-500/10 to-fuchsia-500/5 border-gray-100',
-    iconBg: 'bg-purple-50 text-purple-600'
-  }
+  { key: 'all', title: 'Todo', subtitle: `${stores.length} tiendas, ${allProducts.length} productos`, badge: 'Todas', lead: 'Todas las tiendas abiertas en tu zona.' },
+  { key: 'restaurantes', title: 'Comida', subtitle: buildRubroSubtitle('restaurantes', 'Restaurantes, pizzas y bebidas'), badge: doorBadge('restaurantes', 'Pronto'), lead: 'Restaurantes de tu zona, a tu puerta.' },
+  { key: 'supermercados', title: 'Mercado', subtitle: buildRubroSubtitle('supermercados', 'Víveres, despensa y hogar'), badge: doorBadge('supermercados', 'Pronto'), lead: 'Víveres, despensa y hogar sin salir de casa.' },
+  { key: 'farmacias', title: 'Farmacia', subtitle: buildRubroSubtitle('farmacias', 'Medicamentos y primeros auxilios'), badge: doorBadge('farmacias', 'Pronto'), lead: 'Medicamentos y cuidado personal, cuando los necesitas.' },
+  { key: 'tecnologia', title: 'Tecnología', subtitle: buildRubroSubtitle('tecnologia', 'Audio, celulares y gaming'), badge: doorBadge('tecnologia', 'Pronto'), lead: 'Audio, celulares, fundas y gaming de tiendas oficiales.' },
+  { key: 'barberia', title: 'Belleza', subtitle: buildRubroSubtitle('barberia', 'Cuidado capilar y estética'), badge: doorBadge('barberia', 'Pronto'), lead: 'Barbería, cuidado capilar y estética profesional.' },
+  { key: 'mascotas', title: 'Mascotas', subtitle: buildRubroSubtitle('mascotas', 'Alimentos, collares y salud animal'), badge: doorBadge('mascotas', 'Pronto'), lead: 'Alimento, accesorios y salud para tus mascotas.' }
 ];
 
 const categoryCounts: Record<string, number> = { all: allProducts.length };
@@ -279,510 +224,362 @@ const curatedCategories = [
 ---
 
 <!doctype html>
-<html lang="es">
+<html lang="es" data-rubro="all">
   <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Traigalo | Comida, mercado, farmacia, tiendas y taxis en Higuerote</title>
+    <meta name="description" content="Pide de varias tiendas de Higuerote en un solo pedido: comida, mercado, farmacia, tecnología y taxis, con precios en dólares y bolívares a tasa BCV." />
+    <link rel="canonical" href="https://traigalo.org/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#FF5A00" />
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <title>Traigalo ⚡ | Super-App Multi-Tienda, Delivery y Taxis en Higuerote</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://admin.traigalo.org" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   </head>
-  <body class="bg-[#FAFAFC] text-[#1A1D20] min-h-screen flex flex-col pb-28 antialiased selection:bg-[#FF7A00] selection:text-white">
-    <RoleSwitcher currentRole="client" />
-    <Header />
+  <body>
+    <div class="tg-page">
+      <div class="tg-aura" aria-hidden="true"></div>
+      <RoleSwitcher currentRole="client" />
+      <Header />
 
-    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 w-full space-y-8">
-      
-      <section class="relative rounded-3xl overflow-hidden bg-gradient-to-r from-[#0B132B] via-[#1C2541] to-[#FF5A00] p-6 sm:p-10 shadow-xl shadow-orange-500/10 text-white">
-        <div class="relative z-10 max-w-2xl">
-          <div class="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/15 backdrop-blur-md text-[11px] font-black uppercase tracking-wider mb-3.5 border border-white/25 shadow-sm">
-            <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#10B981] shadow-[0_0_10px_#10B981] shrink-0"></span>
-            <span>Super-App Multi-Rubro • Higuerote & Miranda</span>
-          </div>
-          <h1 class="text-2xl sm:text-4xl lg:text-5xl font-black leading-tight tracking-tight mb-2.5">
-            Comida, Farmacias, Supermercados y Tiendas en un solo lugar
-          </h1>
-          <p class="text-xs sm:text-sm text-gray-200 leading-relaxed mb-5 max-w-xl">
-            Explora por categoría de comercio, entra a las tiendas oficiales verificadas de Higuerote o combina artículos de múltiples tiendas en un mismo pedido con entrega express.
-          </p>
-          <div class="flex flex-wrap items-center gap-3">
-            <a href="#store-verticals" class="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-[#FF7A00] hover:bg-[#E66E00] text-white text-xs sm:text-sm font-black shadow-lg shadow-orange-600/30 active:scale-95 transition-all">
-              <span>Explorar Categorías de Tiendas</span>
-              <span>↓</span>
-            </a>
-            <a href="#stores" class="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-white text-gray-950 hover:bg-gray-100 text-xs sm:text-sm font-black shadow-md active:scale-95 transition-all">
-              <span>🏬 Ver Tiendas Oficiales ({stores.length})</span>
-            </a>
-            <a href="/rides" class="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/25 text-white text-xs sm:text-sm font-black active:scale-95 transition-all">
-              <span>🚗</span>
-              <span>Pedir Taxi / Moto</span>
-            </a>
-          </div>
-        </div>
-        <div class="hidden md:flex absolute right-10 top-1/2 -translate-y-1/2 items-center gap-3">
-          <img src="/brand-icon.webp?v=3" alt="Traigalo" class="w-36 h-36 lg:w-44 lg:h-44 object-contain drop-shadow-2xl" />
-        </div>
-      </section>
+      <main class="tg-wrap tg-main">
 
-      <section id="store-verticals" class="space-y-3.5 scroll-mt-32">
-        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
-          <div>
-            <span class="text-[11px] font-black uppercase tracking-wider text-[#FF7A00] block">Nivel 1 • Módulos del Marketplace</span>
-            <h2 class="text-lg sm:text-2xl font-black text-gray-900 tracking-tight">Categorías de Comercios y Servicios</h2>
-            <p class="text-xs text-gray-500">Elige qué tipo de comercio buscas hoy: Restaurantes, Supermercados, Farmacias, Tiendas de Tecnología, Barbería o Taxis</p>
+        <section class="tg-section" aria-labelledby="home-title">
+          <div class="tg-intro">
+            <h1 id="home-title">¿Qué necesitas hoy en Higuerote?</h1>
+            <p>Elige un servicio. Todo llega en un mismo carrito.</p>
           </div>
-          <button
-            id="btn-clear-rubro"
-            type="button"
-            class="hidden self-start sm:self-auto px-3.5 py-1.5 rounded-xl bg-orange-50 text-[#FF7A00] hover:bg-orange-100 text-xs font-black transition-all cursor-pointer"
-          >
-            ✕ Mostrar todos los rubros
-          </button>
-        </div>
+          <div class="tg-module-head" aria-live="polite">
+            <h1 id="module-head-title">Comida</h1>
+            <p id="module-head-lead">Restaurantes de tu zona, a tu puerta.</p>
+            <button id="btn-clear-rubro" type="button" class="tg-btn tg-btn--sm hidden">Volver a todos los servicios</button>
+          </div>
+        </section>
 
-        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 sm:gap-3">
-          {storeVerticals.map((v, idx) => (
-            <button
-              type="button"
-              data-rubro-filter={v.key}
-              data-rubro-title={v.title}
-              data-rubro-icon={v.icon}
-              class={`rubro-card text-left p-3.5 rounded-3xl bg-white border-2 transition-all cursor-pointer flex flex-col justify-between gap-2.5 hover:shadow-md active:scale-95 ${
-                idx === 0
-                  ? 'border-[#FF7A00] shadow-md shadow-orange-500/10 ring-2 ring-[#FF7A00]/15'
-                  : 'border-gray-100 hover:border-orange-200 shadow-2xs'
-              }`}
-            >
-              <div class="flex items-center justify-between gap-1">
-                <div class={`w-11 h-11 rounded-2xl ${v.iconBg} flex items-center justify-center text-2xl shrink-0 shadow-2xs`}>
-                  {v.icon}
-                </div>
-                <span class={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
-                  v.activeCount > 0
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                    : 'bg-gray-100 text-gray-500'
-                }`}>
-                  {v.activeCount > 0 ? `${v.activeCount} Activo${v.activeCount > 1 ? 's' : ''}` : v.badge}
+        <section id="store-verticals" class="tg-section" aria-label="Servicios">
+          <div class="tg-rubros">
+            {storeVerticals.map((v, idx) => (
+              <button
+                type="button"
+                data-rubro-filter={v.key}
+                data-rubro-title={v.title}
+                data-rubro-lead={v.lead}
+                aria-pressed={idx === 0 ? 'true' : 'false'}
+                class="rubro-card"
+              >
+                <span class="tg-door-badge">{v.badge}</span>
+                <span>
+                  <span class="tg-rubro-title">{v.title}</span>
+                  <span class="tg-rubro-sub">{v.subtitle}</span>
                 </span>
-              </div>
-              <div>
-                <h3 class="text-xs sm:text-sm font-black text-gray-900 leading-snug">{v.title}</h3>
-                <p class="text-[10px] text-gray-400 font-semibold mt-0.5 line-clamp-1">{v.subtitle}</p>
-              </div>
-            </button>
-          ))}
-
-          <a
-            href="/rides"
-            class="p-3.5 rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-md hover:shadow-lg transition-all flex flex-col justify-between gap-2.5 active:scale-95"
-          >
-            <div class="flex items-center justify-between gap-1">
-              <div class="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center text-2xl shrink-0">
-                🚗
-              </div>
-              <span class="px-2 py-0.5 rounded-full bg-white/20 text-white text-[9px] font-black uppercase tracking-wider">
-                En Vivo
+              </button>
+            ))}
+            <a href="/rides" class="tg-ride-door">
+              <span class="tg-door-badge">En vivo</span>
+              <span>
+                <span class="tg-rubro-title">Envíos y taxi</span>
+                <span class="tg-rubro-sub">Motos, carros y fletes</span>
               </span>
-            </div>
-            <div>
-              <h3 class="text-xs sm:text-sm font-black text-white leading-snug">Taxis y Envíos</h3>
-              <p class="text-[10px] text-blue-100 font-semibold mt-0.5 line-clamp-1">Motos, Carros y Fletes</p>
-            </div>
-          </a>
-        </div>
-      </section>
-
-      <section id="stores" class="space-y-4 scroll-mt-32">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <span class="text-[11px] font-black uppercase tracking-wider text-[#FF7A00] block">Comercios Afiliados</span>
-            <h2 id="stores-section-heading" class="text-lg sm:text-2xl font-black text-gray-900 tracking-tight">Tiendas Oficiales Verificadas</h2>
-            <p id="stores-section-subtitle" class="text-xs text-gray-500">Banners y logos oficiales de cada comercio • Entra a su tienda exclusiva o filtra sus productos abajo</p>
+            </a>
           </div>
-          <span id="stores-active-badge" class="text-xs font-extrabold text-emerald-700 bg-emerald-50 px-3.5 py-1.5 rounded-full border border-emerald-200 shrink-0">
-            ● {stores.length} Tiendas Abiertas Ahora
-          </span>
-        </div>
+        </section>
 
-        <div id="stores-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {stores.map(store => (
-            <div 
-              class="store-item bg-white rounded-3xl overflow-hidden border border-gray-200/80 shadow-md hover:shadow-xl transition-all duration-200 flex flex-col justify-between group"
-              data-name={store.name.toLowerCase()}
-              data-desc={(store.description || '').toLowerCase()}
-              data-rubro={store.rubroKey}
-              data-store-key={store.id}
-            >
-              <a href={`/stores/${store.id}`} class="block relative h-44 sm:h-52 w-full overflow-hidden bg-gray-900">
-                <img
-                  src={store.bannerUrl}
-                  alt={`Portada oficial de ${store.name}`}
-                  class="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500"
-                />
-                <div class="absolute top-3 left-3 right-3 flex items-center justify-between gap-2">
-                  <span class="px-3 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-black uppercase tracking-wider shadow-md">
-                    ● Abierto Ahora
-                  </span>
-                  <div class="flex items-center gap-1.5">
-                    <span class="px-3 py-1 rounded-full bg-white/95 text-gray-900 text-[10px] font-black shadow-md">
-                      {store.rubroBadge}
-                    </span>
-                    <span class="px-3 py-1 rounded-full bg-gray-950/85 backdrop-blur-md text-white text-[10px] font-extrabold shadow-md">
-                      {store.productCount} Artículos
-                    </span>
+        <section id="stores" class="tg-section" aria-labelledby="stores-section-heading">
+          <div class="tg-head">
+            <div>
+              <h2 id="stores-section-heading">Tiendas abiertas cerca de ti</h2>
+              <p id="stores-section-subtitle">Entra a la tienda o mira sus productos en el catálogo.</p>
+            </div>
+            <span id="stores-active-badge" class="tg-filter-pill">{stores.length} abiertas ahora</span>
+          </div>
+
+          <div id="stores-grid" class="tg-stores">
+            {stores.map(store => (
+              <article
+                class="store-item"
+                data-name={store.name.toLowerCase()}
+                data-desc={(store.description || '').toLowerCase()}
+                data-rubro={store.rubroKey}
+                data-store-key={store.id}
+              >
+                <a href={`/stores/${store.id}`} class="tg-store-cover" tabindex="-1" aria-hidden="true">
+                  <img src={store.bannerUrl} alt="" width="640" height="320" loading="lazy" decoding="async" onerror="this.remove()" />
+                  <span class="tg-cover-tag tg-glass">Abierto ahora</span>
+                </a>
+                <div class="tg-store-body">
+                  <div class="tg-store-id">
+                    <img src={store.badgeUrl} alt={`Logo de ${store.name}`} class="tg-store-logo" width="64" height="64" loading="lazy" onerror="this.onerror=null; this.src='/brand-icon.webp';" />
+                    <a href={`/stores/${store.id}`}>
+                      <h3>{store.name}</h3>
+                      <p class="tg-store-desc">{store.verticalLabel}</p>
+                    </a>
                   </div>
-                </div>
-              </a>
-
-              <div class="px-5 pt-0 pb-5 flex-1 flex flex-col justify-between bg-white">
-                <div class="flex items-start gap-4">
-                  <a href={`/stores/${store.id}`} class="-mt-8 relative z-10 shrink-0">
-                    <img
-                      src={store.badgeUrl}
-                      alt={`Logo oficial de ${store.name}`}
-                      class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border-4 border-white shadow-lg bg-white object-cover"
-                    />
-                  </a>
-                  <div class="pt-2.5 min-w-0 flex-1">
-                    <div class="flex items-center justify-between gap-2">
-                      <a href={`/stores/${store.id}`} class="hover:text-[#FF7A00] transition-colors min-w-0">
-                        <h3 class="text-lg sm:text-xl font-black text-gray-950 leading-tight truncate">{store.name}</h3>
-                      </a>
-                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 text-amber-600 text-xs font-black shrink-0 border border-amber-200/60">
-                        ★ 4.9
-                      </span>
-                    </div>
-                    <p class="text-xs font-bold text-[#FF7A00] mt-0.5 truncate">{store.verticalLabel}</p>
-                    <p class="text-[11px] text-gray-500 font-medium mt-1 truncate">📍 {store.addressDisplay}</p>
-                  </div>
-                </div>
-
-                <div class="mt-4 pt-3.5 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
-                  <div class="flex items-center gap-2.5 text-xs font-bold text-gray-600">
-                    <span class="inline-flex items-center gap-1 bg-gray-100 px-2.5 py-1 rounded-lg text-gray-700">⚡ 15-25 min</span>
-                    <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg font-extrabold">🛵 Envío $1.50</span>
-                  </div>
-
-                  <div class="flex items-center gap-2 ml-auto">
+                  <dl class="tg-store-facts">
+                    <div><dt>Entrega</dt><dd>15 a 25 min</dd></div>
+                    <div><dt>Envío</dt><dd>$1.50</dd></div>
+                    <div><dt>Valoración</dt><dd>4.9</dd></div>
+                    <div><dt>Productos</dt><dd>{store.productCount}</dd></div>
+                  </dl>
+                  <div class="tg-store-actions">
                     <button
                       type="button"
                       data-filter-store={store.id}
                       data-filter-rubro={store.rubroKey}
-                      class="btn-store-quickfilter px-3.5 py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-[#FF7A00] text-xs font-extrabold transition-colors cursor-pointer"
+                      class="btn-store-quickfilter tg-btn tg-btn--sm"
                     >
-                      Ver sus {store.productCount} productos ↓
+                      Ver sus {store.productCount} productos
                     </button>
-                    <a 
-                      href={`/stores/${store.id}`}
-                      class="px-4 py-2 rounded-xl bg-[#FF7A00] hover:bg-[#E66E00] text-white text-xs font-black shadow-md shadow-orange-500/20 transition-all active:scale-95"
-                    >
-                      Entrar a Tienda →
-                    </a>
+                    <a href={`/stores/${store.id}`} class="tg-btn tg-btn--primary tg-btn--sm">Entrar a la tienda</a>
                   </div>
                 </div>
-              </div>
+              </article>
+            ))}
+            <div class="tg-sell">
+              <h3>¿Tienes un negocio en Higuerote?</h3>
+              <p>Vende en Traigalo y recibe pedidos con repartidores de la zona.</p>
+              <a href="/vendor" class="tg-btn tg-btn--quiet tg-btn--sm">Registrar mi comercio</a>
             </div>
-          ))}
-        </div>
+          </div>
 
-        <div id="empty-rubro-stores-card" class="hidden bg-white rounded-3xl p-6 sm:p-8 border-2 border-dashed border-orange-200 text-center space-y-3 shadow-xs">
-          <div id="empty-rubro-icon" class="w-16 h-16 rounded-3xl bg-orange-50 text-[#FF7A00] flex items-center justify-center text-3xl mx-auto shadow-2xs">
-            🏬
-          </div>
-          <div class="max-w-lg mx-auto space-y-1">
-            <span class="px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-[10px] font-black uppercase tracking-wider border border-amber-200">
-              Categoría de Comercio Seleccionada
-            </span>
-            <h3 id="empty-rubro-title" class="text-lg sm:text-xl font-black text-gray-900 pt-1">
-              Aún no hay comercios abiertos en este rubro en tu zona
-            </h3>
-            <p class="text-xs sm:text-sm text-gray-500 leading-relaxed">
-              En este momento no hay comercios activos dentro de esta categoría en tu zona de entrega. Puedes explorar todos los comercios abiertos o afiliar tu negocio hoy mismo en Traigalo.
-            </p>
-          </div>
-          <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <button
-              id="btn-empty-rubro-show-all"
-              type="button"
-              class="px-5 py-2.5 rounded-2xl bg-[#FF7A00] hover:bg-[#E66E00] text-white text-xs font-black shadow-md shadow-orange-500/20 cursor-pointer"
-            >
-              🏬 Ver Comercios Abiertos Ahora ({stores.length})
-            </button>
-            <a
-              href="/vendor"
-              class="px-5 py-2.5 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-extrabold transition-colors"
-            >
-              Registrar mi Comercio en Traigalo →
-            </a>
-          </div>
-        </div>
-      </section>
-
-      <section id="catalog-controls" class="space-y-3.5 pt-2 scroll-mt-32">
-        <div class="flex items-center justify-between">
-          <div>
-            <span class="text-[11px] font-black uppercase tracking-wider text-[#FF7A00] block">Nivel 2 • Subcategorías de Artículos</span>
-            <h2 class="text-lg sm:text-2xl font-black text-gray-900 tracking-tight">Explorar por Categoría de Producto</h2>
-            <p class="text-xs text-gray-500">Selecciona una familia de productos para filtrar el catálogo multi-tienda</p>
-          </div>
-          <div class="hidden sm:flex items-center gap-1.5">
-            <button id="cat-scroll-left" type="button" class="w-9 h-9 rounded-full bg-white border border-gray-200 hover:border-[#FF7A00] text-gray-700 flex items-center justify-center text-xs font-black cursor-pointer shadow-2xs">
-              ←
-            </button>
-            <button id="cat-scroll-right" type="button" class="w-9 h-9 rounded-full bg-white border border-gray-200 hover:border-[#FF7A00] text-gray-700 flex items-center justify-center text-xs font-black cursor-pointer shadow-2xs">
-              →
-            </button>
-          </div>
-        </div>
-
-        <div class="flex gap-3 overflow-x-auto pb-2 no-scrollbar scroll-smooth" id="categories-bar">
-          {curatedCategories.map((c, idx) => (
-            <button 
-              type="button"
-              data-category={c.slug}
-              data-cat-rubro={c.rubro}
-              class={`category-btn shrink-0 flex items-center gap-3 p-2 pr-4 rounded-2xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer active:scale-95 border-2 ${
-                idx === 0
-                  ? 'bg-[#FF7A00] text-white border-[#FF7A00] shadow-md shadow-orange-500/20'
-                  : 'bg-white text-gray-800 border-gray-100 hover:border-orange-300 shadow-2xs'
-              }`}
-            >
-              <div class="w-10 h-10 rounded-xl bg-white overflow-hidden shrink-0 flex items-center justify-center p-1 border border-gray-100">
-                <img
-                  src={c.image}
-                  alt={c.name}
-                  class="w-full h-full object-contain"
-                  loading="lazy"
-                  onerror={`this.onerror=null; this.src='${FALLBACK_PRODUCT_IMAGE}';`}
-                />
-              </div>
-              <div class="text-left">
-                <span class="block leading-tight">{c.name}</span>
-                <span class={`cat-count-label text-[10px] font-bold block ${idx === 0 ? 'text-orange-100' : 'text-gray-400'}`}>
-                  {c.count} artículos
-                </span>
-              </div>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section id="products-section" class="space-y-4 scroll-mt-32">
-        <div class="bg-white rounded-3xl p-4 sm:p-5 border border-gray-100 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div class="space-y-1">
-            <div class="flex flex-wrap items-center gap-2">
-              <h2 id="catalog-heading" class="text-lg sm:text-xl font-black text-gray-900 tracking-tight">Catálogo Multi-Tienda Paginado</h2>
-              <span id="active-filter-pill" class="hidden px-3 py-0.5 rounded-full bg-orange-100 text-[#FF7A00] text-xs font-black"></span>
+          <div id="empty-rubro-stores-card" class="hidden tg-empty">
+            <span id="empty-rubro-icon" hidden></span>
+            <h3 id="empty-rubro-title">Aún no hay comercios abiertos en este rubro en tu zona</h3>
+            <p>En este momento no hay comercios activos en esta categoría en tu zona de entrega. Puedes explorar todos los comercios abiertos o afiliar tu negocio hoy mismo.</p>
+            <div class="tg-empty-actions">
+              <button id="btn-empty-rubro-show-all" type="button" class="tg-btn tg-btn--primary tg-btn--sm">
+                Ver los {stores.length} comercios abiertos
+              </button>
+              <a href="/vendor" class="tg-btn tg-btn--quiet tg-btn--sm">Registrar mi comercio en Traigalo</a>
             </div>
-            <p id="products-count-badge" class="text-xs sm:text-sm font-bold text-gray-600">
-              Mostrando 1–12 de {allProducts.length} productos (Página 1 de {Math.ceil(allProducts.length / 12)})
-            </p>
+          </div>
+        </section>
+
+        <section id="catalog-controls" class="tg-section" aria-labelledby="cats-heading">
+          <div class="tg-head">
+            <div>
+              <h2 id="cats-heading">Explora por categoría</h2>
+              <p>Filtra el catálogo de todas las tiendas.</p>
+            </div>
+            <div class="tg-arrows">
+              <button id="cat-scroll-left" type="button" class="tg-arrow" aria-label="Categorías anteriores">
+                <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+              </button>
+              <button id="cat-scroll-right" type="button" class="tg-arrow" aria-label="Más categorías">
+                <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </button>
+            </div>
           </div>
 
-          <div class="flex flex-wrap items-center gap-2.5">
-            <div class="flex flex-wrap items-center bg-gray-100 p-1 rounded-2xl gap-1">
+          <div class="tg-cats no-scrollbar" id="categories-bar">
+            {curatedCategories.map((c, idx) => (
               <button
                 type="button"
-                data-store-pill="all"
-                data-store-rubro="all"
-                data-store-label="Todas las Tiendas"
-                class="store-pill-btn px-3 py-1.5 rounded-xl text-xs font-black bg-[#FF7A00] text-white shadow-xs transition-all cursor-pointer"
+                data-category={c.slug}
+                data-cat-rubro={c.rubro}
+                aria-pressed={idx === 0 ? 'true' : 'false'}
+                class="category-btn"
               >
-                Todas ({allProducts.length})
+                <img
+                  src={c.image}
+                  alt=""
+                  width="40"
+                  height="40"
+                  loading="lazy"
+                  onerror="this.onerror=null; this.classList.add('is-broken');"
+                />
+                <span>
+                  <span class="tg-cat-name">{c.name}</span>
+                  <span class="cat-count-label">{c.count} artículos</span>
+                </span>
               </button>
-              {stores.map((s) => (
+            ))}
+          </div>
+        </section>
+
+        <section id="products-section" class="tg-section" aria-labelledby="catalog-heading">
+          <div class="tg-toolbar">
+            <div>
+              <div class="tg-title-row">
+                <h2 id="catalog-heading">Catálogo</h2>
+                <span id="active-filter-pill" class="hidden tg-filter-pill"></span>
+              </div>
+              <p id="products-count-badge" class="tg-count">
+                Mostrando 1–12 de {allProducts.length} productos (Página 1 de {Math.ceil(allProducts.length / 12)})
+              </p>
+            </div>
+
+            <div class="tg-controls">
+              <div class="tg-pills" role="group" aria-label="Filtrar por tienda">
                 <button
                   type="button"
-                  data-store-pill={s.id}
-                  data-store-rubro={s.rubroKey}
-                  data-store-label={s.name}
-                  class="store-pill-btn px-3 py-1.5 rounded-xl text-xs font-extrabold text-gray-700 hover:text-gray-950 transition-all cursor-pointer flex items-center gap-1.5"
+                  data-store-pill="all"
+                  data-store-rubro="all"
+                  data-store-label="Todas las tiendas"
+                  aria-pressed="true"
+                  class="store-pill-btn"
                 >
-                  <img src={s.badgeUrl} alt="" class="w-4 h-4 rounded-full object-cover" />
-                  <span>{s.name} ({s.productCount})</span>
+                  Todas ({allProducts.length})
                 </button>
-              ))}
+                {stores.map((s) => (
+                  <button
+                    type="button"
+                    data-store-pill={s.id}
+                    data-store-rubro={s.rubroKey}
+                    data-store-label={s.name}
+                    aria-pressed="false"
+                    class="store-pill-btn"
+                  >
+                    <img src={s.badgeUrl} alt="" width="18" height="18" loading="lazy" onerror="this.remove()" />
+                    <span>{s.name} ({s.productCount})</span>
+                  </button>
+                ))}
+              </div>
+
+              <select id="catalog-sort-select" aria-label="Ordenar productos" class="tg-select">
+                <option value="relevance">Destacados</option>
+                <option value="price-asc">Precio: menor a mayor</option>
+                <option value="price-desc">Precio: mayor a menor</option>
+                <option value="name-asc">Nombre: A a Z</option>
+              </select>
+
+              <select id="catalog-pagesize-select" aria-label="Productos por página" class="tg-select">
+                <option value="12">12 por página</option>
+                <option value="24">24 por página</option>
+                <option value="48">48 por página</option>
+              </select>
             </div>
-
-            <select
-              id="catalog-sort-select"
-              aria-label="Ordenar productos"
-              class="h-10 px-3 rounded-2xl bg-gray-50 border border-gray-200 text-xs font-extrabold text-gray-800 focus:outline-none focus:border-[#FF7A00] cursor-pointer"
-            >
-              <option value="relevance">Ordenar: Destacados</option>
-              <option value="price-asc">Precio: Menor a Mayor</option>
-              <option value="price-desc">Precio: Mayor a Menor</option>
-              <option value="name-asc">Nombre: A - Z</option>
-            </select>
-
-            <select
-              id="catalog-pagesize-select"
-              aria-label="Productos por página"
-              class="h-10 px-3 rounded-2xl bg-gray-50 border border-gray-200 text-xs font-extrabold text-gray-800 focus:outline-none focus:border-[#FF7A00] cursor-pointer"
-            >
-              <option value="12">12 por página</option>
-              <option value="24">24 por página</option>
-              <option value="48">48 por página</option>
-            </select>
           </div>
-        </div>
 
-        <div id="products-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-3.5 sm:gap-5">
-          {allProducts.map((p, idx) => (
-            <div 
-              class={`product-item bg-white rounded-3xl p-3.5 sm:p-4 border border-gray-100 shadow-sm flex flex-col justify-between group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer ${idx >= 12 ? 'hidden' : ''}`}
-              data-id={p.id}
-              data-order={p.originalOrder}
-              data-store-id={p.storeId}
-              data-store-key={p.storeKey}
-              data-rubro={p.rubroKey}
-              data-store-name={p.storeName}
-              data-name={p.name.toLowerCase()}
-              data-title={p.name}
-              data-desc={p.desc}
-              data-price={p.price}
-              data-image={p.image}
-              data-store={p.storeName.toLowerCase()}
-              data-category={p.category}
-            >
-              <div>
-                <div class="relative w-full aspect-square rounded-2xl bg-[#F8F9FA] overflow-hidden mb-3 flex items-center justify-center p-3">
-                  <img 
-                    src={p.image} 
+          <div id="products-grid" class="tg-products">
+            {allProducts.map((p, idx) => (
+              <div
+                class={`product-item ${idx >= 12 ? 'hidden' : ''}`}
+                data-id={p.id}
+                data-order={p.originalOrder}
+                data-store-id={p.storeId}
+                data-store-key={p.storeKey}
+                data-rubro={p.rubroKey}
+                data-store-name={p.storeName}
+                data-name={p.name.toLowerCase()}
+                data-title={p.name}
+                data-desc={p.desc}
+                data-price={p.price}
+                data-image={p.image}
+                data-store={p.storeName.toLowerCase()}
+                data-category={p.category}
+              >
+                <div class="tg-product-img">
+                  <img
+                    src={p.image}
                     alt={p.name}
+                    width="300"
+                    height="300"
                     loading="lazy"
-                    class="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300"
-                    onerror={`this.onerror=null; this.src='${FALLBACK_PRODUCT_IMAGE}';`}
+                    decoding="async"
+                    onerror="this.onerror=null; this.classList.add('is-broken');"
                   />
-                  <span class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-lg bg-white/95 backdrop-blur-md text-[10px] font-black text-gray-800 shadow-2xs">
-                    {p.time}
-                  </span>
+                  <span class="tg-product-time tg-glass">{p.time}</span>
                 </div>
-
-                <div class="flex items-center gap-1.5 mb-1">
-                  <img src={p.storeBadge} alt="" class="w-4 h-4 rounded-full object-cover shrink-0 border border-gray-200" />
-                  <span class="text-[10px] font-extrabold text-gray-500 uppercase tracking-wider truncate">{p.storeName}</span>
+                <div>
+                  <div class="tg-product-store">
+                    <img src={p.storeBadge} alt="" width="16" height="16" loading="lazy" onerror="this.remove()" />
+                    <span>{p.storeName}</span>
+                  </div>
+                  <h3 class="tg-product-name">{p.name}</h3>
                 </div>
-
-                <h3 class="text-xs sm:text-sm font-extrabold text-gray-900 group-hover:text-[#FF7A00] transition-colors line-clamp-2 leading-snug min-h-[2.5rem]">
-                  {p.name}
-                </h3>
+                <div class="tg-product-buy">
+                  <div>
+                    <span class="tg-price">${p.price.toFixed(2)}</span>
+                    <span class="tg-price-bs">{p.priceBs}</span>
+                  </div>
+                  <button type="button" aria-label={`Agregar ${p.name} al carrito`} class="btn-home-add">+</button>
+                </div>
               </div>
+            ))}
+          </div>
 
-              <div class="flex items-center justify-between mt-3 pt-2.5 border-t border-gray-50">
-                <div class="flex flex-col">
-                  <span class="text-sm sm:text-base font-black text-gray-950">${p.price.toFixed(2)}</span>
-                  <span class="text-[9px] text-gray-400 font-semibold">{p.priceBs}</span>
-                </div>
-                <button 
-                  type="button"
-                  aria-label={`Agregar ${p.name} al carrito`}
-                  class="btn-home-add w-9 h-9 rounded-full bg-[#FF7A00] hover:bg-[#E66E00] text-white flex items-center justify-center shadow-md shadow-orange-500/25 active:scale-90 transition-all font-black text-lg cursor-pointer"
-                >
-                  +
-                </button>
+          <div id="pagination-container" class="tg-pagination">
+            <div id="pagination-summary">
+              Página 1 de {Math.ceil(allProducts.length / 12)}, {allProducts.length} artículos en total
+            </div>
+            <div class="tg-page-btns" id="pagination-buttons"></div>
+          </div>
+
+          <div id="no-products-msg" class="hidden tg-empty">
+            <h3>No encontramos productos con ese filtro</h3>
+            <button id="btn-reset-filters" type="button" class="tg-btn tg-btn--primary tg-btn--sm">
+              Ver los {allProducts.length} productos
+            </button>
+          </div>
+        </section>
+
+      </main>
+
+      <div id="home-product-modal" class="tg-modal opacity-0 pointer-events-none" role="dialog" aria-modal="true" aria-labelledby="home-modal-title">
+        <div id="home-modal-card" class="tg-modal-card translate-y-full sm:translate-y-4">
+          <div class="tg-row">
+            <span id="home-modal-store" class="tg-store-chip">Tienda oficial</span>
+            <button id="home-close-modal" type="button" class="tg-close" aria-label="Cerrar">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" /></svg>
+            </button>
+          </div>
+          <div class="tg-modal-body">
+            <div class="tg-modal-img">
+              <img id="home-modal-img" src={FALLBACK_PRODUCT_IMAGE} alt="" />
+            </div>
+            <div>
+              <h2 id="home-modal-title"></h2>
+              <p id="home-modal-desc" class="tg-modal-desc"></p>
+            </div>
+            <div class="tg-row">
+              <span class="tg-field-label">Cantidad</span>
+              <div class="tg-qty">
+                <button id="home-qty-minus" type="button" aria-label="Quitar uno">−</button>
+                <span id="home-qty-display" aria-live="polite">1</span>
+                <button id="home-qty-plus" type="button" aria-label="Agregar uno">+</button>
               </div>
             </div>
-          ))}
-        </div>
-
-        <div id="pagination-container" class="bg-white rounded-3xl p-4 sm:p-5 border border-gray-100 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div id="pagination-summary" class="text-xs font-extrabold text-gray-600">
-            Página 1 de {Math.ceil(allProducts.length / 12)} • {allProducts.length} artículos en total
-          </div>
-          <div class="flex flex-wrap items-center justify-center gap-1.5" id="pagination-buttons"></div>
-        </div>
-
-        <div id="no-products-msg" class="hidden text-center py-12 bg-white rounded-3xl border border-gray-100 mt-4">
-          <span class="text-3xl block mb-2">🔍</span>
-          <p class="text-sm font-bold text-gray-700">No encontramos productos con ese filtro</p>
-          <button id="btn-reset-filters" type="button" class="mt-3 px-5 py-2.5 rounded-xl bg-[#FF7A00] text-white text-xs font-black cursor-pointer shadow-md">
-            Restablecer todos los filtros ({allProducts.length} productos)
-          </button>
-        </div>
-      </section>
-
-    </main>
-
-    <div id="home-product-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 opacity-0 pointer-events-none transition-opacity duration-200">
-      <div id="home-modal-card" class="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl transform translate-y-full sm:translate-y-4 transition-transform duration-200 flex flex-col max-h-[90vh]">
-        <div class="flex items-center justify-between pb-3 border-b border-gray-100">
-          <div class="flex items-center gap-2">
-            <span id="home-modal-store" class="px-2.5 py-0.5 rounded-full bg-orange-50 text-[#FF7A00] text-[10px] font-black uppercase tracking-wider">Tienda Oficial</span>
-          </div>
-          <button id="home-close-modal" type="button" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 font-black cursor-pointer">
-            ✕
-          </button>
-        </div>
-        <div class="overflow-y-auto py-4 space-y-4 flex-1">
-          <div class="h-44 w-full rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 flex items-center justify-center p-4">
-            <img id="home-modal-img" src="" alt="" class="w-full h-full object-contain" />
-          </div>
-          <div>
-            <h2 id="home-modal-title" class="text-base font-extrabold text-gray-900 leading-snug"></h2>
-            <p id="home-modal-desc" class="text-xs text-gray-500 leading-relaxed mt-1"></p>
-          </div>
-          <div class="flex items-center justify-between p-3 rounded-2xl bg-gray-50 border border-gray-100">
-            <span class="text-xs font-bold text-gray-700">Cantidad</span>
-            <div class="flex items-center gap-3 bg-white px-3 py-1.5 rounded-xl border border-gray-200">
-              <button id="home-qty-minus" type="button" class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-orange-100 text-gray-700 font-black text-sm cursor-pointer">-</button>
-              <span id="home-qty-display" class="w-6 text-center text-sm font-black text-gray-950">1</span>
-              <button id="home-qty-plus" type="button" class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-orange-100 text-gray-700 font-black text-sm cursor-pointer">+</button>
+            <div>
+              <label for="home-modal-notes" class="tg-field-label">Especificaciones (color, modelo, nota)</label>
+              <input id="home-modal-notes" type="text" placeholder="Ej. color negro, empaque para regalo" class="tg-input" />
+            </div>
+            <div class="tg-row tg-divide">
+              <span class="tg-field-label">Subtotal</span>
+              <div>
+                <span id="home-modal-price" class="tg-modal-price"></span>
+                <span id="home-modal-price-bs" class="tg-price-bs"></span>
+              </div>
             </div>
           </div>
-          <div>
-            <label for="home-modal-notes" class="block text-xs font-bold text-gray-700 mb-1">Especificaciones (color, modelo, nota)</label>
-            <input id="home-modal-notes" type="text" placeholder="Ej. Color negro, empaque para regalo..." class="w-full h-10 px-3 text-xs rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:border-[#FF7A00]" />
+          <div class="tg-modal-foot">
+            <a id="home-modal-store-link" href="/" class="tg-btn tg-btn--quiet">Ir a la tienda</a>
+            <button id="home-modal-add-btn" type="button" class="tg-btn tg-btn--primary">Agregar al carrito</button>
           </div>
-          <div class="pt-2 flex items-center justify-between border-t border-gray-100">
-            <span class="text-xs text-gray-500 font-bold">Subtotal</span>
-            <div class="text-right">
-              <span id="home-modal-price" class="text-lg font-black text-[#FF7A00] block"></span>
-              <span id="home-modal-price-bs" class="text-[10px] text-gray-400 font-semibold block"></span>
-            </div>
-          </div>
-        </div>
-        <div class="pt-3 border-t border-gray-100 flex items-center gap-2">
-          <a id="home-modal-store-link" href="/stores/46a0baf0-4100-465d-934a-f2d14f004ba5" class="px-4 h-12 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-extrabold text-xs flex items-center justify-center">
-            Ir a Tienda
-          </a>
-          <button id="home-modal-add-btn" type="button" class="flex-1 h-12 rounded-2xl bg-[#FF7A00] hover:bg-[#E66E00] text-white font-extrabold text-sm flex items-center justify-center shadow-lg shadow-orange-600/30 cursor-pointer">
-            Agregar al Carrito
-          </button>
         </div>
       </div>
-    </div>
 
-    <div id="home-cart-bar" class="fixed bottom-16 md:bottom-4 left-0 right-0 z-40 px-4 pointer-events-none transition-all duration-300 opacity-0 translate-y-4">
-      <div class="max-w-2xl mx-auto pointer-events-auto">
-        <a 
-          href="/checkout" 
-          class="w-full h-14 rounded-2xl bg-gradient-to-r from-[#FF7A00] to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white font-extrabold text-sm px-5 flex items-center justify-between shadow-2xl shadow-orange-600/40 active:scale-98 transition-all"
-        >
-          <div class="flex items-center gap-2.5">
-            <span id="home-cart-count" class="w-7 h-7 rounded-full bg-white/25 flex items-center justify-center text-xs font-black">0</span>
-            <div>
-              <span class="block leading-tight">Ver Carrito Multi-Tienda</span>
-              <span id="home-cart-stores" class="block text-[10px] text-white/85 font-semibold">Listo para pagar</span>
-            </div>
-          </div>
-          <div class="flex items-center gap-2 text-right">
-            <div>
-              <span id="home-cart-total" class="font-black text-base">$0.00</span>
-              <span id="home-cart-total-bs" class="block text-[10px] text-white/85 font-medium"></span>
-            </div>
-            <span class="text-lg">→</span>
-          </div>
+      <div id="home-cart-bar" class="tg-cartbar opacity-0 translate-y-4 pointer-events-none">
+        <a href="/checkout">
+          <span class="tg-cart-left">
+            <span id="home-cart-count" class="tg-cart-count">0</span>
+            <span>
+              <span>Ver carrito</span>
+              <small id="home-cart-stores">Listo para pagar</small>
+            </span>
+          </span>
+          <span class="tg-cart-total">
+            <span id="home-cart-total">$0.00</span>
+            <small id="home-cart-total-bs"></small>
+          </span>
         </a>
       </div>
-    </div>
 
-    <Footer />
-    <BottomNav />
+      <Footer />
+      <BottomNav />
+    </div>
 
     <script is:inline define:vars={{ bcvRate }}>
     (() => {
@@ -876,11 +673,7 @@ const curatedCategories = [
       function syncStorePillsUI() {
         document.querySelectorAll('.store-pill-btn').forEach((btn) => {
           const k = btn.getAttribute('data-store-pill');
-          if (k === currentFilterStore) {
-            btn.className = 'store-pill-btn px-3 py-1.5 rounded-xl text-xs font-black bg-[#FF7A00] text-white shadow-xs transition-all cursor-pointer flex items-center gap-1.5';
-          } else {
-            btn.className = 'store-pill-btn px-3 py-1.5 rounded-xl text-xs font-extrabold text-gray-700 hover:text-gray-950 transition-all cursor-pointer flex items-center gap-1.5';
-          }
+          btn.setAttribute('aria-pressed', k === currentFilterStore ? 'true' : 'false');
         });
       }
 
@@ -893,14 +686,16 @@ const curatedCategories = [
 
         document.querySelectorAll('.rubro-card').forEach((card) => {
           const rKey = card.getAttribute('data-rubro-filter');
-          if (rKey === currentRubro) {
-            card.classList.add('border-[#FF7A00]', 'shadow-md', 'ring-2', 'ring-[#FF7A00]/15');
-            card.classList.remove('border-gray-100');
-          } else {
-            card.classList.remove('border-[#FF7A00]', 'shadow-md', 'ring-2', 'ring-[#FF7A00]/15');
-            card.classList.add('border-gray-100');
-          }
+          card.setAttribute('aria-pressed', rKey === currentRubro ? 'true' : 'false');
         });
+
+        document.documentElement.setAttribute('data-rubro', currentRubro);
+        const moduleCard = document.querySelector(`.rubro-card[data-rubro-filter="${currentRubro}"]`);
+        const moduleTitle = document.getElementById('module-head-title');
+        const moduleLead = document.getElementById('module-head-lead');
+        if (moduleCard && moduleTitle) moduleTitle.textContent = moduleCard.getAttribute('data-rubro-title') || '';
+        if (moduleCard && moduleLead) moduleLead.textContent = moduleCard.getAttribute('data-rubro-lead') || '';
+        window.dispatchEvent(new CustomEvent('traigalo:rubro-changed', { detail: { rubro: currentRubro } }));
 
         const storeItems = document.querySelectorAll('.store-item');
         const emptyRubroCard = document.getElementById('empty-rubro-stores-card');
@@ -920,8 +715,7 @@ const curatedCategories = [
 
         const activeCard = document.querySelector(`.rubro-card[data-rubro-filter="${currentRubro}"]`);
         const rubroTitle = activeCard ? activeCard.getAttribute('data-rubro-title') : 'este rubro';
-        const rubroIcon = activeCard ? activeCard.getAttribute('data-rubro-icon') : '🏬';
-
+        
         if (emptyRubroCard) {
           if (visibleStores === 0 && currentRubro !== 'all') {
             emptyRubroCard.classList.remove('hidden');
@@ -929,7 +723,7 @@ const curatedCategories = [
               emptyRubroTitle.textContent = `Aún no hay comercios abiertos en "${rubroTitle}" en tu zona`;
             }
             if (emptyRubroIcon) {
-              emptyRubroIcon.textContent = rubroIcon || '🏬';
+              emptyRubroIcon.textContent = '';
             }
           } else {
             emptyRubroCard.classList.add('hidden');
@@ -951,19 +745,15 @@ const curatedCategories = [
 
         const startIdx = (currentPage - 1) * pageSize + 1;
         const endIdx = Math.min(currentPage * pageSize, totalItems);
-        summary.textContent = `Página ${currentPage} de ${totalPages} • Mostrando ${startIdx}–${endIdx} de ${totalItems} productos`;
+        summary.textContent = `Página ${currentPage} de ${totalPages}, mostrando ${startIdx}–${endIdx} de ${totalItems} productos`;
 
         btnWrap.innerHTML = '';
 
         const prevBtn = document.createElement('button');
         prevBtn.type = 'button';
-        prevBtn.textContent = '← Anterior';
+        prevBtn.textContent = 'Anterior';
         prevBtn.disabled = currentPage <= 1;
-        prevBtn.className = `px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all ${
-          currentPage <= 1
-            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            : 'bg-gray-100 hover:bg-orange-50 text-gray-800 hover:text-[#FF7A00] cursor-pointer'
-        }`;
+        prevBtn.className = 'tg-page-btn';
         prevBtn.addEventListener('click', () => {
           if (currentPage > 1) {
             currentPage--;
@@ -976,9 +766,8 @@ const curatedCategories = [
           const pageBtn = document.createElement('button');
           pageBtn.type = 'button';
           pageBtn.textContent = String(p);
-          pageBtn.className = p === currentPage
-            ? 'w-9 h-9 rounded-xl text-xs font-black bg-[#FF7A00] text-white shadow-md shadow-orange-500/20 cursor-pointer'
-            : 'w-9 h-9 rounded-xl text-xs font-extrabold bg-gray-50 hover:bg-orange-50 text-gray-700 hover:text-[#FF7A00] border border-gray-200/80 cursor-pointer transition-all';
+          pageBtn.className = 'tg-page-btn';
+          if (p === currentPage) pageBtn.setAttribute('aria-current', 'page');
           pageBtn.addEventListener('click', () => {
             if (currentPage !== p) {
               currentPage = p;
@@ -990,13 +779,9 @@ const curatedCategories = [
 
         const nextBtn = document.createElement('button');
         nextBtn.type = 'button';
-        nextBtn.textContent = 'Siguiente →';
+        nextBtn.textContent = 'Siguiente';
         nextBtn.disabled = currentPage >= totalPages;
-        nextBtn.className = `px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all ${
-          currentPage >= totalPages
-            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            : 'bg-gray-100 hover:bg-orange-50 text-gray-800 hover:text-[#FF7A00] cursor-pointer'
-        }`;
+        nextBtn.className = 'tg-page-btn';
         nextBtn.addEventListener('click', () => {
           if (currentPage < totalPages) {
             currentPage++;
@@ -1088,7 +873,7 @@ const curatedCategories = [
             labels.push(`Categoría: ${currentFilterCategory.toUpperCase()}`);
           }
           if (labels.length > 0) {
-            activePill.textContent = labels.join(' • ');
+            activePill.textContent = labels.join(', ');
             activePill.classList.remove('hidden');
           } else {
             activePill.classList.add('hidden');
@@ -1158,9 +943,8 @@ const curatedCategories = [
       document.querySelectorAll('.category-btn').forEach((btn) => {
         btn.addEventListener('click', () => {
           document.querySelectorAll('.category-btn').forEach((b) => {
-            b.className = 'category-btn shrink-0 flex items-center gap-3 p-2 pr-4 rounded-2xl text-xs sm:text-sm font-extrabold bg-white text-gray-800 border-2 border-gray-100 hover:border-orange-300 shadow-2xs transition-all cursor-pointer active:scale-95';
+            b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
           });
-          btn.className = 'category-btn shrink-0 flex items-center gap-3 p-2 pr-4 rounded-2xl text-xs sm:text-sm font-extrabold bg-[#FF7A00] text-white border-2 border-[#FF7A00] shadow-md shadow-orange-500/20 transition-all cursor-pointer active:scale-95';
           currentFilterCategory = btn.getAttribute('data-category') || 'all';
           const catRubro = btn.getAttribute('data-cat-rubro') || 'all';
           if (currentRubro !== 'all' && catRubro !== 'all' && currentRubro !== catRubro) {
@@ -1344,10 +1128,10 @@ const curatedCategories = [
             e.stopPropagation();
             addToCart(prod, 1, '');
             addBtn.textContent = '✓';
-            addBtn.classList.add('bg-emerald-600');
+            addBtn.classList.add('is-added');
             setTimeout(() => {
               addBtn.textContent = '+';
-              addBtn.classList.remove('bg-emerald-600');
+              addBtn.classList.remove('is-added');
             }, 800);
           });
         }

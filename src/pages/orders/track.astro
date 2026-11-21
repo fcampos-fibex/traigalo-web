@@ -3,6 +3,7 @@ import BottomNav from '../../components/BottomNav.astro';
 import RoleSwitcher from '../../components/RoleSwitcher.astro';
 import { getOfficialExchangeRate, formatBs } from '../../adapters/rates';
 import '../../styles/global.css';
+import '../../styles/pages/orders.css';
 
 const requestedOrderId = Astro.url.searchParams.get('id') || '';
 const API_BASE = 'https://api.traigalo.org/v2';
@@ -43,7 +44,7 @@ if (!orderData) {
 
 const orderId = orderData?.id || requestedOrderId || '';
 let storeId = orderData?.store_id || '';
-let storeName = 'Comercio Oficial';
+let storeName = 'Comercio oficial';
 
 if (storeId) {
   try {
@@ -70,13 +71,13 @@ try {
 
 const resolvedItems = Array.isArray(orderData?.items) && orderData.items.length > 0
   ? orderData.items.map((it: any) => ({
-      name: productNamesMap[it.product_id] || cleanProductName(it.name || '') || 'Producto Oficial Verificado',
+      name: productNamesMap[it.product_id] || cleanProductName(it.name || '') || 'Producto verificado',
       qty: Number(it.quantity) || 1,
       price: Number(it.unit_price) || 10.0,
       priceBs: formatBs(Number(it.unit_price) || 10.0, bcvRate)
     }))
   : [
-      { name: 'Artículo de Catálogo Oficial', qty: 1, price: Number(orderData?.subtotal) || 15.00, priceBs: formatBs(Number(orderData?.subtotal) || 15.00, bcvRate) }
+      { name: 'Artículo del catálogo', qty: 1, price: Number(orderData?.subtotal) || 15.00, priceBs: formatBs(Number(orderData?.subtotal) || 15.00, bcvRate) }
     ];
 
 const currentStatus = orderData?.status || 'in_transit';
@@ -87,8 +88,8 @@ const activeOrder = {
   storeId: storeId,
   storeName: storeName,
   driverName: 'Carlos Mendoza',
-  driverVehicle: 'Yamaha FZ • Placa: AB1-23C',
-  driverRating: '4.9 ★',
+  driverVehicle: 'Yamaha FZ, placa AB1-23C',
+  driverRating: '4.9 de 5',
   status: currentStatus,
   eta: currentStatus === 'delivered' ? 'Entregado' : '15-20 min',
   address: orderData?.delivery_address || 'Av. Andrés Eloy Blanco, Higuerote',
@@ -108,9 +109,13 @@ const isDelivered = currentStatus === 'delivered';
 const steps = [
   { label: 'Confirmado', done: true, current: currentStatus === 'placed', time: 'Listo' },
   { label: 'Preparando', done: isPreparing || isInTransit || isDelivered, current: isPreparing, time: 'En tienda' },
-  { label: 'En Camino', done: isInTransit || isDelivered, current: isInTransit, time: 'GPS Activo' },
-  { label: 'Entregado', done: isDelivered, current: isDelivered, time: isDelivered ? 'Completado' : '15 min est.' }
+  { label: 'En camino', done: isInTransit || isDelivered, current: isInTransit, time: 'GPS activo' },
+  { label: 'Entregado', done: isDelivered, current: isDelivered, time: isDelivered ? 'Completado' : '15 min aprox.' }
 ];
+
+const currentStep = steps.find((step) => step.current) || steps[0];
+const stepState = (step: { done: boolean; current: boolean }) => (step.current ? 'current' : step.done ? 'done' : 'todo');
+const stepStateText = { current: 'Paso actual', done: 'Completado', todo: 'Pendiente' };
 ---
 
 <!doctype html>
@@ -121,236 +126,202 @@ const steps = [
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#FF5A00" />
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <title>Rastreo de Pedido #{activeOrder.orderNumber} | Traigalo ⚡</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rastreo del pedido {activeOrder.orderNumber} | Traigalo</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script is:inline src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <style>
-      #map-container {
-        width: 100%;
-        height: 100%;
-        min-height: 260px;
-        border-radius: 1.5rem;
-      }
-      .driver-moto-marker {
-        transition: transform 0.08s linear;
-        transform-origin: center center;
-      }
-    </style>
   </head>
-  <body class="bg-[#FAFAFC] text-[#1A1D20] min-h-screen flex flex-col pb-28 antialiased selection:bg-[#FF7A00] selection:text-white">
-    <RoleSwitcher currentRole="client" />
+  <body>
+    <div class="tg-page">
+      <div class="tg-aura" aria-hidden="true"></div>
+      <RoleSwitcher currentRole="client" />
 
-    <header class="bg-white/90 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40 px-4 py-3.5">
-      <div class="max-w-2xl mx-auto flex items-center justify-between">
-        <a href="/orders" class="w-10 h-10 rounded-full bg-gray-50 hover:bg-gray-100 flex items-center justify-center text-gray-800 transition-colors active:scale-95">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
-          </svg>
-        </a>
-        <div class="text-center">
-          <span class="text-[10px] font-black uppercase tracking-wider text-[#FF7A00]">
-            {isDelivered ? 'Pedido Entregado' : 'Seguimiento en Tiempo Real'}
-          </span>
-          <h1 class="text-sm font-extrabold text-gray-900 leading-tight">Orden #{activeOrder.orderNumber}</h1>
-        </div>
-        <button id="btn-open-rating" type="button" class="px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 text-[10px] font-black transition-colors cursor-pointer">
-          ★ Calificar
-        </button>
-      </div>
-    </header>
-
-    <main class="flex-1 max-w-2xl mx-auto px-4 py-4 w-full space-y-4">
-      <section class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm relative overflow-hidden">
-        <div class="flex items-center justify-between">
-          <div>
-            <span class="text-[10px] font-black text-gray-400 uppercase tracking-wider">Tiempo Estimado de Llegada</span>
-            <h2 class="text-2xl font-black text-gray-950 mt-0.5">{activeOrder.eta}</h2>
-            <p class="text-xs text-emerald-600 font-bold mt-1">● Despacho monitoreado desde {activeOrder.storeName}</p>
-          </div>
-          <div class="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center text-3xl shadow-xs">
-            🛵
+      <header class="ord-topbar">
+        <div class="tg-wrap ord-wrap">
+          <div class="ord-topbar-inner tg-glass">
+            <a href="/orders" class="ord-icon-btn" aria-label="Volver a mis pedidos">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
+              </svg>
+            </a>
+            <div class="ord-topbar-title">
+              <p>{isDelivered ? 'Pedido entregado' : 'Seguimiento en tiempo real'}</p>
+              <h1 class="ord-topbar-h">Pedido {activeOrder.orderNumber}</h1>
+            </div>
+            <button id="btn-open-rating" type="button" class="tg-btn tg-btn--quiet tg-btn--sm">Calificar</button>
           </div>
         </div>
+      </header>
 
-        <div class="h-64 w-full rounded-3xl border border-gray-200 relative overflow-hidden my-4 shadow-inner">
+      <main class="tg-wrap ord-wrap ord-track">
+        <section class="ord-stage" aria-label="Mapa de la entrega">
           <div id="map-container"></div>
-          <div class="absolute bottom-2 left-2 z-10 px-2.5 py-1 rounded-xl bg-white/95 backdrop-blur-md text-[10px] font-extrabold text-gray-700 shadow-sm border border-gray-100 flex items-center gap-1.5">
-            <span id="ws-indicator" class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-            <span id="ws-status-text">GPS en Vivo (Conectado)</span>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-4 gap-2 pt-2 border-t border-gray-100">
-          {steps.map(step => (
-            <div class="flex flex-col items-center text-center">
-              <div class={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black mb-1 ${
-                step.current 
-                  ? 'bg-[#FF7A00] text-white ring-3 ring-orange-500/20' 
-                  : step.done 
-                    ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' 
-                    : 'bg-gray-100 text-gray-400'
-              }`}>
-                {step.done && !step.current ? '✓' : step.current ? '●' : '○'}
-              </div>
-              <span class={`text-[10px] font-bold leading-tight ${step.current ? 'text-[#FF7A00]' : step.done ? 'text-gray-900' : 'text-gray-400'}`}>
-                {step.label}
-              </span>
-              <span class="text-[9px] text-gray-400">{step.time}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-sm flex items-center justify-between gap-3">
-        <div class="flex items-center gap-3">
-          <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 to-[#FF7A00] flex items-center justify-center text-white font-black text-xl shadow-xs">
-            CM
-          </div>
-          <div>
-            <h4 class="text-xs font-bold text-gray-900">{activeOrder.driverName}</h4>
-            <p class="text-[10px] text-gray-400">{activeOrder.driverVehicle}</p>
-            <span class="text-[10px] font-bold text-amber-500">
-              {currentStatus === 'placed' ? 'Asignado para retiro en tienda' : `${activeOrder.driverRating} • Repartidor en ruta`}
-            </span>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <a href="tel:+584128901234" class="w-10 h-10 rounded-2xl bg-gray-50 hover:bg-gray-100 text-gray-700 flex items-center justify-center text-sm transition-colors border border-gray-100" title="Llamar al repartidor">
-            📞
-          </a>
-          <button id="btn-open-chat" type="button" class="px-3.5 h-10 rounded-2xl bg-[#FF7A00] hover:bg-[#E66E00] text-white flex items-center gap-1.5 text-xs font-black shadow-md shadow-orange-500/20 transition-all cursor-pointer active:scale-95">
-            <span>💬</span>
-            <span>Chat</span>
-          </button>
-        </div>
-      </section>
-
-      <section class="bg-white rounded-3xl p-4 border border-gray-100 shadow-sm space-y-2.5">
-        <div class="flex items-center justify-between">
-          <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-400">Detalles de la Orden</h3>
-          <span class="text-[11px] font-bold text-gray-500 truncate max-w-[200px]">📍 {activeOrder.address}</span>
-        </div>
-        <div class="flex items-center justify-between">
-          <p class="text-xs font-black text-gray-900">{activeOrder.storeName}</p>
-          <a href={`/stores/${activeOrder.storeId}`} class="text-[11px] font-extrabold text-[#FF5A00] hover:underline">Ver Tienda →</a>
-        </div>
-
-        <div class="space-y-1.5 pt-2 border-t border-gray-50 text-xs">
-          {activeOrder.items.map(it => (
-            <div class="flex justify-between items-start text-gray-700">
+          <div class="ord-float tg-glass" aria-live="polite">
+            <div class="ord-float-row">
               <div>
-                <span class="font-semibold"><strong class="text-[#FF7A00] font-black">{it.qty}x</strong> {it.name}</span>
-                <span class="block text-[10px] text-gray-400 font-semibold">{it.priceBs}</span>
+                <p class="ord-eta-label">Llegada estimada</p>
+                <p class="ord-eta">{activeOrder.eta}</p>
+                <p class="ord-step-now">{currentStep.label}</p>
               </div>
-              <span class="font-bold text-gray-900">${(it.price * it.qty).toFixed(2)}</span>
+              <span class="ord-live">
+                <span id="ws-indicator" class="ord-live-dot" aria-hidden="true"></span>
+                <span id="ws-status-text">GPS en vivo conectado</span>
+              </span>
             </div>
-          ))}
-        </div>
+            <div class="ord-driver">
+              <div class="ord-driver-id">
+                <span class="ord-avatar" aria-hidden="true">CM</span>
+                <div>
+                  <p class="ord-driver-name">{activeOrder.driverName}</p>
+                  <p class="ord-driver-sub">{activeOrder.driverVehicle}</p>
+                  <p class="ord-driver-sub">
+                    {currentStatus === 'placed' ? 'Asignado para retiro en tienda' : `Calificación ${activeOrder.driverRating}, en ruta`}
+                  </p>
+                </div>
+              </div>
+              <div class="ord-driver-actions">
+                <a href="tel:+584128901234" class="ord-icon-btn" aria-label="Llamar al repartidor">
+                  <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/></svg>
+                </a>
+                <button id="btn-open-chat" type="button" class="tg-btn tg-btn--primary tg-btn--sm">Chat</button>
+              </div>
+            </div>
+          </div>
+        </section>
 
-        <div class="pt-2 border-t border-gray-100 flex justify-between items-center text-xs font-bold text-gray-900">
+        <section class="ord-panel" aria-labelledby="steps-title">
+          <div class="ord-panel-head">
+            <h2 id="steps-title">Estado del pedido</h2>
+            <span class="ord-address">Desde {activeOrder.storeName}</span>
+          </div>
+          <ol class="ord-steps">
+            {steps.map((step) => {
+              const state = stepState(step);
+              return (
+                <li class="ord-step" data-state={state} aria-current={state === 'current' ? 'step' : undefined}>
+                  <span class="ord-step-mark" aria-hidden="true">
+                    {state === 'done' ? (
+                      <svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12l5 5 9-10"/></svg>
+                    ) : state === 'current' ? (
+                      <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5"/></svg>
+                    ) : null}
+                  </span>
+                  <div>
+                    <span class="ord-step-label">{step.label}</span>
+                    <span class="ord-step-state">{stepStateText[state]}</span>
+                  </div>
+                  <span class="ord-step-time">{step.time}</span>
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+
+        <section class="ord-panel" aria-labelledby="summary-title">
+          <div class="ord-panel-head">
+            <h2 id="summary-title">Resumen del pedido</h2>
+            <a href={`/stores/${activeOrder.storeId}`} class="ord-link">Ver tienda</a>
+          </div>
           <div>
-            <span>Total de la Orden</span>
-            <span class="block text-[10px] text-gray-400 font-semibold">{totalBs}</span>
+            <p class="ord-store-name">{activeOrder.storeName}</p>
+            <p class="ord-address">Entrega en {activeOrder.address}</p>
           </div>
-          <span class="text-sm font-black text-[#FF7A00]">${activeOrder.total.toFixed(2)}</span>
-        </div>
-      </section>
-    </main>
-
-    <div id="chat-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div class="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col h-[70vh] sm:h-[500px] overflow-hidden">
-        <div class="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between bg-white">
-          <div class="flex items-center gap-2.5">
-            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-400 to-[#FF7A00] text-white font-black text-xs flex items-center justify-center">
-              CM
-            </div>
-            <div>
-              <h3 class="text-xs font-black text-gray-900">{activeOrder.driverName}</h3>
-              <span class="text-[10px] text-emerald-600 font-bold">● En línea • Repartidor Asignado</span>
+          <ul class="ord-items">
+            {activeOrder.items.map((it) => (
+              <li class="ord-item">
+                <span><b>{it.qty}x</b>{it.name}<span class="ord-item-bs">{it.priceBs}</span></span>
+                <span class="ord-item-price">${(it.price * it.qty).toFixed(2)}</span>
+              </li>
+            ))}
+          </ul>
+          <div class="ord-sum">
+            <span>Total del pedido</span>
+            <div class="ord-total">
+              <span class="tg-price">${activeOrder.total.toFixed(2)}</span>
+              <span class="tg-price-bs">{totalBs}</span>
             </div>
           </div>
-          <button id="btn-close-chat" type="button" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 font-black cursor-pointer">
-            ✕
-          </button>
-        </div>
+        </section>
+      </main>
 
-        <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3 bg-[#FAFAFC] text-xs">
-          <div class="flex items-start gap-2">
-            <div class="bg-white border border-gray-100 rounded-2xl rounded-tl-xs px-3.5 py-2.5 shadow-2xs max-w-[80%]">
-              <p class="font-semibold text-gray-800">¡Hola! Estoy coordinando tu pedido de {activeOrder.storeName}. Te avisaré apenas esté llegando a tu ubicación 🛵</p>
-              <span class="text-[9px] text-gray-400 mt-1 block">Hace 1 min</span>
+      <div id="chat-modal" class="ord-modal hidden" role="dialog" aria-modal="true" aria-labelledby="chat-title">
+        <div class="ord-sheet ord-chat">
+          <div class="ord-sheet-head">
+            <div class="ord-driver-id">
+              <span class="ord-avatar ord-avatar--sm" aria-hidden="true">CM</span>
+              <div>
+                <h3 id="chat-title" class="ord-driver-name">{activeOrder.driverName}</h3>
+                <span class="ord-driver-sub">Repartidor asignado, en línea</span>
+              </div>
+            </div>
+            <button id="btn-close-chat" type="button" class="ord-icon-btn" aria-label="Cerrar chat">
+              <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
+
+          <div id="chat-messages" class="ord-chat-log">
+            <div class="ord-msg-row">
+              <div class="ord-msg">
+                <p>Hola, estoy coordinando tu pedido de {activeOrder.storeName}. Te aviso apenas esté llegando a tu ubicación.</p>
+                <span class="ord-msg-time">Hace 1 min</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="px-4 py-2 bg-white border-t border-gray-50 flex gap-1.5 overflow-x-auto no-scrollbar">
-          <button type="button" class="quick-chat-btn shrink-0 px-2.5 py-1 rounded-full bg-orange-50 text-[#FF7A00] text-[10px] font-bold cursor-pointer">Estoy pendiente afuera</button>
-          <button type="button" class="quick-chat-btn shrink-0 px-2.5 py-1 rounded-full bg-orange-50 text-[#FF7A00] text-[10px] font-bold cursor-pointer">Avísame al llegar</button>
-          <button type="button" class="quick-chat-btn shrink-0 px-2.5 py-1 rounded-full bg-orange-50 text-[#FF7A00] text-[10px] font-bold cursor-pointer">Gracias, te espero</button>
-        </div>
+          <div class="ord-quick">
+            <button type="button" class="quick-chat-btn">Estoy pendiente afuera</button>
+            <button type="button" class="quick-chat-btn">Avísame al llegar</button>
+            <button type="button" class="quick-chat-btn">Gracias, te espero</button>
+          </div>
 
-        <form id="chat-form" class="p-3 bg-white border-t border-gray-100 flex items-center gap-2">
-          <input 
-            id="chat-input"
-            type="text"
-            placeholder="Escribe un mensaje al repartidor..."
-            autocomplete="off"
-            class="flex-1 h-10 px-3.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-900 focus:outline-none focus:bg-white focus:border-[#FF7A00]"
-          />
-          <button type="submit" class="h-10 px-4 rounded-xl bg-[#FF7A00] hover:bg-[#E66E00] text-white text-xs font-black cursor-pointer">
-            Enviar
-          </button>
-        </form>
-      </div>
-    </div>
-
-    <div id="rating-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl text-center space-y-4">
-        <div class="w-14 h-14 rounded-3xl bg-amber-50 text-amber-500 mx-auto flex items-center justify-center text-3xl shadow-sm">
-          ⭐
-        </div>
-        <div>
-          <h3 class="text-base font-black text-gray-900 leading-snug">Califica tu experiencia</h3>
-          <p class="text-xs text-gray-400 mt-1">¿Qué tal estuvo tu pedido en {activeOrder.storeName} y la entrega?</p>
-        </div>
-
-        <div class="flex items-center justify-center gap-2 py-2" id="star-rating-container">
-          <button type="button" data-val="1" class="star-btn text-3xl text-amber-400 hover:scale-110 transition-transform cursor-pointer">★</button>
-          <button type="button" data-val="2" class="star-btn text-3xl text-amber-400 hover:scale-110 transition-transform cursor-pointer">★</button>
-          <button type="button" data-val="3" class="star-btn text-3xl text-amber-400 hover:scale-110 transition-transform cursor-pointer">★</button>
-          <button type="button" data-val="4" class="star-btn text-3xl text-amber-400 hover:scale-110 transition-transform cursor-pointer">★</button>
-          <button type="button" data-val="5" class="star-btn text-3xl text-amber-400 hover:scale-110 transition-transform cursor-pointer">★</button>
-        </div>
-
-        <textarea 
-          id="rating-comment"
-          rows="2" 
-          placeholder="Escribe un comentario sobre tu producto y entrega..." 
-          class="w-full p-3 bg-gray-50 border border-gray-100 rounded-2xl text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-[#FF7A00] transition-all"
-        ></textarea>
-
-        <div class="grid grid-cols-2 gap-2 pt-2">
-          <button 
-            id="btn-skip-rating"
-            type="button" 
-            class="h-11 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs active:scale-95 transition-all cursor-pointer"
-          >
-            Cerrar
-          </button>
-          <button 
-            id="btn-submit-rating"
-            type="button" 
-            class="h-11 rounded-xl bg-[#FF7A00] hover:bg-[#E66E00] text-white font-black text-xs shadow-md shadow-orange-600/20 active:scale-95 transition-all cursor-pointer"
-          >
-            Enviar Reseña
-          </button>
+          <form id="chat-form" class="ord-chat-form">
+            <label for="chat-input" class="sr-only">Mensaje al repartidor</label>
+            <input
+              id="chat-input"
+              type="text"
+              placeholder="Escribe un mensaje al repartidor"
+              autocomplete="off"
+              class="ord-field"
+            />
+            <button type="submit" class="tg-btn tg-btn--primary tg-btn--sm">Enviar</button>
+          </form>
         </div>
       </div>
+
+      <div id="rating-modal" class="ord-modal hidden" role="dialog" aria-modal="true" aria-labelledby="rating-title">
+        <div class="ord-sheet ord-rating">
+          <div>
+            <h3 id="rating-title">Califica tu experiencia</h3>
+            <p>¿Qué tal estuvo tu pedido en {activeOrder.storeName} y la entrega?</p>
+          </div>
+
+          <div class="ord-stars" id="star-rating-container" role="group" aria-label="Calificación">
+          <button type="button" data-val="1" class="star-btn is-on" aria-label="1 de 5 estrellas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.2 1.3-6.6-4.9-4.6 6.6-.8z"/></svg></button>
+          <button type="button" data-val="2" class="star-btn is-on" aria-label="2 de 5 estrellas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.2 1.3-6.6-4.9-4.6 6.6-.8z"/></svg></button>
+          <button type="button" data-val="3" class="star-btn is-on" aria-label="3 de 5 estrellas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.2 1.3-6.6-4.9-4.6 6.6-.8z"/></svg></button>
+          <button type="button" data-val="4" class="star-btn is-on" aria-label="4 de 5 estrellas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.2 1.3-6.6-4.9-4.6 6.6-.8z"/></svg></button>
+          <button type="button" data-val="5" class="star-btn is-on" aria-label="5 de 5 estrellas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.2 1.3-6.6-4.9-4.6 6.6-.8z"/></svg></button>
+          </div>
+
+          <label for="rating-comment" class="sr-only">Comentario</label>
+          <textarea
+            id="rating-comment"
+            rows="2"
+            placeholder="Escribe un comentario sobre tu producto y la entrega"
+            class="ord-field"
+          ></textarea>
+
+          <div class="ord-rating-actions">
+            <button id="btn-skip-rating" type="button" class="tg-btn tg-btn--quiet">Cerrar</button>
+            <button id="btn-submit-rating" type="button" class="tg-btn tg-btn--primary">Enviar reseña</button>
+          </div>
+        </div>
+      </div>
+
+      <BottomNav />
     </div>
 
     <BottomNav />
@@ -411,8 +382,8 @@ const steps = [
             document.querySelectorAll('.star-btn').forEach((b) => {
               const val = parseInt(b.getAttribute('data-val') || '0', 10);
               b.className = val <= selectedStars 
-                ? 'star-btn text-3xl text-amber-400 hover:scale-110 transition-transform cursor-pointer' 
-                : 'star-btn text-3xl text-gray-200 hover:scale-110 transition-transform cursor-pointer';
+                ? 'star-btn is-on' 
+                : 'star-btn';
             });
           });
         });
@@ -455,7 +426,7 @@ const steps = [
 
             const ratingModal = document.getElementById('rating-modal');
             if (ratingModal) ratingModal.classList.add('hidden');
-            submitRatingBtn.textContent = 'Enviar Reseña';
+            submitRatingBtn.textContent = 'Enviar reseña';
             submitRatingBtn.disabled = false;
             alert('¡Gracias! Tu calificación ha sido registrada exitosamente.');
           });
@@ -471,15 +442,15 @@ const steps = [
         function appendChatMessage(text, isCustomer = true) {
           if (!chatMessages || !text) return;
           const wrapper = document.createElement('div');
-          wrapper.className = isCustomer ? 'flex items-start justify-end gap-2' : 'flex items-start gap-2';
+          wrapper.className = isCustomer ? 'ord-msg-row ord-msg-row--me' : 'ord-msg-row';
           wrapper.innerHTML = isCustomer
-            ? `<div class="bg-[#FF7A00] text-white rounded-2xl rounded-tr-xs px-3.5 py-2.5 shadow-xs max-w-[80%]">
-                 <p class="font-semibold">${text}</p>
-                 <span class="text-[9px] text-orange-100 mt-1 block text-right">Ahora</span>
+            ? `<div class="ord-msg ord-msg--me">
+                 <p>${text}</p>
+                 <span class="ord-msg-time">Ahora</span>
                </div>`
-            : `<div class="bg-white border border-gray-100 rounded-2xl rounded-tl-xs px-3.5 py-2.5 shadow-2xs max-w-[80%]">
-                 <p class="font-semibold text-gray-800">${text}</p>
-                 <span class="text-[9px] text-gray-400 mt-1 block">Ahora</span>
+            : `<div class="ord-msg">
+                 <p>${text}</p>
+                 <span class="ord-msg-time">Ahora</span>
                </div>`;
           chatMessages.appendChild(wrapper);
           chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -494,7 +465,7 @@ const steps = [
             } catch {}
           }
           setTimeout(() => {
-            appendChatMessage('Recibido 👍 Estoy a pocos minutos de tu punto de entrega.', false);
+            appendChatMessage('Recibido. Estoy a pocos minutos de tu punto de entrega.', false);
           }, 1200);
         }
 
@@ -555,9 +526,9 @@ const steps = [
           }
 
           activeWs.onopen = () => {
-            if (wsStatusText) wsStatusText.textContent = 'GPS Redis GEO (En Vivo)';
+            if (wsStatusText) wsStatusText.textContent = 'GPS en vivo';
             if (wsIndicator) {
-              wsIndicator.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-ping';
+              wsIndicator.className = 'ord-live-dot';
             }
           };
 
@@ -593,9 +564,9 @@ const steps = [
 
           const wsStatusText = document.getElementById('ws-status-text');
           const wsIndicator = document.getElementById('ws-indicator');
-          if (wsStatusText) wsStatusText.textContent = 'GPS Satelital Activo';
+          if (wsStatusText) wsStatusText.textContent = 'GPS satelital activo';
           if (wsIndicator) {
-            wsIndicator.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+            wsIndicator.className = 'ord-live-dot is-steady';
           }
 
           let step = 0;
@@ -624,14 +595,14 @@ const steps = [
 
           const storeIcon = L.divIcon({
             className: '',
-            html: '<div class="w-9 h-9 rounded-2xl bg-[#FF7A00] text-white flex items-center justify-center text-lg shadow-lg border-2 border-white">🏬</div>',
+            html: '<div class="ord-pin ord-pin--store"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 10h16M5 10l1-5h12l1 5M6 10v9h12v-9M10 19v-5h4v5"/></svg></div>',
             iconSize: [36, 36],
             iconAnchor: [18, 18]
           });
 
           const clientIcon = L.divIcon({
             className: '',
-            html: '<div class="w-9 h-9 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-lg shadow-lg border-2 border-white">🏠</div>',
+            html: '<div class="ord-pin ord-pin--home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11l8-7 8 7M6 10v10h12V10M10 20v-6h4v6"/></svg></div>',
             iconSize: [36, 36],
             iconAnchor: [18, 18]
           });
@@ -639,10 +610,10 @@ const steps = [
           const motoIcon = L.divIcon({
             className: 'driver-moto-marker',
             html: `
-              <div id="driver-moto-svg-container" class="relative w-12 h-12 flex items-center justify-center transition-transform duration-75">
-                <div class="absolute inset-0 rounded-full bg-[#FF7A00]/25 animate-ping"></div>
-                <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-[#FF7A00] to-amber-500 shadow-xl border-2 border-white flex items-center justify-center text-white">
-                  <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24">
+              <div id="driver-moto-svg-container" class="ord-moto">
+                <div class="ord-moto-halo"></div>
+                <div class="ord-moto-core">
+                  <svg viewBox="0 0 24 24">
                     <path d="M19 7c0-1.1-.9-2-2-2h-3v2h3v2.65L13.52 14H10V9H6c-2.21 0-4 1.79-4 4v3h2c0 1.66 1.34 3 3 3s3-1.34 3-3h4.18c.41 1.16 1.51 2 2.82 2 1.66 0 3-1.34 3-3h2v-5l-4-3zm-12 9c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm11 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/>
                   </svg>
                 </div>
@@ -652,8 +623,8 @@ const steps = [
             iconAnchor: [24, 24]
           });
 
-          L.marker([storeLocation.lat, storeLocation.lng], { icon: storeIcon }).addTo(map).bindPopup('Comercio Oficial');
-          L.marker([clientLocation.lat, clientLocation.lng], { icon: clientIcon }).addTo(map).bindPopup('Punto de Entrega');
+          L.marker([storeLocation.lat, storeLocation.lng], { icon: storeIcon }).addTo(map).bindPopup('Comercio oficial');
+          L.marker([clientLocation.lat, clientLocation.lng], { icon: clientIcon }).addTo(map).bindPopup('Punto de entrega');
           driverMarker = L.marker([currentDriverPos.lat, currentDriverPos.lng], { icon: motoIcon }).addTo(map);
 
           routePolyline = L.polyline([

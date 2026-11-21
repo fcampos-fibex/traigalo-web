@@ -5,6 +5,7 @@ import BottomNav from '../components/BottomNav.astro';
 import RoleSwitcher from '../components/RoleSwitcher.astro';
 import { getOfficialExchangeRate, formatBs } from '../adapters/rates';
 import '../styles/global.css';
+import '../styles/pages/account.css';
 
 const API_BASE = 'https://api.traigalo.org/v2';
 const ASSET_BASE = 'https://admin.traigalo.org/assets';
@@ -82,134 +83,132 @@ for (const store of favoriteStores) {
 <!doctype html>
 <html lang="es">
   <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tus favoritos | Traigalo</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=3" />
     <link rel="apple-touch-icon" href="/icon-192.png?v=3" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#FF5A00" />
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <title>Mis Favoritos | Traigalo ⚡</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   </head>
-  <body class="bg-[#FAFAFC] text-[#1A1D20] min-h-screen flex flex-col pb-28 antialiased selection:bg-[#FF7A00] selection:text-white">
-    <RoleSwitcher currentRole="client" />
-    <Header />
+  <body>
+    <div class="tg-page">
+      <div class="tg-aura" aria-hidden="true"></div>
+      <RoleSwitcher currentRole="client" />
+      <Header />
 
-    <main class="flex-1 max-w-4xl mx-auto px-4 sm:px-6 py-6 w-full space-y-6">
-      
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">Tus Favoritos</h1>
-          <p class="text-xs text-gray-400 mt-0.5">Comercios verificados y artículos destacados para compra rápida</p>
-        </div>
-        <div class="w-10 h-10 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center text-lg font-black shadow-xs">
-          ❤️
-        </div>
+      <main class="tg-wrap tg-main">
+        <section class="tg-section acc-intro" aria-labelledby="fav-title">
+          <h1 id="fav-title">Tus favoritos</h1>
+          <p>Tiendas y artículos a mano para pedir de nuevo en un toque.</p>
+        </section>
+
+        <section class="tg-section" aria-labelledby="fav-stores-title">
+          <div class="tg-head">
+            <h2 id="fav-stores-title">Tiendas guardadas</h2>
+          </div>
+          {favoriteStores.length === 0 ? (
+            <div class="tg-empty">
+              <h3>Aún no tienes tiendas guardadas</h3>
+              <p>Explora las tiendas de Higuerote y guarda las que más uses.</p>
+              <div class="tg-empty-actions">
+                <a href="/" class="tg-btn tg-btn--primary tg-btn--sm">Explorar tiendas</a>
+              </div>
+            </div>
+          ) : (
+            <div class="acc-stores">
+              {favoriteStores.map((store) => {
+                const logoUrl = store.logo_url || '/brand-icon.webp';
+                const coverUrl = store.cover_url || '/brand-icon.webp';
+                return (
+                  <a href={`/stores/${store.id}`} class="acc-store">
+                    <span class="acc-store-cover">
+                      <img src={coverUrl} alt="" width="480" height="160" loading="lazy" decoding="async" onerror="this.onerror=null; this.classList.add('is-broken');" />
+                      <span class="tg-cover-tag tg-glass">Abierto</span>
+                    </span>
+                    <span class="acc-store-body">
+                      <img class="acc-store-logo" src={logoUrl} alt="" width="48" height="48" loading="lazy" onerror="this.onerror=null; this.classList.add('is-broken');" />
+                      <span class="acc-store-text">
+                        <span class="acc-store-name">{store.name}</span>
+                        {store.address_line && <span class="acc-store-addr">{store.address_line}</span>}
+                      </span>
+                    </span>
+                  </a>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        <section class="tg-section" aria-labelledby="fav-products-title">
+          <div class="tg-head">
+            <h2 id="fav-products-title">Artículos guardados</h2>
+            <p class="tg-count">{favoriteProducts.length} artículos</p>
+          </div>
+          {favoriteProducts.length === 0 ? (
+            <div class="tg-empty">
+              <h3>Tu lista de artículos está vacía</h3>
+              <p>Cuando guardes un producto aparecerá aquí, listo para agregarlo al carrito.</p>
+              <div class="tg-empty-actions">
+                <a href="/" class="tg-btn tg-btn--primary tg-btn--sm">Ver productos</a>
+              </div>
+            </div>
+          ) : (
+            <div class="tg-products">
+              {favoriteProducts.map((p) => (
+                <div class="product-item">
+                  <div class="tg-product-img">
+                    <img src={p.image} alt={p.name} width="300" height="300" loading="lazy" decoding="async" onerror="this.onerror=null; this.classList.add('is-broken');" />
+                  </div>
+                  <div>
+                    <div class="tg-product-store"><span>{p.storeName}</span></div>
+                    <h3 class="tg-product-name">{p.name}</h3>
+                  </div>
+                  <div class="tg-product-buy">
+                    <div>
+                      <span class="tg-price">${p.price.toFixed(2)}</span>
+                      <span class="tg-price-bs">{p.priceBs}</span>
+                    </div>
+                    <button
+                      type="button"
+                      data-id={p.id}
+                      data-name={p.name}
+                      data-price={p.price}
+                      data-image={p.image}
+                      data-store-id={p.storeId}
+                      data-store-name={p.storeName}
+                      class="btn-fav-add-cart btn-home-add"
+                      aria-label={`Agregar ${p.name} al carrito`}
+                    >+</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
+
+      <div id="fav-cart-bar" class="tg-cartbar acc-cartbar hidden">
+        <a href="/checkout">
+          <span class="tg-cart-left">
+            <span id="fav-cart-count" class="tg-cart-count">0</span>
+            <span>
+              <span>Ver carrito</span>
+              <small>Ir a pagar el pedido</small>
+            </span>
+          </span>
+          <span class="tg-cart-total">
+            <span id="fav-cart-total">$0.00</span>
+          </span>
+        </a>
       </div>
 
-      <section class="space-y-3">
-        <h2 class="text-sm font-black uppercase tracking-wider text-gray-400">Tiendas Oficiales Guardadas</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {favoriteStores.map((store) => {
-            const logoUrl = store.logo_url || '/brand-icon.webp';
-            const coverUrl = store.cover_url || '/brand-icon.webp';
-            return (
-              <a 
-                href={`/stores/${store.id}`}
-                class="group bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-xs hover:shadow-md transition-all flex flex-col"
-              >
-                <div class="h-24 w-full relative overflow-hidden">
-                  <img src={coverUrl} alt={store.name} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                  <span class="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-black">
-                    ● Abierto
-                  </span>
-                </div>
-                <div class="p-4 flex items-center gap-3.5">
-                  <img src={logoUrl} alt={store.name} class="w-12 h-12 rounded-2xl object-cover border border-gray-100 shadow-xs shrink-0" />
-                  <div class="flex-1 min-w-0">
-                    <h3 class="text-sm font-black text-gray-900 truncate group-hover:text-[#FF5A00] transition-colors">{store.name}</h3>
-                    <p class="text-xs text-gray-400 truncate mt-0.5">{store.address_line}</p>
-                    <span class="text-[10px] font-bold text-[#FF7A00] mt-1 block">★ 4.9 • Entrega Express 15-25 min</span>
-                  </div>
-                </div>
-              </a>
-            );
-          })}
-        </div>
-      </section>
-
-      <section class="space-y-3 pt-2">
-        <h2 class="text-sm font-black uppercase tracking-wider text-gray-400">Artículos Guardados ({favoriteProducts.length})</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {favoriteProducts.map((p) => (
-            <div class="bg-white rounded-3xl p-4 border border-gray-100 shadow-xs hover:shadow-md transition-all flex items-center justify-between gap-3">
-              <div class="flex items-center gap-3 min-w-0">
-                <div class="w-16 h-16 rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 shrink-0 flex items-center justify-center p-2">
-                  <img 
-                    src={p.image} 
-                    alt={p.name} 
-                    class="w-full h-full object-contain"
-                    onerror={`this.onerror=null; this.src='${FALLBACK_PRODUCT_IMAGE}';`}
-                  />
-                </div>
-                <div class="min-w-0">
-                  <span class="text-[10px] font-bold text-[#FF5A00] uppercase tracking-wider block truncate">{p.storeName}</span>
-                  <h4 class="text-xs font-black text-gray-900 leading-tight truncate">{p.name}</h4>
-                  <div class="mt-1">
-                    <span class="text-xs font-black text-gray-950">${p.price.toFixed(2)}</span>
-                    <span class="text-[9px] text-gray-400 font-semibold ml-1.5">{p.priceBs}</span>
-                  </div>
-                </div>
-              </div>
-
-              <button 
-                type="button"
-                data-id={p.id}
-                data-name={p.name}
-                data-price={p.price}
-                data-image={p.image}
-                data-store-id={p.storeId}
-                data-store-name={p.storeName}
-                class="btn-fav-add-cart w-10 h-10 rounded-full bg-[#FF7A00] hover:bg-[#E66E00] text-white flex items-center justify-center font-black text-lg shadow-sm active:scale-95 transition-all shrink-0 cursor-pointer"
-                title="Agregar al Carrito"
-              >
-                +
-              </button>
-            </div>
-          ))}
-        </div>
-      </section>
-
-    </main>
-
-    <div id="fav-cart-bar" class="fixed bottom-16 sm:bottom-6 left-4 right-4 z-40 max-w-xl mx-auto hidden">
-      <a 
-        href="/checkout"
-        class="w-full bg-gray-950 hover:bg-gray-900 text-white p-3.5 rounded-2xl shadow-2xl shadow-black/30 flex items-center justify-between border border-white/10 transition-all active:scale-98"
-      >
-        <div class="flex items-center gap-3">
-          <div id="fav-cart-count" class="w-8 h-8 rounded-xl bg-[#FF7A00] text-white font-black text-xs flex items-center justify-center">
-            0
-          </div>
-          <div class="text-left">
-            <span class="text-xs font-bold block leading-none">Ver Carrito Multi-Tienda</span>
-            <span class="text-[10px] text-gray-400 font-medium">Ir a pagar pedido</span>
-          </div>
-        </div>
-        <div class="flex items-center gap-2">
-          <span id="fav-cart-total" class="text-sm font-black text-[#FF7A00]">$0.00</span>
-          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
-          </svg>
-        </div>
-      </a>
+      <Footer />
+      <BottomNav />
     </div>
-
-    <Footer />
-    <BottomNav />
 
     <script is:inline>
       (() => {
@@ -263,10 +262,10 @@ for (const store of favoriteStores) {
 
             const orig = btn.textContent;
             btn.textContent = '✓';
-            btn.classList.add('bg-emerald-600');
+            btn.classList.add('is-added');
             setTimeout(() => {
               btn.textContent = orig;
-              btn.classList.remove('bg-emerald-600');
+              btn.classList.remove('is-added');
             }, 650);
           });
         });

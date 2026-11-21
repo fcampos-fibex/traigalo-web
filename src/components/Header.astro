@@ -7,169 +7,70 @@ const bcvRate = await getOfficialExchangeRate();
 const bcvFormatted = bcvRate.toFixed(2);
 ---
 
-<header class="bg-white/95 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
-    
-    <div class="flex items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <a href="/" class="flex items-center gap-2">
-          <Logo size="sm" />
-        </a>
+<header class="tg-header">
+  <div class="tg-wrap">
+    <div class="tg-bar tg-glass">
+      <a href="/" class="tg-logo" aria-label="Traigalo, inicio">
+        <Logo size="sm" />
+      </a>
 
-        <div class="h-6 w-px bg-gray-200 hidden sm:block"></div>
-
-        <a href="/rides" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-black shadow-sm shadow-blue-500/20 active:scale-95 transition-all">
-          <span>🚗</span>
-          <span class="hidden sm:inline">Pedir Taxi / Viajes</span>
-          <span class="sm:hidden">Viajes</span>
-        </a>
-
-        <div class="h-6 w-px bg-gray-200 hidden lg:block"></div>
-
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-full bg-orange-50 text-[#FF7A00] flex items-center justify-center text-sm shadow-xs shrink-0">
-            📍
-          </div>
-          <div class="flex flex-col">
-            <span class="text-[9px] font-semibold text-gray-400 uppercase tracking-wider leading-tight">Entregar en</span>
-            <div id="address-selector-trigger" class="flex items-center gap-1 cursor-pointer group">
-              <span id="header-user-address" class="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-[#FF7A00] transition-colors truncate max-w-[140px] sm:max-w-none">
-                Seleccionar ubicación de entrega
-              </span>
-              <svg class="w-3.5 h-3.5 text-[#FF7A00] transform group-hover:translate-y-0.5 transition-transform shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="flex items-center gap-2 sm:gap-3">
-        <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-[10px] sm:text-xs font-extrabold shadow-2xs">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>Tasa BCV: {bcvFormatted} Bs/$</span>
-        </div>
-
-        <div class="relative" id="user-menu-container">
-          <div id="unauth-actions" class="flex items-center gap-2">
-            <a 
-              href="/login" 
-              class="px-3.5 py-1.5 rounded-2xl bg-gray-50 hover:bg-gray-100 border border-gray-100 text-gray-800 text-xs font-extrabold transition-all"
-            >
-              Iniciar Sesión
-            </a>
-            <a 
-              href="/register" 
-              class="hidden sm:inline-flex px-3.5 py-1.5 rounded-2xl bg-[#FF7A00] hover:bg-[#E66E00] text-white text-xs font-black shadow-sm transition-all"
-            >
-              Registro
-            </a>
-          </div>
-
-          <div id="auth-actions" class="hidden items-center gap-2">
-            <button 
-              id="user-profile-trigger"
-              type="button"
-              class="flex items-center gap-2 p-1 pl-2.5 rounded-full bg-gray-50 border border-gray-100 hover:border-gray-200 transition-all cursor-pointer"
-            >
-              <span id="user-display-name" class="text-xs font-black text-gray-900 max-w-[100px] truncate">Usuario</span>
-              <div id="user-avatar-badge" class="w-8 h-8 rounded-full bg-gradient-to-tr from-[#FF7A00] to-amber-400 text-white font-black text-xs flex items-center justify-center shadow-sm">
-                U
-              </div>
-            </button>
-
-            <div 
-              id="user-dropdown" 
-              class="hidden absolute right-0 top-12 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50 transition-all duration-150"
-            >
-              <div class="px-3 py-2 border-b border-gray-50">
-                <p id="dropdown-user-name" class="text-xs font-black text-gray-900 truncate">Usuario</p>
-                <p id="dropdown-user-email" class="text-[10px] text-gray-400 truncate">usuario@traigalo.org</p>
-              </div>
-
-              <div class="py-1 space-y-0.5 text-xs font-bold text-gray-700">
-                <a href="/orders" class="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-orange-50 hover:text-[#FF7A00] transition-colors">
-                  <span>📦</span>
-                  <span>Mis Pedidos</span>
-                </a>
-                <a href="/favorites" class="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-orange-50 hover:text-[#FF7A00] transition-colors">
-                  <span>❤️</span>
-                  <span>Favoritos</span>
-                </a>
-                <a href="/profile" class="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-orange-50 hover:text-[#FF7A00] transition-colors">
-                  <span>👤</span>
-                  <span>Mi Perfil</span>
-                </a>
-              </div>
-
-              <div class="pt-1 border-t border-gray-50">
-                <button 
-                  id="btn-logout"
-                  type="button" 
-                  class="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors text-left cursor-pointer"
-                >
-                  <span>🚪</span>
-                  <span>Cerrar Sesión</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <div class="mt-3.5 flex items-center gap-2.5">
-      <div class="relative flex-1">
-        <input 
-          id="global-search-input"
-          type="text" 
-          placeholder="Buscar tiendas, productos, tecnología, comida..." 
-          class="w-full h-11 pl-10 pr-4 bg-gray-50 border border-gray-100 rounded-2xl text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-[#FF7A00] focus:ring-2 focus:ring-[#FF7A00]/20 transition-all"
-        />
-        <svg class="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-      </div>
-
-      <button id="global-filter-btn" class="w-11 h-11 rounded-2xl bg-[#FF7A00] hover:bg-[#E66E00] text-white flex items-center justify-center shadow-md shadow-orange-600/20 transition-all shrink-0 active:scale-95 cursor-pointer">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-        </svg>
+      <button id="address-selector-trigger" type="button" class="tg-zone" aria-label="Cambiar dirección de entrega">
+        <small>Entregar en</small>
+        <span id="header-user-address">Seleccionar ubicación de entrega</span>
       </button>
+
+      <div class="tg-search">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+        <input
+          id="global-search-input"
+          type="search"
+          aria-label="Buscar en Traigalo"
+          placeholder="Busca comida, medicinas, productos o tiendas"
+        />
+      </div>
+
+      <span class="tg-bcv" title="Tasa oficial del BCV">BCV {bcvFormatted} Bs/$</span>
+
+      <button id="global-filter-btn" type="button" class="tg-icon-btn" aria-label="Ver categorías">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M7 12h10M10 18h4" /></svg>
+      </button>
+
+      <div class="tg-user" id="user-menu-container">
+        <div id="unauth-actions" class="tg-auth">
+          <a href="/login" class="tg-btn tg-btn--quiet tg-btn--sm">Iniciar sesión</a>
+          <a href="/register" class="tg-btn tg-btn--primary tg-btn--sm hidden sm:inline-flex">Registro</a>
+        </div>
+
+        <div id="auth-actions" class="hidden">
+          <button id="user-profile-trigger" type="button" class="tg-user-trigger" aria-haspopup="menu">
+            <span id="user-display-name" class="hidden sm:inline">Usuario</span>
+            <span id="user-avatar-badge" class="tg-avatar">U</span>
+          </button>
+
+          <div id="user-dropdown" class="hidden tg-menu tg-glass" role="menu">
+            <div class="tg-menu-head">
+              <p id="dropdown-user-name">Usuario</p>
+              <p id="dropdown-user-email">usuario@traigalo.org</p>
+            </div>
+            <a href="/orders" role="menuitem">Mis pedidos</a>
+            <a href="/favorites" role="menuitem">Favoritos</a>
+            <a href="/profile" role="menuitem">Mi perfil</a>
+            <button id="btn-logout" type="button" class="tg-danger" role="menuitem">Cerrar sesión</button>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <nav aria-label="Categorías de Tiendas" class="mt-2.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1">
-      <a href="/?rubro=all#store-verticals" data-header-rubro="all" class="header-rubro-link shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 text-[#FF7A00] hover:bg-orange-100 text-[11px] font-extrabold transition-colors">
-        <span>🏬</span>
-        <span>Todos los Rubros</span>
-      </a>
-      <a href="/?rubro=restaurantes#store-verticals" data-header-rubro="restaurantes" class="header-rubro-link shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-50 hover:bg-orange-50 text-gray-700 hover:text-[#FF7A00] text-[11px] font-bold transition-colors border border-gray-100">
-        <span>🍔</span>
-        <span>Comida y Restaurantes</span>
-      </a>
-      <a href="/?rubro=supermercados#store-verticals" data-header-rubro="supermercados" class="header-rubro-link shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-50 hover:bg-orange-50 text-gray-700 hover:text-[#FF7A00] text-[11px] font-bold transition-colors border border-gray-100">
-        <span>🛒</span>
-        <span>Supermercados</span>
-      </a>
-      <a href="/?rubro=farmacias#store-verticals" data-header-rubro="farmacias" class="header-rubro-link shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-50 hover:bg-orange-50 text-gray-700 hover:text-[#FF7A00] text-[11px] font-bold transition-colors border border-gray-100">
-        <span>💊</span>
-        <span>Farmacias</span>
-      </a>
-      <a href="/?rubro=tecnologia#store-verticals" data-header-rubro="tecnologia" class="header-rubro-link shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-50 hover:bg-orange-50 text-gray-700 hover:text-[#FF7A00] text-[11px] font-bold transition-colors border border-gray-100">
-        <span>🎮</span>
-        <span>Tecnología y Tiendas</span>
-      </a>
-      <a href="/?rubro=barberia#store-verticals" data-header-rubro="barberia" class="header-rubro-link shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-50 hover:bg-orange-50 text-gray-700 hover:text-[#FF7A00] text-[11px] font-bold transition-colors border border-gray-100">
-        <span>💈</span>
-        <span>Barbería y Belleza</span>
-      </a>
-      <a href="/?rubro=mascotas#store-verticals" data-header-rubro="mascotas" class="header-rubro-link shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-50 hover:bg-orange-50 text-gray-700 hover:text-[#FF7A00] text-[11px] font-bold transition-colors border border-gray-100">
-        <span>🐾</span>
-        <span>Mascotas</span>
-      </a>
+    <nav aria-label="Servicios de Traigalo" class="tg-modules tg-glass no-scrollbar">
+      <a href="/?rubro=all#store-verticals" data-header-rubro="all" class="header-rubro-link">Inicio</a>
+      <a href="/?rubro=restaurantes#store-verticals" data-header-rubro="restaurantes" class="header-rubro-link">Comida</a>
+      <a href="/?rubro=supermercados#store-verticals" data-header-rubro="supermercados" class="header-rubro-link">Mercado</a>
+      <a href="/?rubro=farmacias#store-verticals" data-header-rubro="farmacias" class="header-rubro-link">Farmacia</a>
+      <a href="/?rubro=tecnologia#store-verticals" data-header-rubro="tecnologia" class="header-rubro-link">Tecnología</a>
+      <a href="/?rubro=barberia#store-verticals" data-header-rubro="barberia" class="header-rubro-link">Belleza</a>
+      <a href="/?rubro=mascotas#store-verticals" data-header-rubro="mascotas" class="header-rubro-link">Mascotas</a>
+      <a href="/rides" class="tg-module-link">Envíos y taxi</a>
     </nav>
-
   </div>
 </header>
 
@@ -302,6 +203,17 @@ const bcvFormatted = bcvRate.toFixed(2);
       }
     });
   });
+
+  function syncModuleNav(rubro) {
+    document.querySelectorAll('.header-rubro-link').forEach((link) => {
+      const isHome = window.location.pathname === '/' || window.location.pathname === '';
+      const active = isHome && link.getAttribute('data-header-rubro') === rubro;
+      if (active) link.setAttribute('aria-current', 'true');
+      else link.removeAttribute('aria-current');
+    });
+  }
+  window.addEventListener('traigalo:rubro-changed', (e) => syncModuleNav(e.detail?.rubro || 'all'));
+  syncModuleNav(new URLSearchParams(window.location.search).get('rubro') || 'all');
 
   setupUserMenu();
   setupAddressGeo();

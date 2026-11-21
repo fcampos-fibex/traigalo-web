@@ -6,6 +6,7 @@ import RoleSwitcher from '../../components/RoleSwitcher.astro';
 import { getOfficialExchangeRate, formatBs } from '../../adapters/rates';
 import { fetchActiveStores } from '../../adapters/stores';
 import '../../styles/global.css';
+import '../../styles/pages/account.css';
 
 const { slug } = Astro.params;
 const API_BASE = 'https://api.traigalo.org/v2';
@@ -78,116 +79,106 @@ if (targetStore) {
     }
   } catch {}
 }
+const RUBRO_KEYS = ['restaurantes', 'supermercados', 'farmacias', 'tecnologia', 'barberia', 'mascotas'];
+const pageRubro = targetStore && RUBRO_KEYS.includes(targetStore.rubroKey) ? targetStore.rubroKey : undefined;
 ---
 
 <!doctype html>
-<html lang="es">
+<html lang="es" data-rubro={pageRubro}>
   <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{matchedCategory.name} | Traigalo</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#FF5A00" />
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <title>{matchedCategory.name} | Traigalo ⚡</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   </head>
-  <body class="bg-[#FAFAFC] text-[#1A1D20] min-h-screen flex flex-col pb-28 antialiased selection:bg-[#FF7A00] selection:text-white">
-    <RoleSwitcher currentRole="client" />
-    <Header />
+  <body>
+    <div class="tg-page">
+      <div class="tg-aura" aria-hidden="true"></div>
+      <RoleSwitcher currentRole="client" />
+      <Header />
 
-    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 w-full space-y-6">
-      
-      <div class="flex items-center gap-2 text-xs text-gray-400 font-bold">
-        <a href="/" class="hover:text-[#FF7A00] transition-colors">Inicio</a>
-        <span>/</span>
-        <span class="text-gray-700">{matchedCategory.name}</span>
-      </div>
+      <main class="tg-wrap tg-main">
+        <nav class="acc-crumbs" aria-label="Ruta">
+          <a href="/">Inicio</a>
+          <span aria-hidden="true">/</span>
+          <span aria-current="page">{matchedCategory.name}</span>
+        </nav>
 
-      <section class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex items-center justify-between gap-4">
-        <div class="flex items-center gap-4">
-          <div class="w-16 h-16 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center p-2.5 overflow-hidden shrink-0 shadow-2xs">
-            <img 
-              src={matchedCategory.image_url || 'https://admin.traigalo.org/assets/5ce76a26-f596-4b8b-8ad5-e70d04a8aa7f'} 
-              alt={matchedCategory.name}
-              class="w-full h-full object-contain"
-              onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' fill=\'none\' stroke=\'%23FF7A00\' stroke-width=\'2\'><rect width=\'44\' height=\'44\' x=\'2\' y=\'2\' rx=\'8\' fill=\'%23FFF3E0\'/><path d=\'M16 24h16M24 16v16\'/></svg>';"
+        <section class="tg-section acc-cat-head" aria-labelledby="cat-title">
+          <div class="acc-cat-thumb">
+            <img
+              src={matchedCategory.image_url || 'https://admin.traigalo.org/assets/5ce76a26-f596-4b8b-8ad5-e70d04a8aa7f'}
+              alt=""
+              width="72"
+              height="72"
+              onerror="this.onerror=null; this.classList.add('is-broken');"
             />
           </div>
-          <div>
-            <h1 class="text-xl sm:text-2xl font-black text-gray-900 leading-tight">{matchedCategory.name}</h1>
-            <p class="text-xs text-gray-400 mt-0.5">Tienda aliada: <strong class="text-gray-700">{targetStore.name}</strong> • {products.length} productos disponibles</p>
+          <div class="acc-cat-text">
+            <h1 id="cat-title" class="acc-title">{matchedCategory.name}</h1>
+            <p>{products.length} productos de <strong>{targetStore?.name}</strong></p>
           </div>
-        </div>
+          {targetStore && (
+            <a href={`/stores/${targetStore.id}`} class="tg-btn tg-btn--quiet tg-btn--sm">Visitar la tienda</a>
+          )}
+        </section>
 
-        <a 
-          href={`/stores/${targetStore.id}`}
-          class="shrink-0 px-4 py-2.5 rounded-2xl bg-orange-50 hover:bg-orange-100 text-[#FF7A00] text-xs font-black transition-all"
-        >
-          Visitar Tienda →
-        </a>
-      </section>
+        <nav class="acc-cat-nav no-scrollbar" aria-label="Otras categorías">
+          {categories.slice(0, 10).map((cat) => {
+            const isCurrent = cat.slug === slug || cat.id === slug;
+            return (
+              <a
+                href={`/categories/${cat.slug || cat.id}`}
+                class="acc-cat-link"
+                aria-current={isCurrent ? 'page' : undefined}
+              >
+                {cat.name}
+              </a>
+            );
+          })}
+        </nav>
 
-      <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-        {categories.slice(0, 10).map((cat) => {
-          const isCurrent = cat.slug === slug || cat.id === slug;
-          return (
-            <a 
-              href={`/categories/${cat.slug || cat.id}`}
-              class={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-black transition-all ${
-                isCurrent 
-                  ? 'bg-[#FF7A00] text-white shadow-md shadow-orange-600/20' 
-                  : 'bg-white text-gray-700 border border-gray-100 hover:border-gray-200 shadow-2xs'
-              }`}
-            >
-              <span>{cat.name}</span>
-            </a>
-          );
-        })}
-      </div>
-
-      <section>
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-5">
-          {products.map((p) => (
-            <div class="bg-white rounded-3xl p-3.5 sm:p-4 border border-gray-100 shadow-sm flex flex-col justify-between group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
-              <div class="relative w-full aspect-square rounded-2xl bg-[#F8F9FA] overflow-hidden mb-3 flex items-center justify-center p-3">
-                <img 
-                  src={p.image} 
-                  alt={p.name}
-                  loading="lazy"
-                  class="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300"
-                  onerror={`this.onerror=null; this.src='${FALLBACK_PRODUCT_IMAGE}';`}
-                />
-              </div>
-
-              <div>
-                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider truncate">{p.storeName}</p>
-                <h3 class="text-xs sm:text-sm font-extrabold text-gray-900 line-clamp-2 leading-snug mt-1 min-h-[2.5rem]">
-                  {p.name}
-                </h3>
-              </div>
-
-              <div class="flex items-center justify-between mt-3 pt-2.5 border-t border-gray-50">
-                <div class="flex flex-col">
-                  <span class="text-sm sm:text-base font-black text-gray-950">${p.price.toFixed(2)}</span>
-                  <span class="text-[9px] text-gray-400 font-semibold">{p.priceBs}</span>
-                </div>
-                <a 
-                  href={`/stores/${p.storeId}`}
-                  class="w-9 h-9 rounded-full bg-[#FF7A00] hover:bg-[#E66E00] text-white flex items-center justify-center shadow-md shadow-orange-500/25 active:scale-90 transition-all font-black text-lg"
-                >
-                  +
-                </a>
+        <section class="tg-section" aria-label="Productos">
+          {products.length === 0 ? (
+            <div class="tg-empty">
+              <h3>No hay productos en esta categoría por ahora</h3>
+              <p>Prueba con otra categoría o vuelve más tarde.</p>
+              <div class="tg-empty-actions">
+                <a href="/" class="tg-btn tg-btn--primary tg-btn--sm">Volver al inicio</a>
               </div>
             </div>
-          ))}
-        </div>
-      </section>
+          ) : (
+            <div class="tg-products">
+              {products.map((p) => (
+                <div class="product-item">
+                  <div class="tg-product-img">
+                    <img src={p.image} alt={p.name} width="300" height="300" loading="lazy" decoding="async" onerror="this.onerror=null; this.classList.add('is-broken');" />
+                  </div>
+                  <div>
+                    <div class="tg-product-store"><span>{p.storeName}</span></div>
+                    <h3 class="tg-product-name">{p.name}</h3>
+                  </div>
+                  <div class="tg-product-buy">
+                    <div>
+                      <span class="tg-price">${p.price.toFixed(2)}</span>
+                      <span class="tg-price-bs">{p.priceBs}</span>
+                    </div>
+                    <a href={`/stores/${p.storeId}`} class="btn-home-add" aria-label={`Ver ${p.name} en la tienda`}>+</a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
 
-    </main>
-
-    <Footer />
-    <BottomNav />
+      <Footer />
+      <BottomNav />
+    </div>
   </body>
 </html>
