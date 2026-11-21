@@ -286,3 +286,8 @@
   .landing-module:active,
   .landing-join-card:hover { transform: none; }
 }
+.landing-world { --sw-bg: #FAF6EF; --sw-ink: var(--color-ink); --sw-ink-soft: var(--color-muted); --sw-accent: var(--color-accent); --sw-font-display: var(--font-display); --sw-font-body: var(--font-body); }
+.landing-world :is(.sw-sky, .sw-scrollbar, .sw-topbar, .sw-stage, .sw-copylayer, .sw-route, .sw-hint) { transition: opacity var(--dur-short) var(--ease-out); }
+.landing-world.is-past :is(.sw-sky, .sw-scrollbar, .sw-topbar, .sw-stage, .sw-copylayer, .sw-route, .sw-hint) { opacity: 0; visibility: hidden; pointer-events: none; }
+.landing-page { position: relative; z-index: var(--z-raised); background: var(--color-paper); }
+@media (prefers-reduced-motion: reduce) { .landing-world :is(.sw-sky, .sw-scrollbar, .sw-topbar, .sw-stage, .sw-copylayer, .sw-route, .sw-hint) { transition: none; } }
