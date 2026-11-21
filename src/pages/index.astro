@@ -6,6 +6,7 @@ import RoleSwitcher from '../components/RoleSwitcher.astro';
 import { getOfficialExchangeRate, formatBs } from '../adapters/rates';
 import { fetchActiveStores } from '../adapters/stores';
 import '../styles/global.css';
+import '../styles/pages/home.css';
 
 const API_BASE = 'https://api.traigalo.org/v2';
 const ASSET_BASE = 'https://admin.traigalo.org/assets';
@@ -151,6 +152,8 @@ const storeVerticals = [
   { key: 'mascotas', title: 'Mascotas', subtitle: buildRubroSubtitle('mascotas', 'Alimentos, collares y salud animal'), badge: doorBadge('mascotas', 'Pronto'), lead: 'Alimento, accesorios y salud para tus mascotas.' }
 ];
 
+const popularStores = [...stores].sort((a, b) => (b.productCount || 0) - (a.productCount || 0));
+
 const categoryCounts: Record<string, number> = { all: allProducts.length };
 for (const p of allProducts) {
   categoryCounts[p.category] = (categoryCounts[p.category] || 0) + 1;
@@ -259,7 +262,7 @@ const curatedCategories = [
           </div>
         </section>
 
-        <section id="store-verticals" class="tg-section" aria-label="Servicios">
+        <section id="store-verticals" class="tg-section tg-switcher" aria-label="Servicios">
           <div class="tg-rubros">
             {storeVerticals.map((v, idx) => (
               <button
@@ -287,77 +290,7 @@ const curatedCategories = [
           </div>
         </section>
 
-        <section id="stores" class="tg-section" aria-labelledby="stores-section-heading">
-          <div class="tg-head">
-            <div>
-              <h2 id="stores-section-heading">Tiendas abiertas cerca de ti</h2>
-              <p id="stores-section-subtitle">Entra a la tienda o mira sus productos en el catálogo.</p>
-            </div>
-            <span id="stores-active-badge" class="tg-filter-pill">{stores.length} abiertas ahora</span>
-          </div>
-
-          <div id="stores-grid" class="tg-stores">
-            {stores.map(store => (
-              <article
-                class="store-item"
-                data-name={store.name.toLowerCase()}
-                data-desc={(store.description || '').toLowerCase()}
-                data-rubro={store.rubroKey}
-                data-store-key={store.id}
-              >
-                <a href={`/stores/${store.id}`} class="tg-store-cover" tabindex="-1" aria-hidden="true">
-                  <img src={store.bannerUrl} alt="" width="640" height="320" loading="lazy" decoding="async" onerror="this.remove()" />
-                  <span class="tg-cover-tag tg-glass">Abierto ahora</span>
-                </a>
-                <div class="tg-store-body">
-                  <div class="tg-store-id">
-                    <img src={store.badgeUrl} alt={`Logo de ${store.name}`} class="tg-store-logo" width="64" height="64" loading="lazy" onerror="this.onerror=null; this.src='/brand-icon.webp';" />
-                    <a href={`/stores/${store.id}`}>
-                      <h3>{store.name}</h3>
-                      <p class="tg-store-desc">{store.verticalLabel}</p>
-                    </a>
-                  </div>
-                  <dl class="tg-store-facts">
-                    <div><dt>Entrega</dt><dd>15 a 25 min</dd></div>
-                    <div><dt>Envío</dt><dd>$1.50</dd></div>
-                    <div><dt>Valoración</dt><dd>4.9</dd></div>
-                    <div><dt>Productos</dt><dd>{store.productCount}</dd></div>
-                  </dl>
-                  <div class="tg-store-actions">
-                    <button
-                      type="button"
-                      data-filter-store={store.id}
-                      data-filter-rubro={store.rubroKey}
-                      class="btn-store-quickfilter tg-btn tg-btn--sm"
-                    >
-                      Ver sus {store.productCount} productos
-                    </button>
-                    <a href={`/stores/${store.id}`} class="tg-btn tg-btn--primary tg-btn--sm">Entrar a la tienda</a>
-                  </div>
-                </div>
-              </article>
-            ))}
-            <div class="tg-sell">
-              <h3>¿Tienes un negocio en Higuerote?</h3>
-              <p>Vende en Traigalo y recibe pedidos con repartidores de la zona.</p>
-              <a href="/vendor" class="tg-btn tg-btn--quiet tg-btn--sm">Registrar mi comercio</a>
-            </div>
-          </div>
-
-          <div id="empty-rubro-stores-card" class="hidden tg-empty">
-            <span id="empty-rubro-icon" hidden></span>
-            <h3 id="empty-rubro-title">Aún no hay comercios abiertos en este rubro en tu zona</h3>
-            <p>En este momento no hay comercios activos en esta categoría en tu zona de entrega. Puedes explorar todos los comercios abiertos o afiliar tu negocio hoy mismo.</p>
-            <div class="tg-empty-actions">
-              <button id="btn-empty-rubro-show-all" type="button" class="tg-btn tg-btn--primary tg-btn--sm">
-                Ver los {stores.length} comercios abiertos
-              </button>
-              <a href="/vendor" class="tg-btn tg-btn--quiet tg-btn--sm">Registrar mi comercio en Traigalo</a>
-            </div>
-          </div>
-        </section>
-
-        <section id="catalog-controls" class="tg-section" aria-labelledby="cats-heading">
+        <section id="catalog-controls" class="tg-section tg-home-cats" aria-labelledby="cats-heading">
           <div class="tg-head">
             <div>
               <h2 id="cats-heading">Explora por categoría</h2>
@@ -395,6 +328,31 @@ const curatedCategories = [
                   <span class="cat-count-label">{c.count} artículos</span>
                 </span>
               </button>
+            ))}
+          </div>
+        </section>
+
+        <section id="popular-stores" class="tg-section" aria-labelledby="popular-heading">
+          <div class="tg-head">
+            <div>
+              <h2 id="popular-heading">Tiendas populares</h2>
+              <p>Las tiendas con más productos disponibles en tu zona.</p>
+            </div>
+          </div>
+          <div class="tg-pop-row" id="popular-stores-row">
+            {popularStores.map((store) => (
+              <a href={`/stores/${store.id}`} class="tg-pop-store" data-rubro={store.rubroKey}>
+                <span class="tg-pop-cover">
+                  <img src={store.bannerUrl} alt="" width="320" height="160" loading="lazy" decoding="async" onerror="this.remove()" />
+                </span>
+                <span class="tg-pop-body">
+                  <img src={store.badgeUrl} alt="" class="tg-pop-logo" width="40" height="40" loading="lazy" onerror="this.onerror=null; this.src='/brand-icon.webp';" />
+                  <span class="tg-pop-text">
+                    <span class="tg-pop-name">{store.name}</span>
+                    <span class="tg-pop-meta">{store.productCount} productos</span>
+                  </span>
+                </span>
+              </a>
             ))}
           </div>
         </section>
@@ -516,6 +474,76 @@ const curatedCategories = [
           </div>
         </section>
 
+        <section id="stores" class="tg-section" aria-labelledby="stores-section-heading">
+          <div class="tg-head">
+            <div>
+              <h2 id="stores-section-heading">Todas las tiendas</h2>
+              <p id="stores-section-subtitle">Entra a la tienda o mira sus productos en el catálogo.</p>
+            </div>
+            <span id="stores-active-badge" class="tg-filter-pill">{stores.length} abiertas ahora</span>
+          </div>
+
+          <div id="stores-grid" class="tg-stores">
+            {stores.map(store => (
+              <article
+                class="store-item"
+                data-name={store.name.toLowerCase()}
+                data-desc={(store.description || '').toLowerCase()}
+                data-rubro={store.rubroKey}
+                data-store-key={store.id}
+              >
+                <a href={`/stores/${store.id}`} class="tg-store-cover" tabindex="-1" aria-hidden="true">
+                  <img src={store.bannerUrl} alt="" width="640" height="320" loading="lazy" decoding="async" onerror="this.remove()" />
+                  <span class="tg-cover-tag tg-glass">Abierto ahora</span>
+                </a>
+                <div class="tg-store-body">
+                  <div class="tg-store-id">
+                    <img src={store.badgeUrl} alt={`Logo de ${store.name}`} class="tg-store-logo" width="64" height="64" loading="lazy" onerror="this.onerror=null; this.src='/brand-icon.webp';" />
+                    <a href={`/stores/${store.id}`}>
+                      <h3>{store.name}</h3>
+                      <p class="tg-store-desc">{store.verticalLabel}</p>
+                    </a>
+                  </div>
+                  <dl class="tg-store-facts">
+                    <div><dt>Entrega</dt><dd>15 a 25 min</dd></div>
+                    <div><dt>Envío</dt><dd>$1.50</dd></div>
+                    <div><dt>Valoración</dt><dd>4.9</dd></div>
+                    <div><dt>Productos</dt><dd>{store.productCount}</dd></div>
+                  </dl>
+                  <div class="tg-store-actions">
+                    <button
+                      type="button"
+                      data-filter-store={store.id}
+                      data-filter-rubro={store.rubroKey}
+                      class="btn-store-quickfilter tg-btn tg-btn--sm"
+                    >
+                      Ver sus {store.productCount} productos
+                    </button>
+                    <a href={`/stores/${store.id}`} class="tg-btn tg-btn--primary tg-btn--sm">Entrar a la tienda</a>
+                  </div>
+                </div>
+              </article>
+            ))}
+            <div class="tg-sell">
+              <h3>¿Tienes un negocio en Higuerote?</h3>
+              <p>Vende en Traigalo y recibe pedidos con repartidores de la zona.</p>
+              <a href="/vendor" class="tg-btn tg-btn--quiet tg-btn--sm">Registrar mi comercio</a>
+            </div>
+          </div>
+
+          <div id="empty-rubro-stores-card" class="hidden tg-empty">
+            <span id="empty-rubro-icon" hidden></span>
+            <h3 id="empty-rubro-title">Aún no hay comercios abiertos en este rubro en tu zona</h3>
+            <p>En este momento no hay comercios activos en esta categoría en tu zona de entrega. Puedes explorar todos los comercios abiertos o afiliar tu negocio hoy mismo.</p>
+            <div class="tg-empty-actions">
+              <button id="btn-empty-rubro-show-all" type="button" class="tg-btn tg-btn--primary tg-btn--sm">
+                Ver los {stores.length} comercios abiertos
+              </button>
+              <a href="/vendor" class="tg-btn tg-btn--quiet tg-btn--sm">Registrar mi comercio en Traigalo</a>
+            </div>
+          </div>
+        </section>
+
       </main>
 
       <div id="home-product-modal" class="tg-modal opacity-0 pointer-events-none" role="dialog" aria-modal="true" aria-labelledby="home-modal-title">
@@ -583,6 +611,35 @@ const curatedCategories = [
 
     <script is:inline define:vars={{ bcvRate }}>
     (() => {
+      try {
+        if (!localStorage.getItem('traigalo_location')) {
+          location.replace('/bienvenida');
+          return;
+        }
+      } catch {}
+
+      window.addEventListener('traigalo:rubro-changed', (e) => {
+        const rubro = e.detail?.rubro || 'all';
+        const popSection = document.getElementById('popular-stores');
+        const popHeading = document.getElementById('popular-heading');
+        const activeDoor = document.querySelector(`.rubro-card[data-rubro-filter="${rubro}"]`);
+        const doorTitle = activeDoor ? activeDoor.getAttribute('data-rubro-title') : '';
+        let visiblePop = 0;
+        document.querySelectorAll('.tg-pop-store').forEach((el) => {
+          const show = rubro === 'all' || el.getAttribute('data-rubro') === rubro;
+          el.classList.toggle('hidden', !show);
+          if (show) visiblePop++;
+        });
+        if (popHeading) popHeading.textContent = rubro === 'all' ? 'Tiendas populares' : `Tiendas en ${doorTitle}`;
+        if (popSection) popSection.classList.toggle('hidden', visiblePop === 0);
+        try {
+          const url = new URL(window.location.href);
+          if (rubro === 'all') url.searchParams.delete('rubro');
+          else url.searchParams.set('rubro', rubro);
+          history.replaceState(history.state, '', url.toString());
+        } catch {}
+      });
+
       const CART_STORAGE_KEY = 'traigalo_cart';
       let currentRubro = 'all';
       let currentFilterCategory = 'all';

@@ -1,0 +1,181 @@
+---
+import '../styles/global.css';
+import '../styles/pages/landing.css';
+import Logo from '../components/Logo.astro';
+import LocationModal from '../components/LocationModal.astro';
+import Footer from '../components/Footer.astro';
+import { fetchActiveStores } from '../adapters/stores';
+
+const stores = await fetchActiveStores();
+const storeCount = stores.length;
+const moduleCount = new Set(stores.map((store) => store.rubroKey)).size;
+const hasFigures = storeCount > 0;
+
+const modules = [
+  { label: 'Comida', href: '/?rubro=restaurantes', tone: 'food', icon: 'M4 3v8a3 3 0 0 0 3 3v7M7 3v6M10 3v8a3 3 0 0 1-3 3M17 3c-2 0-3 2-3 5v5h3v8' },
+  { label: 'Mercado', href: '/?rubro=supermercados', tone: 'market', icon: 'M3 4h2l2.4 11h11L21 7H6.2M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm9 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z' },
+  { label: 'Farmacia', href: '/?rubro=farmacias', tone: 'pharmacy', icon: 'M12 5v14M5 12h14M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Z' },
+  { label: 'Tecnología', href: '/?rubro=tecnologia', tone: 'shop', icon: 'M4 5h16v11H4zM2 19h20M9 16v3M15 16v3' },
+  { label: 'Belleza', href: '/?rubro=barberia', tone: 'beauty', icon: 'M6 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm0 12a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm2.1-7.9L20 19M8.1 16.9 20 5' },
+  { label: 'Mascotas', href: '/?rubro=mascotas', tone: 'pets', icon: 'M12 13c-3 0-6 3-6 5.5S8 21 12 21s6-.5 6-2.5S15 13 12 13ZM5 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm14 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM9 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm6 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z' },
+  { label: 'Envíos y taxi', href: '/rides', tone: 'ride', icon: 'M5 17h14M6 17l1.5-6h9L18 17M7 17v2M17 17v2M9 11l1-3h4l1 3M8 14h.01M16 14h.01' }
+];
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#FF5A00" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bienvenido | Traigalo</title>
+    <meta name="description" content="Comida, mercado, farmacia y más tiendas de Higuerote en una sola app, con entrega a tu puerta." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div class="tg-page landing-page">
+      <div class="tg-aura" aria-hidden="true"></div>
+
+      <header class="landing-top tg-wrap">
+        <Logo size="sm" />
+        <a href="/login" class="landing-top-link">Iniciar sesión</a>
+      </header>
+
+      <main>
+        <section class="landing-hero tg-wrap" aria-labelledby="landing-title">
+          <div class="landing-hero-copy">
+            <h1 id="landing-title" class="landing-title">Todo lo que necesitas, a tu puerta</h1>
+            <p class="landing-lead">Pide en las tiendas de Higuerote desde una sola app y recibe tu pedido donde estés.</p>
+
+            <button type="button" id="landing-location-trigger" class="landing-location tg-glass">
+              <span class="landing-location-icon" aria-hidden="true">
+                <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11Z" /><circle cx="12" cy="10" r="2.5" stroke-width="2" /></svg>
+              </span>
+              <span class="landing-location-text">
+                <span class="landing-location-label">Dirección de entrega</span>
+                <span class="landing-location-hint">Elige dónde recibir tu pedido</span>
+              </span>
+              <span class="landing-location-cta">
+                <span>Fijar ubicación</span>
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M13 6l6 6-6 6" /></svg>
+              </span>
+            </button>
+
+            <a href="/" id="landing-continue" class="landing-continue" hidden>
+              <span>Seguir comprando en <strong id="landing-continue-address"></strong></span>
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M9 6l6 6-6 6" /></svg>
+            </a>
+          </div>
+
+          <div class="landing-hero-art" aria-hidden="true">
+            <img src="/brand-icon.webp" alt="" width="320" height="320" loading="eager" decoding="async" />
+          </div>
+        </section>
+
+        <section class="landing-section tg-wrap" aria-labelledby="landing-modules-title">
+          <h2 id="landing-modules-title" class="landing-heading">¿Qué quieres pedir hoy?</h2>
+          <ul class="landing-modules">
+            {modules.map((mod) => (
+              <li>
+                <a href={mod.href} class="landing-module" data-tone={mod.tone}>
+                  <span class="landing-module-icon" aria-hidden="true">
+                    <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d={mod.icon} /></svg>
+                  </span>
+                  <span class="landing-module-label">{mod.label}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {hasFigures && (
+          <section class="landing-section tg-wrap" aria-labelledby="landing-figures-title">
+            <h2 id="landing-figures-title" class="landing-heading">Traigalo hoy</h2>
+            <dl class="landing-figures">
+              <div class="landing-figure">
+                <dt>Tiendas activas</dt>
+                <dd>{storeCount}</dd>
+              </div>
+              <div class="landing-figure">
+                <dt>Categorías con tiendas</dt>
+                <dd>{moduleCount}</dd>
+              </div>
+            </dl>
+          </section>
+        )}
+
+        <section class="landing-section tg-wrap" aria-labelledby="landing-zone-title">
+          <div class="landing-zone">
+            <span class="landing-zone-icon" aria-hidden="true">
+              <svg width="26" height="26" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Zm0 0v14m6-12v14" /></svg>
+            </span>
+            <div>
+              <h2 id="landing-zone-title" class="landing-heading">Dónde entregamos</h2>
+              <p class="landing-zone-text">Higuerote y sus alrededores, en Barlovento, estado Miranda.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="landing-section tg-wrap" aria-labelledby="landing-join-title">
+          <h2 id="landing-join-title" class="landing-heading">Crece con Traigalo</h2>
+          <div class="landing-join">
+            <a href="/register" class="landing-join-card">
+              <span class="landing-join-icon" aria-hidden="true">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 10h16l-1-5H5l-1 5Zm0 0v10h16V10M9 20v-5h6v5" /></svg>
+              </span>
+              <span class="landing-join-title">Vende en Traigalo</span>
+              <span class="landing-join-text">Registra tu comercio y recibe pedidos de clientes de la zona.</span>
+              <span class="landing-join-cta">Registrar comercio</span>
+            </a>
+            <a href="/register" class="landing-join-card">
+              <span class="landing-join-icon" aria-hidden="true">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="6" cy="17" r="3" stroke-width="2" /><circle cx="18" cy="17" r="3" stroke-width="2" /><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M6 17l4-8h5l3 8M14 5h3" /></svg>
+              </span>
+              <span class="landing-join-title">Reparte con Traigalo</span>
+              <span class="landing-join-text">Únete como repartidor y genera ingresos con tu propio horario.</span>
+              <span class="landing-join-cta">Quiero repartir</span>
+            </a>
+          </div>
+        </section>
+      </main>
+
+      <Footer />
+    </div>
+
+    <LocationModal />
+
+    <script is:inline>
+      (function () {
+        var trigger = document.getElementById('landing-location-trigger');
+        var cont = document.getElementById('landing-continue');
+        var contAddress = document.getElementById('landing-continue-address');
+
+        function readStorage(key) {
+          try { return localStorage.getItem(key); } catch (error) { return null; }
+        }
+
+        if (readStorage('traigalo_location')) {
+          var address = readStorage('traigalo_address');
+          contAddress.textContent = address && address.trim() ? address : 'tu ubicación guardada';
+          cont.hidden = false;
+        }
+
+        trigger.addEventListener('click', function () {
+          if (typeof window.openLocationModal === 'function') {
+            window.openLocationModal();
+          } else {
+            window.location.href = '/';
+          }
+        });
+
+        window.addEventListener('traigalo:location-changed', function () {
+          window.location.href = '/';
+        });
+      })();
+    </script>
+  </body>
+</html>
