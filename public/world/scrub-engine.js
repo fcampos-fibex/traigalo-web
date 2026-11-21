@@ -160,7 +160,7 @@ function mountScrollWorld(container, config) {
   SECTIONS.forEach((s, i) => {
     const c = el('article', 'sw-copy'); c.style.setProperty('--sw-accent', s.accent || '');
     c.innerHTML =
-      `<span class="sw-copy__num">${pad(i + 1)} / ${pad(N)}</span>` +
+      
       (s.eyebrow ? `<span class="sw-copy__eyebrow">${esc(s.eyebrow)}</span>` : '') +
       (s.title ? `<h2 class="sw-copy__title">${esc(s.title)}</h2>` : '') +
       (s.body ? `<p class="sw-copy__body">${esc(s.body)}</p>` : '') +
