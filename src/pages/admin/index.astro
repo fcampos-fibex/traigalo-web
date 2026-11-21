@@ -1,5 +1,6 @@
 ---
 import "../../styles/global.css";
+import "../../styles/pages/admin.css";
 import RoleSwitcher from "../../components/RoleSwitcher.astro";
 import { getOfficialExchangeRate, formatBs } from "../../adapters/rates";
 
@@ -38,6 +39,8 @@ const liveIncidents = [
   { id: "INC-102", type: "Retraso Tráfico", orderId: "TRG-7809", driver: "Manuel Díaz", time: "Hace 5m", severity: "medium" },
   { id: "INC-101", type: "Rechazo de Repartidor", orderId: "TRG-7811", driver: "Auto-reasignando", time: "Hace 8m", severity: "high" }
 ];
+const usd = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const sortedIncidents = [...liveIncidents].sort((a, b) => (a.severity === "high" ? -1 : 0) - (b.severity === "high" ? -1 : 0));
 ---
 
 <!doctype html>
@@ -47,131 +50,109 @@ const liveIncidents = [
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#FF5A00" />
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Traigalo Ops | Centro de Comando</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   </head>
-  <body class="bg-[#0D1117] text-[#E6EDF3] font-['Plus_Jakarta_Sans',sans-serif] antialiased selection:bg-[#FF7A00] selection:text-white pb-28">
+  <body class="adm-body">
     <RoleSwitcher currentRole="admin" />
 
-    <header class="sticky top-0 z-30 bg-[#161B22]/90 backdrop-blur-md border-b border-gray-800 px-5 py-4">
-      <div class="max-w-md mx-auto flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#FF7A00] to-rose-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-          </div>
+    <header class="adm-bar tg-glass">
+      <div class="adm-bar-inner">
+        <div class="adm-brand">
+          <span class="adm-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+          </span>
           <div>
-            <div class="flex items-center gap-2">
-              <h1 class="text-sm font-black tracking-wide text-white uppercase">Traigalo Control Center</h1>
-              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-            </div>
-            <p class="text-[11px] text-gray-400 font-mono">Cluster: us-east-1 • Swarm v2</p>
+            <h1 class="adm-title">Traigalo control center <span class="adm-live" aria-label="En línea"></span></h1>
+            <p class="adm-meta">Cluster: us-east-1 · Swarm v2</p>
           </div>
         </div>
-
-        <a 
-          href={DIRECTUS_URL} 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          class="px-3 py-1.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-xs font-bold text-gray-200 border border-gray-700 flex items-center gap-1.5 transition-all"
-        >
+        <a href={DIRECTUS_URL} target="_blank" rel="noopener noreferrer" class="tg-btn tg-btn--quiet tg-btn--sm adm-ext">
           <span>Directus CMS</span>
-          <svg class="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-          </svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
         </a>
       </div>
     </header>
 
-    <main class="max-w-md mx-auto px-5 pt-4 space-y-4">
-      <div class="bg-gradient-to-br from-[#1F242C] to-[#161B22] rounded-3xl p-5 border border-gray-800 shadow-xl relative overflow-hidden">
-        <div class="flex items-center justify-between pb-3 border-b border-gray-800/80">
-          <span class="text-xs font-bold uppercase tracking-wider text-gray-400">Volumen Bruto (GMV Hoy)</span>
-          <span class="text-xs font-black text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded-lg">Tasa: {bcvRate.toFixed(2)} Bs/$</span>
+    <main class="adm-main">
+      <section class="adm-panel adm-alerts" aria-labelledby="adm-alerts-title">
+        <div class="adm-panel-head">
+          <h2 id="adm-alerts-title" class="adm-panel-title"><span class="adm-dot adm-dot--error" aria-hidden="true"></span>Alertas de telemetría y SLA</h2>
+          <span class="adm-badge adm-badge--error">{liveIncidents.length} activas</span>
         </div>
-        <div class="mt-3 flex flex-col justify-between">
-          <span class="text-3xl font-black text-white">${totalGMV_USD.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-          <span class="text-xs text-emerald-400 font-bold mt-1">{totalGMV_BS}</span>
-        </div>
-        <div class="mt-3 pt-3 border-t border-gray-800 flex justify-between text-xs text-gray-400">
-          <span>Órdenes Registradas: <strong class="text-white">{orders.length}</strong></span>
-          <span>Entregadas: <strong class="text-white">{deliveredOrders}</strong></span>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-3 gap-3">
-        <div class="bg-[#161B22] rounded-2xl p-3 border border-gray-800 text-center">
-          <span class="text-[10px] font-bold text-gray-400 uppercase">En Despacho</span>
-          <p class="text-xl font-black text-white mt-0.5">{activeOrders}</p>
-          <span class="text-[10px] text-[#FF7A00] font-semibold">En tiempo real</span>
-        </div>
-        <div class="bg-[#161B22] rounded-2xl p-3 border border-gray-800 text-center">
-          <span class="text-[10px] font-bold text-gray-400 uppercase">Repartidores</span>
-          <p class="text-xl font-black text-emerald-400 mt-0.5">{liveDriversCount}</p>
-          <span class="text-[10px] text-gray-400 font-semibold">Redis GEO</span>
-        </div>
-        <div class="bg-[#161B22] rounded-2xl p-3 border border-gray-800 text-center">
-          <span class="text-[10px] font-bold text-gray-400 uppercase">Comercios</span>
-          <p class="text-xl font-black text-white mt-0.5">{totalStoresCount}</p>
-          <span class="text-[10px] text-emerald-400 font-semibold">100% online</span>
-        </div>
-      </div>
-
-      <div class="bg-[#161B22] rounded-3xl p-5 border border-gray-800 space-y-3">
-        <div class="flex items-center justify-between">
-          <h3 class="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-            Alertas de Telemetría y SLA
-          </h3>
-          <span class="text-[10px] font-bold bg-rose-950 text-rose-400 px-2 py-0.5 rounded-full border border-rose-800/60">2 activas</span>
-        </div>
-
-        <div class="space-y-2">
-          {liveIncidents.map((inc) => (
-            <div class="p-3 rounded-2xl bg-[#0D1117] border border-gray-800/80 flex items-center justify-between">
-              <div class="space-y-0.5">
-                <div class="flex items-center gap-2">
-                  <span class="text-xs font-bold text-white">{inc.orderId}</span>
-                  <span class={`text-[10px] font-bold px-1.5 py-0.2 rounded ${inc.severity === 'high' ? 'bg-rose-900/60 text-rose-300' : 'bg-amber-900/60 text-amber-300'}`}>
-                    {inc.type}
-                  </span>
+        <ul class="adm-incidents">
+          {sortedIncidents.map((inc) => (
+            <li class={`adm-incident adm-incident--${inc.severity}`}>
+              <div class="adm-incident-body">
+                <div class="adm-incident-top">
+                  <span class="adm-mono adm-strong">{inc.orderId}</span>
+                  <span class={`adm-badge ${inc.severity === 'high' ? 'adm-badge--error' : 'adm-badge--warn'}`}>{inc.type}</span>
                 </div>
-                <p class="text-[11px] text-gray-400">{inc.driver} • <span class="text-gray-500">{inc.time}</span></p>
+                <p class="adm-sub">{inc.driver} · <span class="adm-faint">{inc.time}</span></p>
               </div>
-              <button class="px-3 py-1.5 bg-[#FF7A00] hover:bg-[#E66E00] text-white text-[11px] font-extrabold rounded-xl shadow-sm">
-                Intervenir
-              </button>
-            </div>
+              <button type="button" class="tg-btn tg-btn--primary tg-btn--sm">Intervenir</button>
+            </li>
           ))}
-        </div>
-      </div>
+        </ul>
+      </section>
 
-      <div class="bg-[#161B22] rounded-3xl p-5 border border-gray-800 space-y-3">
-        <h3 class="text-xs font-extrabold text-white uppercase tracking-wider">Comercios Aliados en Vivo</h3>
-        <div class="space-y-2.5">
-          {stores.map((store, idx) => (
-            <div class="flex items-center justify-between p-3 rounded-2xl bg-[#0D1117] border border-gray-800/60">
-              <div class="flex items-center gap-3">
-                <span class="w-6 h-6 rounded-lg bg-gray-800 text-gray-300 text-xs font-black flex items-center justify-center font-mono">
-                  0{idx + 1}
-                </span>
-                <div>
-                  <p class="text-xs font-bold text-white">{store.name}</p>
-                  <p class="text-[11px] text-gray-400 truncate max-w-[200px]">{store.address_line || 'Caracas, Venezuela'}</p>
-                </div>
-              </div>
-              <div class="flex items-center gap-1.5 text-xs font-extrabold text-emerald-400">
-                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span>Activo</span>
-              </div>
-            </div>
-          ))}
+      <section class="adm-panel adm-gmv" aria-labelledby="adm-gmv-title">
+        <div class="adm-panel-head">
+          <h2 id="adm-gmv-title" class="adm-label">Volumen bruto (GMV hoy)</h2>
+          <span class="adm-badge adm-badge--success adm-num">Tasa: {bcvRate.toFixed(2)} Bs/$</span>
         </div>
-      </div>
+        <p class="adm-gmv-usd adm-num">${usd(totalGMV_USD)}</p>
+        <p class="adm-gmv-bs adm-num">{totalGMV_BS}</p>
+        <dl class="adm-gmv-foot">
+          <div><dt>Órdenes registradas</dt><dd class="adm-num">{orders.length}</dd></div>
+          <div><dt>Entregadas</dt><dd class="adm-num">{deliveredOrders}</dd></div>
+        </dl>
+      </section>
+
+      <section class="adm-kpis" aria-label="Indicadores">
+        <div class="adm-kpi">
+          <span class="adm-label">En despacho</span>
+          <p class="adm-kpi-value adm-num">{activeOrders}</p>
+          <span class="adm-kpi-note adm-kpi-note--accent">En tiempo real</span>
+        </div>
+        <div class="adm-kpi">
+          <span class="adm-label">Repartidores</span>
+          <p class="adm-kpi-value adm-kpi-value--success adm-num">{liveDriversCount}</p>
+          <span class="adm-kpi-note">Redis GEO</span>
+        </div>
+        <div class="adm-kpi">
+          <span class="adm-label">Comercios</span>
+          <p class="adm-kpi-value adm-num">{totalStoresCount}</p>
+          <span class="adm-kpi-note adm-kpi-note--success">100% online</span>
+        </div>
+      </section>
+
+      <section class="adm-panel" aria-labelledby="adm-stores-title">
+        <div class="adm-panel-head">
+          <h2 id="adm-stores-title" class="adm-panel-title">Comercios aliados en vivo</h2>
+          <span class="adm-badge adm-num">{totalStoresCount}</span>
+        </div>
+        <div class="adm-table-wrap">
+          <table class="adm-table">
+            <thead>
+              <tr><th scope="col">#</th><th scope="col">Comercio</th><th scope="col">Dirección</th><th scope="col">Estado</th></tr>
+            </thead>
+            <tbody>
+              {stores.map((store, idx) => (
+                <tr>
+                  <td class="adm-mono adm-num adm-faint">0{idx + 1}</td>
+                  <td class="adm-strong">{store.name}</td>
+                  <td class="adm-sub adm-addr">{store.address_line || 'Caracas, Venezuela'}</td>
+                  <td><span class="adm-status"><span class="adm-dot adm-dot--success" aria-hidden="true"></span>Activo</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </main>
   </body>
 </html>

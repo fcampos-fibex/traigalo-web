@@ -1,5 +1,6 @@
 ---
 import "../../styles/global.css";
+import "../../styles/pages/vendor.css";
 import RoleSwitcher from "../../components/RoleSwitcher.astro";
 import { getOfficialExchangeRate, formatBs } from "../../adapters/rates";
 import { fetchActiveStores } from "../../adapters/stores";
@@ -107,132 +108,124 @@ function formatPaymentMethod(pm: string): string {
     <meta name="theme-color" content="#FF5A00" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>{currentStore.name} | Portal Comercio Traigalo ⚡</title>
+    <title>{currentStore.name} | Portal comercio Traigalo</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   </head>
-  <body class="bg-[#F8F9FA] text-[#121212] font-['Plus_Jakarta_Sans',sans-serif] antialiased selection:bg-[#FF7A00] selection:text-white pb-28">
+  <body class="vd-body">
     <RoleSwitcher currentRole="vendor" />
 
-    <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-100 px-5 py-4">
-      <div class="max-w-xl mx-auto space-y-3">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <a href={`/stores/${currentStore.id}`} class="w-12 h-12 rounded-2xl overflow-hidden border border-gray-200 shadow-xs shrink-0">
-              <img src={storeLogo} alt={currentStore.name} class="w-full h-full object-cover" />
-            </a>
-            <div>
-              <div class="flex items-center gap-1.5">
-                <h1 class="text-base font-extrabold text-gray-900 leading-tight">{currentStore.name}</h1>
-                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              </div>
-              <p class="text-xs text-gray-500 font-medium">Comercio Verificado • <span class="font-mono text-gray-700">#{currentStore.id.slice(0, 8)}</span></p>
+    <header class="vd-top tg-glass">
+      <div class="vd-top-inner">
+        <div class="vd-identity">
+          <a href={`/stores/${currentStore.id}`} class="vd-logo">
+            <img src={storeLogo} alt={currentStore.name} width="48" height="48" />
+          </a>
+          <div class="vd-identity-text">
+            <div class="vd-name-row">
+              <h1 class="vd-name">{currentStore.name}</h1>
+              <span class="vd-live" aria-hidden="true"></span>
             </div>
-          </div>
-
-          <div class="flex items-center gap-3">
-            <div class="text-right hidden sm:block">
-              <span class="text-[10px] text-gray-400 block font-semibold">Tasa BCV</span>
-              <span class="text-xs font-black text-gray-800">{bcvRate.toFixed(2)} Bs/$</span>
-            </div>
-            <label class="relative inline-flex items-center cursor-pointer" title="Estado de Tienda">
-              <input type="checkbox" checked class="sr-only peer" id="store-toggle">
-              <div class="w-12 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-            </label>
+            <p class="vd-meta">Comercio verificado · <span class="vd-mono">#{currentStore.id.slice(0, 8)}</span></p>
           </div>
         </div>
 
-        {stores.length > 1 && (
-          <div class="flex items-center gap-2 pt-1">
-            {stores.map((st) => (
-              <a
-                href={`/vendor?store_id=${st.id}`}
-                class={`flex-1 text-center py-2 px-3 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 ${
-                  st.id === currentStore.id
-                    ? "bg-[#FF7A00] text-white shadow-sm"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                <img src={st.logo_url || "/brand-icon.webp"} alt="" class="w-4 h-4 rounded-full object-cover" />
-                <span>{st.name}</span>
-              </a>
-            ))}
+        <div class="vd-top-tools">
+          <div class="vd-rate">
+            <span class="vd-rate-label">Tasa BCV</span>
+            <span class="vd-rate-value">{bcvRate.toFixed(2)} Bs/$</span>
           </div>
-        )}
+          <label class="vd-switch" title="Estado de tienda">
+            <input type="checkbox" checked class="vd-switch-input" id="store-toggle" aria-label="Tienda abierta">
+            <span class="vd-switch-track" aria-hidden="true"></span>
+          </label>
+        </div>
       </div>
+
+      {stores.length > 1 && (
+        <nav class="vd-stores" aria-label="Tus tiendas">
+          {stores.map((st) => (
+            <a
+              href={`/vendor?store_id=${st.id}`}
+              class={`vd-store-tab ${st.id === currentStore.id ? "is-active" : ""}`}
+              aria-current={st.id === currentStore.id ? "page" : undefined}
+            >
+              <img src={st.logo_url || "/brand-icon.webp"} alt="" width="16" height="16" />
+              <span>{st.name}</span>
+            </a>
+          ))}
+        </nav>
+      )}
     </header>
 
-    <main class="max-w-xl mx-auto px-5 pt-4 space-y-5">
-      <div id="incoming-order-alert" class="hidden p-4 rounded-3xl bg-[#FF7A00] text-white shadow-xl shadow-orange-600/30 animate-pulse flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <span class="text-2xl animate-bounce">🔔</span>
+    <main class="vd-main">
+      <div id="incoming-order-alert" class="vd-alert hidden" role="status">
+        <div class="vd-alert-body">
+          <svg class="vd-alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
           <div>
-            <h4 class="text-xs font-black uppercase tracking-wider">¡Nueva Orden Entrante!</h4>
-            <p class="text-[11px] text-white/90 font-medium">Tienes pedidos pendientes por preparar y despachar</p>
+            <h4 class="vd-alert-title">Nueva orden entrante</h4>
+            <p class="vd-alert-text">Tienes pedidos pendientes por preparar y despachar</p>
           </div>
         </div>
-        <button id="btn-silence-alert" class="px-3 py-1.5 rounded-xl bg-white text-[#FF7A00] font-black text-xs active:scale-95 shadow-sm cursor-pointer">
-          Atender
-        </button>
+        <button id="btn-silence-alert" class="vd-alert-btn" type="button">Atender</button>
       </div>
 
-      <div class="grid grid-cols-3 gap-3">
-        <div class="bg-white rounded-2xl p-3.5 border border-gray-100 shadow-sm text-center">
-          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Ventas USD</p>
-          <p class="text-lg font-black text-gray-900 mt-0.5">${todayGmvUSD.toFixed(2)}</p>
-          <span class="text-[9px] font-semibold text-gray-500 block truncate">{todayGmvBs}</span>
+      <section class="vd-stats" aria-label="Resumen">
+        <div class="vd-stat vd-stat--lead">
+          <p class="vd-stat-label">Ventas USD</p>
+          <p class="vd-stat-value">${todayGmvUSD.toFixed(2)}</p>
+          <span class="vd-stat-sub">{todayGmvBs}</span>
         </div>
-        <div class="bg-white rounded-2xl p-3.5 border border-gray-100 shadow-sm text-center">
-          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Órdenes</p>
-          <p class="text-lg font-black text-gray-900 mt-0.5">{totalOrdersCount}</p>
-          <span class="text-[10px] font-semibold text-emerald-600">De esta tienda</span>
+        <div class="vd-stat">
+          <p class="vd-stat-label">Órdenes</p>
+          <p class="vd-stat-value">{totalOrdersCount}</p>
+          <span class="vd-stat-sub">De esta tienda</span>
         </div>
-        <div class="bg-white rounded-2xl p-3.5 border border-gray-100 shadow-sm text-center">
-          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Catálogo</p>
-          <p class="text-lg font-black text-gray-900 mt-0.5">{storeProducts.length}</p>
-          <span class="text-[10px] font-semibold text-gray-500">Artículos</span>
+        <div class="vd-stat">
+          <p class="vd-stat-label">Catálogo</p>
+          <p class="vd-stat-value">{storeProducts.length}</p>
+          <span class="vd-stat-sub">Artículos</span>
         </div>
-      </div>
+      </section>
 
-      <div class="space-y-3">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <h2 class="text-base font-extrabold text-gray-900">Órdenes de {currentStore.name}</h2>
-            <span id="order-count-badge" class="bg-[#FF7A00] text-white text-[11px] font-black px-2 py-0.5 rounded-full">{storeOrders.length}</span>
+      <div class="vd-columns">
+      <section class="vd-orders" aria-labelledby="vd-orders-title">
+        <div class="vd-section-head">
+          <div class="vd-section-title">
+            <h2 id="vd-orders-title">Órdenes de {currentStore.name}</h2>
+            <span id="order-count-badge" class="vd-badge">{storeOrders.length}</span>
           </div>
-          <button id="refresh-orders-btn" class="text-xs font-bold text-[#FF7A00] hover:underline flex items-center gap-1 cursor-pointer">
-            <span>🔄</span>
+          <button id="refresh-orders-btn" class="vd-link-btn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
             <span>Actualizar</span>
           </button>
         </div>
 
-        <div id="orders-container" class="space-y-3">
+        <div id="orders-container" class="vd-order-list">
           {storeOrders.length === 0 ? (
-            <div class="bg-white rounded-3xl p-8 text-center border border-gray-100 shadow-sm space-y-2">
-              <span class="text-3xl block">📦</span>
-              <h3 class="text-sm font-black text-gray-900">Sin órdenes pendientes para {currentStore.name}</h3>
-              <p class="text-xs text-gray-400 max-w-xs mx-auto">
+            <div class="vd-empty">
+              <svg class="vd-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v8"/></svg>
+              <h3 class="vd-empty-title">Sin órdenes pendientes para {currentStore.name}</h3>
+              <p class="vd-empty-text">
                 Las órdenes creadas por clientes para <strong>{currentStore.name}</strong> aparecerán aquí en tiempo real con su detalle de productos.
               </p>
-              <div class="pt-2">
-                <a href={`/stores/${currentStore.id}`} class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-50 text-[#FF7A00] text-xs font-black hover:bg-orange-100 transition-colors">
-                  <span>Ver Vitrine de {currentStore.name}</span>
-                  <span>→</span>
-                </a>
-              </div>
+              <a href={`/stores/${currentStore.id}`} class="vd-empty-link">
+                <span>Ver vitrina de {currentStore.name}</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+              </a>
             </div>
           ) : (
             storeOrders.map((order) => {
               const totalUSD = Number(order.total) || 0;
               const totalBsFormatted = formatBs(totalUSD, bcvRate);
-              const statusLabel = 
-                order.status === 'placed' ? 'Nuevo Pedido' :
+              const statusLabel =
+                order.status === 'placed' ? 'Nuevo pedido' :
                 order.status === 'accepted_by_store' ? 'Aceptado' :
-                order.status === 'preparing' ? 'Preparando Pedido' :
-                order.status === 'ready_for_pickup' ? 'Listo p/ Despacho' :
-                order.status === 'driver_assigned' ? 'Repartidor Asignado' :
-                order.status === 'driver_in_transit' || order.status === 'in_transit' ? 'En Camino' :
+                order.status === 'preparing' ? 'Preparando pedido' :
+                order.status === 'ready_for_pickup' ? 'Listo p/ despacho' :
+                order.status === 'driver_assigned' ? 'Repartidor asignado' :
+                order.status === 'driver_in_transit' || order.status === 'in_transit' ? 'En camino' :
                 order.status === 'delivered' ? 'Entregado' : order.status;
 
               const isIncoming = order.status === 'placed';
@@ -241,168 +234,135 @@ function formatPaymentMethod(pm: string): string {
               const isReady = order.status === 'ready_for_pickup';
               const isPaid = order.payment_status === 'paid';
               const orderItems = Array.isArray(order.items) ? order.items : [];
+              const tone = isIncoming ? 'new' : (isAccepted || isPreparing) ? 'work' : isReady ? 'ready' : 'idle';
 
               return (
-                <div class={`bg-white rounded-3xl p-4 border transition-all ${
-                  isIncoming 
-                    ? 'border-orange-300 shadow-lg shadow-orange-500/10 ring-2 ring-orange-500/20' 
-                    : 'border-gray-100 shadow-sm'
-                }`} data-order-id={order.id}>
-                  <div class="flex items-center justify-between pb-3 border-b border-gray-100">
-                    <div class="flex items-center gap-2">
-                      <span class="text-sm font-extrabold text-gray-900 font-mono">#{order.order_number || order.id.slice(0, 8)}</span>
-                      <span class="text-xs text-gray-400 font-medium">• {new Date(order.placed_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                <article class={`vd-order vd-order--${tone}`} data-order-id={order.id}>
+                  <div class="vd-order-head">
+                    <div class="vd-order-id">
+                      <span class="vd-mono vd-order-num">#{order.order_number || order.id.slice(0, 8)}</span>
+                      <span class="vd-order-time">{new Date(order.placed_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
-                    <span class={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${
-                      isIncoming ? 'bg-amber-100 text-amber-800' :
-                      isAccepted || isPreparing ? 'bg-blue-100 text-blue-800' :
-                      isReady ? 'bg-emerald-100 text-emerald-800' :
-                      'bg-gray-100 text-gray-700'
-                    }`}>
-                      {statusLabel}
+                    <span class={`vd-status vd-status--${tone}`}>{statusLabel}</span>
+                  </div>
+
+                  <div class="vd-items">
+                    <span class="vd-items-label">Artículos a empacar ({orderItems.length || 1})</span>
+                    {orderItems.length > 0 ? (
+                      orderItems.map((it: any) => {
+                        const pName = productNamesMap[it.product_id] || cleanProductName(it.name || '') || `Artículo #${String(it.product_id || '').slice(0, 6)}`;
+                        const qty = Number(it.quantity) || 1;
+                        const unitPrice = Number(it.unit_price) || 0;
+                        return (
+                          <div class="vd-item">
+                            <span class="vd-item-name"><strong class="vd-qty">{qty}x</strong> {pName}</span>
+                            <span class="vd-num">${(unitPrice * qty).toFixed(2)}</span>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div class="vd-item">
+                        <span class="vd-item-name"><strong class="vd-qty">1x</strong> Pedido de catálogo ({currentStore.name})</span>
+                        <span class="vd-num">${(Number(order.subtotal) || totalUSD).toFixed(2)}</span>
+                      </div>
+                    )}
+                    {(order.notes || order.instructions) && (
+                      <p class="vd-note">{order.notes || order.instructions}</p>
+                    )}
+                  </div>
+
+                  <div class="vd-order-meta">
+                    <span class="vd-dest">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                      <span>Destino: <strong>{order.delivery_address || 'Higuerote, Miranda'}</strong></span>
+                    </span>
+                    <span class={`vd-pay ${isPaid ? 'is-paid' : ''}`}>
+                      {isPaid ? 'Pagado' : formatPaymentMethod(order.payment_method)}
                     </span>
                   </div>
 
-                  <div class="py-3 space-y-2 border-b border-gray-100">
-                    <div class="bg-gray-50 rounded-2xl p-3 space-y-1.5 border border-gray-100">
-                      <span class="text-[10px] font-black uppercase tracking-wider text-gray-400 block">Artículos a Empacar ({orderItems.length || 1})</span>
-                      {orderItems.length > 0 ? (
-                        orderItems.map((it: any) => {
-                          const pName = productNamesMap[it.product_id] || cleanProductName(it.name || '') || `Artículo #${String(it.product_id || '').slice(0, 6)}`;
-                          const qty = Number(it.quantity) || 1;
-                          const unitPrice = Number(it.unit_price) || 0;
-                          return (
-                            <div class="flex items-center justify-between text-xs">
-                              <span class="font-bold text-gray-900">
-                                <strong class="text-[#FF5A00] font-black">{qty}x</strong> {pName}
-                              </span>
-                              <span class="font-bold text-gray-600">${(unitPrice * qty).toFixed(2)}</span>
-                            </div>
-                          );
-                        })
-                      ) : (
-                        <div class="flex items-center justify-between text-xs">
-                          <span class="font-bold text-gray-900"><strong class="text-[#FF5A00] font-black">1x</strong> Pedido de Catálogo ({currentStore.name})</span>
-                          <span class="font-bold text-gray-600">${(Number(order.subtotal) || totalUSD).toFixed(2)}</span>
-                        </div>
-                      )}
-                      {(order.notes || order.instructions) && (
-                        <p class="text-[11px] text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg font-semibold mt-1">
-                          📝 {order.notes || order.instructions}
-                        </p>
-                      )}
+                  <div class="vd-order-foot">
+                    <div class="vd-total">
+                      <span class="vd-total-usd">${totalUSD.toFixed(2)}</span>
+                      <span class="vd-total-bs">{totalBsFormatted}</span>
                     </div>
-
-                    <div class="flex items-center justify-between text-xs text-gray-500 pt-1">
-                      <span class="truncate max-w-[230px]">📍 Destino: <strong class="text-gray-900 font-bold">{order.delivery_address || 'Higuerote, Miranda'}</strong></span>
-                      <span class={`font-black px-2 py-0.5 rounded-md text-[10px] uppercase shrink-0 ${isPaid ? 'bg-emerald-50 text-emerald-700' : 'bg-orange-50 text-[#FF7A00]'}`}>
-                        {isPaid ? '✓ Pagado' : formatPaymentMethod(order.payment_method)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div class="pt-3 flex items-center justify-between gap-2">
-                    <div class="flex flex-col">
-                      <span class="text-sm font-black text-gray-900">${totalUSD.toFixed(2)}</span>
-                      <span class="text-[10px] text-gray-400 font-semibold">{totalBsFormatted}</span>
-                    </div>
-
-                    <div class="flex items-center gap-2">
+                    <div class="vd-actions">
                       {isIncoming && (
-                        <button 
-                          data-action="accept" 
-                          data-order-id={order.id}
-                          class="btn-order-action px-4 py-2 rounded-xl bg-[#FF7A00] hover:bg-[#E66E00] text-white text-xs font-extrabold shadow-sm active:scale-95 transition-all cursor-pointer"
-                        >
-                          Aceptar Pedido
-                        </button>
+                        <button type="button" data-action="accept" data-order-id={order.id} class="btn-order-action vd-act vd-act--accept">Aceptar pedido</button>
                       )}
-
                       {isAccepted && (
-                        <button 
-                          data-action="prepare" 
-                          data-order-id={order.id}
-                          class="btn-order-action px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold shadow-sm active:scale-95 transition-all cursor-pointer"
-                        >
-                          Comenzar Preparación
-                        </button>
+                        <button type="button" data-action="prepare" data-order-id={order.id} class="btn-order-action vd-act vd-act--prepare">Comenzar preparación</button>
                       )}
-
                       {isPreparing && (
-                        <button 
-                          data-action="ready" 
-                          data-order-id={order.id}
-                          class="btn-order-action px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-sm active:scale-95 transition-all cursor-pointer"
-                        >
-                          Marcar Listo p/ Despacho
-                        </button>
+                        <button type="button" data-action="ready" data-order-id={order.id} class="btn-order-action vd-act vd-act--ready">Marcar listo p/ despacho</button>
                       )}
-
                       {isReady && (
-                        <span class="text-xs font-bold text-emerald-600 flex items-center gap-1">
-                          <span>✓</span>
-                          <span>Listo p/ Retiro</span>
+                        <span class="vd-ready">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                          <span>Listo p/ retiro</span>
                         </span>
                       )}
                     </div>
                   </div>
-                </div>
+                </article>
               );
             })
           )}
         </div>
-      </div>
+      </section>
 
-      <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-4">
-        <div class="flex items-center justify-between gap-2">
+      <section class="vd-catalog" aria-labelledby="vd-catalog-title">
+        <div class="vd-section-head">
           <div>
-            <h3 class="text-sm font-extrabold text-gray-900">Control de Catálogo y Disponibilidad</h3>
-            <p class="text-xs text-gray-400">{storeProducts.length} productos sincronizados a tasa BCV</p>
+            <h2 id="vd-catalog-title" class="vd-catalog-title">Control de catálogo y disponibilidad</h2>
+            <p class="vd-catalog-sub">{storeProducts.length} productos sincronizados a tasa BCV</p>
           </div>
-          <span class="text-xs font-bold text-[#FF7A00] bg-orange-50 px-2.5 py-1 rounded-full">{currentStore.name}</span>
+          <span class="vd-chip">{currentStore.name}</span>
         </div>
 
-        <div class="relative">
+        <div class="vd-search">
           <input
             id="vendor-catalog-search"
             type="search"
             placeholder={`Buscar entre los ${storeProducts.length} productos de ${currentStore.name}...`}
-            class="w-full h-10 pl-9 pr-3 rounded-xl bg-gray-50 border border-gray-200 text-xs font-semibold text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-[#FF7A00]"
+            class="vd-search-input"
+            aria-label="Buscar productos"
           />
-          <svg class="w-4 h-4 text-gray-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="vd-search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
 
-        <div class="space-y-2 max-h-[420px] overflow-y-auto pr-1" id="vendor-catalog-list">
+        <div class="vd-product-list" id="vendor-catalog-list">
           {storeProducts.map((item) => {
             const priceUSD = Number(item.base_price) || 0;
             const priceBs = formatBs(priceUSD, bcvRate);
             const displayName = cleanProductName(item.name);
             return (
-              <div class="vendor-product-row flex items-center justify-between p-2.5 rounded-2xl bg-gray-50 border border-gray-100" data-name={displayName.toLowerCase()}>
-                <div class="flex-1 min-w-0 pr-3">
-                  <p class="text-xs font-extrabold text-gray-900 truncate">{displayName}</p>
-                  <div class="flex items-center gap-2 mt-0.5">
-                    <span class="text-[11px] font-bold text-[#FF5A00]">${priceUSD.toFixed(2)}</span>
-                    <span class="text-[10px] font-semibold text-gray-400">{priceBs}</span>
+              <div class="vendor-product-row vd-product" data-name={displayName.toLowerCase()}>
+                <div class="vd-product-info">
+                  <p class="vd-product-name">{displayName}</p>
+                  <div class="vd-product-price">
+                    <span class="vd-price-usd">${priceUSD.toFixed(2)}</span>
+                    <span class="vd-price-bs">{priceBs}</span>
                   </div>
                 </div>
-                <label class="flex items-center gap-2 cursor-pointer">
-                  <span class={`avail-status-text text-[10px] font-bold ${item.is_available !== false ? 'text-emerald-600' : 'text-gray-400'}`}>
+                <label class="vd-avail">
+                  <span class="avail-status-text">
                     {item.is_available !== false ? 'Disponible' : 'Pausado'}
                   </span>
                   <input
                     type="checkbox"
                     checked={item.is_available !== false}
                     data-product-id={item.id}
-                    class="product-avail-checkbox w-4 h-4 rounded text-[#FF7A00] focus:ring-[#FF7A00] accent-[#FF7A00] cursor-pointer"
+                    class="product-avail-checkbox vd-check"
                   />
                 </label>
               </div>
             );
           })}
         </div>
+      </section>
       </div>
     </main>
 

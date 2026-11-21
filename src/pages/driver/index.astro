@@ -3,6 +3,7 @@ import RoleSwitcher from '../../components/RoleSwitcher.astro';
 import { getOfficialExchangeRate, formatBs } from '../../adapters/rates';
 import { fetchStoresMap } from '../../adapters/stores';
 import '../../styles/global.css';
+import '../../styles/pages/driver.css';
 
 const API_BASE = 'https://api.traigalo.org/v2';
 const bcvRate = await getOfficialExchangeRate();
@@ -75,296 +76,235 @@ function formatDriverStatus(st: string): string {
     <meta name="theme-color" content="#FF5A00" />
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <title>Panel de Repartidor | Traigalo ⚡</title>
+    <title>Panel de repartidor | Traigalo</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   </head>
-  <body class="bg-[#FAFAFC] text-[#1A1D20] min-h-screen flex flex-col pb-16 antialiased selection:bg-[#FF7A00] selection:text-white">
+  <body class="dv-body">
     <RoleSwitcher currentRole="driver" />
 
-    <header class="bg-white/95 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40 px-4 py-3.5">
-      <div class="max-w-2xl mx-auto flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <a href="/" class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-400 to-[#FF7A00] flex items-center justify-center text-xl shadow-xs text-white font-black">
-            🛵
-          </a>
-          <div>
-            <h1 class="text-sm font-extrabold text-gray-900 leading-tight">{driver.name}</h1>
-            <span class="text-[10px] font-bold text-amber-500">{driver.rating} • {driver.vehicle}</span>
-          </div>
+    <header class="dv-header tg-glass">
+      <div class="dv-header-inner">
+        <a href="/" class="dv-avatar" aria-label="Ir al inicio">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.5" cy="17.5" r="3"/><circle cx="18.5" cy="17.5" r="3"/><path d="M8.5 17.5h6l3-7h-4M5.5 17.5l3-6h5"/><path d="M15 6h2.5l1 4.5"/></svg>
+        </a>
+        <div class="dv-who">
+          <h1 class="dv-name">{driver.name}</h1>
+          <span class="dv-meta">{driver.rating} · {driver.vehicle}</span>
         </div>
-
-        <div class="flex items-center gap-2">
-          <div class="text-right hidden sm:block">
-            <span class="text-[10px] text-gray-400 block font-semibold">Tasa BCV</span>
-            <span class="text-xs font-black text-gray-800">{bcvRate.toFixed(2)} Bs/$</span>
+        <div class="dv-header-end">
+          <div class="dv-bcv">
+            <span class="dv-label">Tasa BCV</span>
+            <span class="dv-num">{bcvRate.toFixed(2)} Bs/$</span>
           </div>
-          <div id="gps-status-badge" class="flex items-center gap-2 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full cursor-pointer">
+          <div id="gps-status-badge" class="dv-gps" role="status">
             <span id="gps-pulse" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span id="gps-text" class="text-xs font-extrabold text-emerald-800">GPS Activo</span>
+            <span id="gps-text" class="dv-gps-text">GPS Activo</span>
           </div>
         </div>
       </div>
     </header>
 
-    <main class="max-w-2xl mx-auto px-4 py-5 w-full space-y-4">
-      
-      <section class="bg-gradient-to-r from-[#FF7A00] to-[#FF9432] rounded-3xl p-5 text-white shadow-lg shadow-orange-500/15">
-        <span class="text-[10px] font-extrabold uppercase tracking-wider text-orange-100">Ganancias Acumuladas Hoy</span>
-        <div class="flex items-baseline justify-between mt-1 mb-1">
-          <h2 class="text-3xl font-black tracking-tight">${driver.todayEarningsUSD.toFixed(2)}</h2>
-          <span class="text-xs font-bold text-white bg-white/20 px-2.5 py-1 rounded-xl backdrop-blur-md">
-            {driver.todayDeliveries} Entregas
-          </span>
-        </div>
-        <p class="text-[11px] text-orange-100 font-semibold mb-3">{earningsBs}</p>
-
-        <div class="grid grid-cols-2 gap-2 pt-3 border-t border-white/20 text-xs">
-          <div>
-            <span class="text-orange-100 text-[10px] block">Propinas recibidas</span>
-            <strong class="font-black text-sm">${driver.todayTipsUSD.toFixed(2)}</strong>
-            <span class="text-[9px] text-orange-100/90 block">{tipsBs}</span>
-          </div>
-          <div>
-            <span class="text-orange-100 text-[10px] block">Tiempo en ruta</span>
-            <strong class="font-black text-sm">{driver.onlineTime}</strong>
-            <span class="text-[9px] text-orange-100/90 block">Eficiencia: 99.4%</span>
-          </div>
-        </div>
-      </section>
+    <main class="dv-main">
 
       {currentActiveOrder && (
-        <section class="bg-white rounded-3xl p-5 border-2 border-orange-600/40 shadow-md relative overflow-hidden">
-          <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center gap-2">
-              <span class="px-2.5 py-0.5 rounded-full bg-orange-100 text-[#FF7A00] font-extrabold text-[10px] uppercase tracking-wider">
-                ● Pedido Activo #{currentActiveOrder.order_number || currentActiveOrder.id.slice(0, 8)}
+        <section class="dv-active" aria-labelledby="dv-active-title">
+          <div class="dv-active-head">
+            <div class="dv-tags">
+              <span id="dv-active-title" class="dv-tag dv-tag--accent">
+                <span class="dv-live" aria-hidden="true"></span>
+                Pedido activo #{currentActiveOrder.order_number || currentActiveOrder.id.slice(0, 8)}
               </span>
-              <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-black text-[10px]">
-                {formatDriverStatus(currentActiveOrder.status)}
-              </span>
+              <span class="dv-tag dv-tag--ok">{formatDriverStatus(currentActiveOrder.status)}</span>
             </div>
-            <div class="text-right">
-              <span class="text-sm font-black text-[#FF7A00]">
-                ${Number(currentActiveOrder.total).toFixed(2)}
-              </span>
-              <span class="text-[9px] text-gray-400 block font-semibold">
-                {formatBs(Number(currentActiveOrder.total), bcvRate)}
-              </span>
+            <div class="dv-amount">
+              <span class="dv-amount-usd dv-num">${Number(currentActiveOrder.total).toFixed(2)}</span>
+              <span class="dv-amount-bs dv-num">{formatBs(Number(currentActiveOrder.total), bcvRate)}</span>
             </div>
           </div>
 
-          <div class="space-y-3.5 my-4">
-            <div class="flex items-start gap-3">
-              <div class="w-8 h-8 rounded-full bg-orange-50 text-[#FF7A00] font-bold text-xs flex items-center justify-center shrink-0 border border-orange-100">
-                1
+          <ol class="dv-route">
+            <li class="dv-stop">
+              <span class="dv-step dv-step--pickup" aria-hidden="true">1</span>
+              <div class="dv-stop-body">
+                <span class="dv-label">Recoger en comercio oficial</span>
+                <h4 class="dv-stop-title">{storesMap[currentActiveOrder.store_id]?.name || 'Comercio Oficial'}</h4>
+                <p class="dv-stop-sub">{storesMap[currentActiveOrder.store_id]?.address_line || 'Higuerote, Estado Miranda'}</p>
               </div>
-              <div class="flex-1 min-w-0">
-                <span class="text-[10px] font-bold text-gray-400 uppercase">Recoger en Comercio Oficial</span>
-                <h4 class="text-xs font-black text-gray-900 truncate">
-                  🏬 {storesMap[currentActiveOrder.store_id]?.name || 'Comercio Oficial'}
-                </h4>
-                <p class="text-[11px] text-gray-500 truncate">{storesMap[currentActiveOrder.store_id]?.address_line || 'Higuerote, Estado Miranda'}</p>
+            </li>
+            <li class="dv-stop">
+              <span class="dv-step dv-step--drop" aria-hidden="true">2</span>
+              <div class="dv-stop-body">
+                <span class="dv-label">Entregar en destino</span>
+                <h4 class="dv-stop-title">{currentActiveOrder.delivery_address || 'Av. Andrés Eloy Blanco, Higuerote'}</h4>
+                <p class="dv-stop-sub">Entrega express prioritaria</p>
               </div>
-            </div>
+            </li>
+          </ol>
 
-            <div class="flex items-start gap-3">
-              <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 font-bold text-xs flex items-center justify-center shrink-0 border border-emerald-100">
-                2
-              </div>
-              <div class="flex-1 min-w-0">
-                <span class="text-[10px] font-bold text-gray-400 uppercase">Entregar en Destino</span>
-                <h4 class="text-xs font-bold text-gray-900 truncate">{currentActiveOrder.delivery_address || 'Av. Andrés Eloy Blanco, Higuerote'}</h4>
-                <p class="text-[11px] text-gray-500 truncate">Entrega Express Prioritaria</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2.5 pt-2">
-            <a 
-              href={`/orders/track?id=${currentActiveOrder.id}`}
-              class="h-12 rounded-2xl bg-gray-50 hover:bg-gray-100 border border-gray-100 text-gray-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
-            >
-              <span>🗺️</span>
-              <span>Ver en Mapa</span>
+          <div class="dv-active-actions">
+            <a href={`/orders/track?id=${currentActiveOrder.id}`} class="dv-btn dv-btn--ghost">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg>
+              <span>Ver en mapa</span>
             </a>
 
             {currentActiveOrder.status === 'driver_assigned' && (
-              <button 
-                data-action="transit"
-                data-order-id={currentActiveOrder.id}
-                class="btn-driver-action h-12 rounded-2xl bg-[#FF7A00] hover:bg-[#E66E00] text-white font-extrabold text-xs shadow-md shadow-orange-600/20 flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
-              >
-                <span>🚀</span>
-                <span>Iniciar Ruta</span>
+              <button data-action="transit" data-order-id={currentActiveOrder.id} type="button" class="btn-driver-action dv-btn dv-btn--primary">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 14 0M13 6l6 6-6 6"/></svg>
+                <span>Iniciar ruta</span>
               </button>
             )}
 
             {(currentActiveOrder.status === 'in_transit' || currentActiveOrder.status === 'driver_in_transit') && (
-              <button 
-                data-action="deliver"
-                data-order-id={currentActiveOrder.id}
-                class="btn-driver-action h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
-              >
-                <span>✓</span>
-                <span>Confirmar Entrega</span>
+              <button data-action="deliver" data-order-id={currentActiveOrder.id} type="button" class="btn-driver-action dv-btn dv-btn--success">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
+                <span>Confirmar entrega</span>
               </button>
             )}
           </div>
         </section>
       )}
 
-      <section class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-3">
-        <div class="flex items-center justify-between">
+      <section class="dv-earn" aria-label="Ganancias de hoy">
+        <span class="dv-label dv-label--night">Ganancias acumuladas hoy</span>
+        <div class="dv-earn-row">
+          <h2 class="dv-earn-total dv-num">${driver.todayEarningsUSD.toFixed(2)}</h2>
+          <span class="dv-earn-count dv-num">{driver.todayDeliveries} entregas</span>
+        </div>
+        <p class="dv-earn-bs dv-num">{earningsBs}</p>
+        <div class="dv-earn-grid">
           <div>
-            <h3 class="text-sm font-extrabold text-gray-900">Pedidos Disponibles por Comercio</h3>
-            <p class="text-xs text-gray-400">Acepta órdenes activas de comercios verificados en tu zona</p>
+            <span class="dv-label dv-label--night">Propinas recibidas</span>
+            <strong class="dv-num">${driver.todayTipsUSD.toFixed(2)}</strong>
+            <span class="dv-earn-sub dv-num">{tipsBs}</span>
           </div>
-          <span class="text-xs font-black text-[#FF7A00] bg-orange-50 px-2.5 py-1 rounded-full">
-            {availableOrders.length} disponibles
-          </span>
+          <div>
+            <span class="dv-label dv-label--night">Tiempo en ruta</span>
+            <strong class="dv-num">{driver.onlineTime}</strong>
+            <span class="dv-earn-sub dv-num">Eficiencia: 99.4%</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="dv-card" aria-labelledby="dv-available-title">
+        <div class="dv-card-head">
+          <div>
+            <h3 id="dv-available-title" class="dv-card-title">Pedidos disponibles por comercio</h3>
+            <p class="dv-card-sub">Acepta órdenes activas de comercios verificados en tu zona</p>
+          </div>
+          <span class="dv-count dv-num">{availableOrders.length} disponibles</span>
         </div>
 
         {availableOrders.length === 0 ? (
-          <div class="text-center py-8 text-gray-400 text-xs">
-            <span class="text-2xl block mb-1">📡</span>
-            <p class="font-bold text-gray-600">Buscando nuevas órdenes en tu zona...</p>
-            <p class="text-[11px] text-gray-400 mt-1">Mantente con la aplicación abierta</p>
+          <div class="dv-empty">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.9 19.1a10 10 0 0 1 0-14.2M19.1 4.9a10 10 0 0 1 0 14.2M7.8 16.2a6 6 0 0 1 0-8.4M16.2 7.8a6 6 0 0 1 0 8.4"/><circle cx="12" cy="12" r="2"/></svg>
+            <p class="dv-empty-title">Buscando nuevas órdenes en tu zona...</p>
+            <p class="dv-card-sub">Mantente con la aplicación abierta</p>
           </div>
         ) : (
-          <div class="space-y-3">
+          <ul class="dv-list">
             {availableOrders.map((ord) => {
               const totalUSD = Number(ord.total) || 0;
               const totalBsFormatted = formatBs(totalUSD, bcvRate);
               const sName = storesMap[ord.store_id]?.name || 'Comercio Oficial';
               return (
-                <div class="p-4 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-between gap-3">
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <span class="text-xs font-black text-gray-900 font-mono">#{ord.order_number || ord.id.slice(0, 8)}</span>
-                      <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-[#FF7A00]">🏬 {sName}</span>
-                      <span class="text-[9px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">{formatDriverStatus(ord.status)}</span>
+                <li class="dv-offer">
+                  <div class="dv-offer-body">
+                    <div class="dv-tags">
+                      <span class="dv-code dv-num">#{ord.order_number || ord.id.slice(0, 8)}</span>
+                      <span class="dv-tag dv-tag--accent">{sName}</span>
+                      <span class="dv-tag dv-tag--ok">{formatDriverStatus(ord.status)}</span>
                     </div>
-                    <p class="text-xs text-gray-600 font-medium truncate mt-1">📍 {ord.delivery_address || 'Higuerote, Miranda'}</p>
-                    <div class="flex items-center gap-2 mt-1">
-                      <span class="text-xs font-black text-gray-900">${totalUSD.toFixed(2)}</span>
-                      <span class="text-[10px] font-bold text-gray-400">{totalBsFormatted}</span>
+                    <p class="dv-addr">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                      <span>{ord.delivery_address || 'Higuerote, Miranda'}</span>
+                    </p>
+                    <div class="dv-price">
+                      <span class="dv-num">${totalUSD.toFixed(2)}</span>
+                      <span class="dv-price-bs dv-num">{totalBsFormatted}</span>
                     </div>
                   </div>
-
-                  <button 
-                    data-action="assign_driver"
-                    data-order-id={ord.id}
-                    class="btn-driver-action shrink-0 px-4 py-2.5 rounded-xl bg-[#FF7A00] hover:bg-[#E66E00] text-white text-xs font-black shadow-sm active:scale-95 transition-all cursor-pointer"
-                  >
-                    Aceptar Pedido
+                  <button data-action="assign_driver" data-order-id={ord.id} type="button" class="btn-driver-action dv-btn dv-btn--primary dv-btn--accept">
+                    Aceptar pedido
                   </button>
-                </div>
+                </li>
               );
             })}
-          </div>
+          </ul>
         )}
       </section>
 
-      <section class="bg-white rounded-3xl p-5 border border-gray-100 shadow-xs">
-        <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-400 mb-3">Historial de Despachos</h3>
-        
-        <div class="space-y-3">
+      <section class="dv-card" aria-labelledby="dv-history-title">
+        <h3 id="dv-history-title" class="dv-card-title">Historial de despachos</h3>
+        <ul class="dv-history">
           {assignedOrders.map(ord => {
             const sName = storesMap[ord.store_id]?.name || 'Comercio Oficial';
+            const done = ord.status === 'delivered';
             return (
-              <div class="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0 last:pb-0 text-xs">
-                <div class="flex items-center gap-2.5 min-w-0">
-                  <span class={`w-8 h-8 rounded-full font-bold text-xs flex items-center justify-center shrink-0 ${
-                    ord.status === 'delivered' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-[#FF7A00]'
-                  }`}>
-                    {ord.status === 'delivered' ? '✓' : '🛵'}
-                  </span>
-                  <div class="min-w-0">
-                    <h4 class="font-bold text-gray-900 leading-tight truncate">#{ord.order_number || ord.id.slice(0, 8)} • {sName}</h4>
-                    <p class="text-[11px] text-gray-500 truncate">{ord.delivery_address || 'Higuerote, Miranda'}</p>
-                    <span class="text-[10px] text-gray-400 font-semibold">{new Date(ord.placed_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • <strong class="text-gray-600">{formatDriverStatus(ord.status)}</strong></span>
-                  </div>
+              <li class="dv-hist">
+                <span class={`dv-hist-icon ${done ? 'dv-hist-icon--done' : ''}`} aria-hidden="true">
+                  {done ? (
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3"/><circle cx="18.5" cy="17.5" r="3"/><path d="M8.5 17.5h6l3-7h-4M5.5 17.5l3-6h5"/></svg>
+                  )}
+                </span>
+                <div class="dv-hist-body">
+                  <h4 class="dv-stop-title">#{ord.order_number || ord.id.slice(0, 8)} · {sName}</h4>
+                  <p class="dv-stop-sub">{ord.delivery_address || 'Higuerote, Miranda'}</p>
+                  <span class="dv-hist-meta dv-num">{new Date(ord.placed_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · <strong>{formatDriverStatus(ord.status)}</strong></span>
                 </div>
-                <div class="text-right shrink-0 ml-2">
-                  <span class="font-black text-gray-900">${Number(ord.total).toFixed(2)}</span>
-                  <span class="block text-[9px] text-gray-400 font-semibold">{formatBs(Number(ord.total), bcvRate)}</span>
+                <div class="dv-amount">
+                  <span class="dv-num dv-hist-usd">${Number(ord.total).toFixed(2)}</span>
+                  <span class="dv-amount-bs dv-num">{formatBs(Number(ord.total), bcvRate)}</span>
                 </div>
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       </section>
 
     </main>
 
-    <div id="urgent-dispatch-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl text-center space-y-4 border-2 border-emerald-500 animate-pulse">
-        <div class="relative w-20 h-20 mx-auto flex items-center justify-center">
-          <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-            <path
-              class="text-gray-100"
-              stroke-width="3.5"
-              stroke="currentColor"
-              fill="none"
-              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-            />
-            <path
-              id="countdown-circle"
-              class="text-emerald-500 transition-all duration-1000 ease-linear"
-              stroke-dasharray="100, 100"
-              stroke-width="3.5"
-              stroke-linecap="round"
-              stroke="currentColor"
-              fill="none"
-              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-            />
+    <div id="urgent-dispatch-modal" class="dv-modal hidden" role="dialog" aria-modal="true" aria-labelledby="offer-store-name">
+      <div class="dv-sheet tg-glass">
+        <div class="dv-ring">
+          <svg viewBox="0 0 36 36" aria-hidden="true">
+            <path class="dv-ring-track" stroke-width="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+            <path id="countdown-circle" class="dv-ring-bar" stroke-dasharray="100, 100" stroke-width="3.5" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
           </svg>
-          <span id="dispatch-countdown" class="absolute text-xl font-black text-gray-900">45</span>
+          <span id="dispatch-countdown" class="dv-ring-num dv-num">45</span>
         </div>
 
-        <div>
-          <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider">
-            ¡Nueva Oferta de Pedido!
-          </span>
-          <h3 id="offer-store-name" class="text-base font-black text-gray-900 mt-2">Comercio Oficial</h3>
-          <p id="offer-store-dist" class="text-xs text-gray-500 font-semibold mt-0.5">Retiro a 0.8 km de tu ubicación</p>
+        <div class="dv-sheet-head">
+          <span class="dv-tag dv-tag--ok">Nueva oferta de pedido</span>
+          <h3 id="offer-store-name" class="dv-sheet-title">Comercio Oficial</h3>
+          <p id="offer-store-dist" class="dv-card-sub">Retiro a 0.8 km de tu ubicación</p>
         </div>
 
-        <div class="p-3 bg-gray-50 rounded-2xl border border-gray-100 text-left space-y-1.5 text-xs">
-          <div class="flex items-start gap-2">
-            <span class="text-sm">📍</span>
-            <div class="flex-1 min-w-0">
-              <span class="text-[9px] text-gray-400 font-black uppercase block">Entrega en</span>
-              <p id="offer-delivery-addr" class="font-bold text-gray-800 truncate">Av. Andrés Eloy Blanco, Higuerote</p>
+        <div class="dv-sheet-box">
+          <div class="dv-sheet-row">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+            <div class="dv-stop-body">
+              <span class="dv-label">Entrega en</span>
+              <p id="offer-delivery-addr" class="dv-stop-title">Av. Andrés Eloy Blanco, Higuerote</p>
             </div>
           </div>
-          <div class="pt-2 border-t border-gray-100 flex items-center justify-between">
-            <span class="text-[10px] text-gray-400 font-black uppercase">Ganancia Neta</span>
-            <div class="text-right">
-              <span id="offer-earnings-usd" class="text-base font-black text-emerald-600 block">$3.50</span>
-              <span id="offer-earnings-bs" class="text-[9px] text-gray-400 font-semibold block">~ Bs. 3.136,43 @ BCV</span>
+          <div class="dv-sheet-earn">
+            <span class="dv-label">Ganancia neta</span>
+            <div class="dv-amount">
+              <span id="offer-earnings-usd" class="dv-offer-usd dv-num">$3.50</span>
+              <span id="offer-earnings-bs" class="dv-amount-bs dv-num">~ Bs. 3.136,43 @ BCV</span>
             </div>
           </div>
         </div>
 
-        <div class="space-y-2 pt-2">
-          <button 
-            id="btn-accept-offer"
-            type="button" 
-            class="w-full h-14 rounded-2xl bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-black text-base shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 cursor-pointer transition-all"
-          >
-            <span>ACEPTAR PEDIDO</span>
-            <span>✓</span>
+        <div class="dv-sheet-actions">
+          <button id="btn-accept-offer" type="button" class="dv-btn dv-btn--success dv-btn--xl">
+            <span>Aceptar pedido</span>
           </button>
-          <button 
-            id="btn-reject-offer"
-            type="button" 
-            class="w-full py-2.5 text-xs font-bold text-gray-400 hover:text-rose-500 cursor-pointer transition-colors"
-          >
-            Rechazar
-          </button>
+          <button id="btn-reject-offer" type="button" class="dv-btn dv-btn--text">Rechazar</button>
         </div>
       </div>
     </div>
